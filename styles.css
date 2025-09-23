@@ -194,6 +194,16 @@ a:hover {
     margin: 0 auto;
 }
 
+.nav-logo a {
+    text-decoration: none;
+    color: inherit;
+    transition: opacity var(--transition-fast);
+}
+
+.nav-logo a:hover {
+    opacity: 0.8;
+}
+
 .nav-logo h2 {
     margin: 0;
     font-size: var(--font-size-2xl);

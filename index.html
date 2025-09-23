@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevelopED - Custom Business Applications</title>
+    <meta name="description" content="DevelopED creates tailored applications for small businesses using modern AI and cloud technologies. Fast, affordable, and reliable solutions.">
+    
+    <!-- Favicon - Add your favicon.ico file to enable -->
+    <!-- <link rel="icon" type="image/x-icon" href="favicon.ico"> -->
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h2>Develop<span class="accent">ED</span></h2>
+            </div>
+            
+            <div class="nav-menu">
+                <a href="#home" class="nav-link" data-translate="nav.home">Home</a>
+                <a href="#about" class="nav-link" data-translate="nav.about">About</a>
+                <a href="#projects" class="nav-link" data-translate="nav.projects">Projects</a>
+                <a href="#contact" class="nav-link" data-translate="nav.contact">Contact</a>
+                
+                <!-- Language Switcher -->
+                <div class="language-switcher">
+                    <select id="languageSelect" class="language-select">
+                        <option value="en">EN</option>
+                        <option value="sk">SK</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Mobile menu button -->
+            <div class="hamburger" id="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title">
+                    <span data-translate="hero.title">Custom Business Applications</span>
+                    <span class="hero-subtitle" data-translate="hero.subtitle">Built with AI & Modern Technology</span>
+                </h1>
+                <p class="hero-description" data-translate="hero.description">
+                    Using cutting-edge technologies and artificial intelligence, we create and deliver applications according to your vision much faster and more cost-effectively than traditional development methods.
+                </p>
+                <div class="hero-buttons">
+                    <a href="#projects" class="btn btn-primary" data-translate="hero.view_projects">View Projects</a>
+                    <a href="#contact" class="btn btn-secondary" data-translate="hero.get_started">Get Started</a>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="tech-stack">
+                    <div class="tech-item">
+                        <i class="fab fa-js-square"></i>
+                        <span>JavaScript</span>
+                    </div>
+                    <div class="tech-item">
+                        <i class="fas fa-database"></i>
+                        <span>Supabase</span>
+                    </div>
+                    <div class="tech-item">
+                        <i class="fas fa-cloud"></i>
+                        <span>Vercel</span>
+                    </div>
+                    <div class="tech-item">
+                        <i class="fas fa-robot"></i>
+                        <span>AI</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about">
+        <div class="container">
+            <div class="section-header">
+                <h2 data-translate="about.title">About DevelopED</h2>
+                <p data-translate="about.subtitle">Modern solutions for modern businesses</p>
+            </div>
+            
+            <div class="about-content">
+                <div class="about-text">
+                    <h3 data-translate="about.mission.title">Our Mission</h3>
+                    <p data-translate="about.mission.description">
+                        We specialize in creating tailored applications for small businesses using the latest technologies including AI-assisted development, cloud databases, and modern hosting solutions. Our approach ensures faster delivery times and more affordable pricing compared to traditional development methods.
+                    </p>
+                    
+                    <h3 data-translate="about.approach.title">Our Approach</h3>
+                    <ul class="feature-list">
+                        <li>
+                            <i class="fas fa-bolt"></i>
+                            <span data-translate="about.approach.speed">Rapid Development with AI Assistance</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-dollar-sign"></i>
+                            <span data-translate="about.approach.cost">Cost-Effective Solutions</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-cog"></i>
+                            <span data-translate="about.approach.tailored">Fully Customized Applications</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-cloud"></i>
+                            <span data-translate="about.approach.cloud">Modern Cloud Infrastructure</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="about-stats">
+                    <div class="stat-item">
+                        <div class="stat-number">100%</div>
+                        <div class="stat-label" data-translate="stats.satisfaction">Client Satisfaction</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">3x</div>
+                        <div class="stat-label" data-translate="stats.faster">Faster Development</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">50%</div>
+                        <div class="stat-label" data-translate="stats.savings">Cost Savings</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Projects Section -->
+    <section id="projects" class="projects">
+        <div class="container">
+            <div class="section-header">
+                <h2 data-translate="projects.title">Our Projects</h2>
+                <p data-translate="projects.subtitle">Successful applications we've built for our clients</p>
+            </div>
+            
+            <div class="projects-grid">
+                <!-- Project 1 -->
+                <div class="project-card">
+                    <div class="project-image">
+                        <img src="https://via.placeholder.com/400x250/1a1a1a/4f46e5?text=Business+App" alt="Business Application">
+                        <div class="project-overlay">
+                            <button class="btn btn-primary" data-translate="projects.view_details">View Details</button>
+                        </div>
+                    </div>
+                    <div class="project-content">
+                        <h3 data-translate="projects.business.title">Business Management System</h3>
+                        <p data-translate="projects.business.description">Custom business application with user management, data analytics, and reporting features. Built with modern web technologies.</p>
+                        <div class="project-tech">
+                            <span class="tech-tag">React</span>
+                            <span class="tech-tag">Supabase</span>
+                            <span class="tech-tag">JavaScript</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Project 2 -->
+                <div class="project-card">
+                    <div class="project-image">
+                        <img src="https://via.placeholder.com/400x250/1a1a1a/10b981?text=E-commerce+App" alt="E-commerce Application">
+                        <div class="project-overlay">
+                            <button class="btn btn-primary" data-translate="projects.view_details">View Details</button>
+                        </div>
+                    </div>
+                    <div class="project-content">
+                        <h3 data-translate="projects.ecommerce.title">E-commerce Platform</h3>
+                        <p data-translate="projects.ecommerce.description">Modern online store with inventory management, payment processing, and customer analytics. Responsive design for all devices.</p>
+                        <div class="project-tech">
+                            <span class="tech-tag">React</span>
+                            <span class="tech-tag">Stripe</span>
+                            <span class="tech-tag">Next.js</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Project 3 -->
+                <div class="project-card">
+                    <div class="project-image">
+                        <img src="https://via.placeholder.com/400x250/1a1a1a/f59e0b?text=CRM+System" alt="CRM System">
+                        <div class="project-overlay">
+                            <button class="btn btn-primary" data-translate="projects.view_details">View Details</button>
+                        </div>
+                    </div>
+                    <div class="project-content">
+                        <h3 data-translate="projects.crm.title">Customer Relationship Management</h3>
+                        <p data-translate="projects.crm.description">Advanced CRM system for managing customer interactions, sales pipeline, and business analytics with real-time reporting.</p>
+                        <div class="project-tech">
+                            <span class="tech-tag">Vue.js</span>
+                            <span class="tech-tag">Supabase</span>
+                            <span class="tech-tag">Chart.js</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact">
+        <div class="container">
+            <div class="section-header">
+                <h2 data-translate="contact.title">Get In Touch</h2>
+                <p data-translate="contact.subtitle">Ready to start your project? Let's discuss your needs.</p>
+            </div>
+            
+            <div class="contact-content">
+                <div class="contact-info">
+                    <h3 data-translate="contact.info.title">Contact Information</h3>
+                    <div class="contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>erik@developed.sk</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-phone"></i>
+                        <span>+421 XXX XXX XXX</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>Slovakia</span>
+                    </div>
+                    
+                    <div class="social-links">
+                        <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-github"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+                
+                <form class="contact-form" id="contactForm">
+                    <div class="form-group">
+                        <label for="name" data-translate="contact.form.name">Name</label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email" data-translate="contact.form.email">Email</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="company" data-translate="contact.form.company">Company</label>
+                        <input type="text" id="company" name="company">
+                    </div>
+                    <div class="form-group">
+                        <label for="message" data-translate="contact.form.message">Message</label>
+                        <textarea id="message" name="message" rows="5" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" data-translate="contact.form.send">Send Message</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Develop<span class="accent">ED</span></h3>
+                    <p data-translate="footer.description">Custom business applications built with modern technology and AI assistance.</p>
+                </div>
+                <div class="footer-section">
+                    <h4 data-translate="footer.services.title">Services</h4>
+                    <ul>
+                        <li data-translate="footer.services.web">Web Applications</li>
+                        <li data-translate="footer.services.mobile">Mobile Solutions</li>
+                        <li data-translate="footer.services.database">Database Design</li>
+                        <li data-translate="footer.services.hosting">Cloud Hosting</li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4 data-translate="footer.technologies.title">Technologies</h4>
+                    <ul>
+                        <li>JavaScript/TypeScript</li>
+                        <li>React/Angular/Vue</li>
+                        <li>Supabase</li>
+                        <li>Vercel</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DevelopED. <span data-translate="footer.rights">All rights reserved.</span></p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="translations.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

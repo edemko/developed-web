@@ -271,6 +271,11 @@ function initMobileMenu() {
 
 // Project card interactions
 document.addEventListener('click', function(e) {
+    // Skip if clicking on a project card link (not a "coming soon" project)
+    if (e.target.closest('.project-card-link')) {
+        return;
+    }
+    
     if (e.target.matches('.project-card .btn') || e.target.closest('.project-card .btn')) {
         e.preventDefault();
         

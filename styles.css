@@ -525,6 +525,27 @@ section {
     gap: 2rem;
 }
 
+.project-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: all var(--transition-normal);
+}
+
+.project-card-link:hover .project-card {
+    transform: translateY(-10px);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--primary-color);
+}
+
+.project-card-link:hover .project-overlay {
+    opacity: 1;
+}
+
+.project-card-link:hover .project-image img {
+    transform: scale(1.05);
+}
+
 .project-card {
     background: var(--bg-card);
     border-radius: var(--border-radius);

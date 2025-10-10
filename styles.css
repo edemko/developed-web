@@ -528,7 +528,8 @@ section {
 .project-card-link {
     text-decoration: none;
     color: inherit;
-    display: block;
+    display: flex;
+    height: 100%;
     transition: all var(--transition-normal);
 }
 
@@ -554,6 +555,9 @@ section {
     transition: all var(--transition-normal);
     opacity: 0;
     transform: translateY(30px);
+    display: flex;
+    flex-direction: column;
+    width: 100%;
 }
 
 .project-card:hover {
@@ -606,6 +610,9 @@ section {
 
 .project-content {
     padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
 }
 
 .project-content h3 {
@@ -622,6 +629,7 @@ section {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
+    margin-top: auto;
 }
 
 .tech-tag {

@@ -41,8 +41,8 @@ class TranslationService {
                 'projects.business.title': 'My Clinic Portal',
                 'projects.business.description': 'Dental clinic management application for tracking income, expenses, employee management, laboratory orders, and comprehensive business analytics. Multi-language support and role-based access control.',
                 'projects.business.try_now': 'Try out Now',
-                'projects.ecommerce.title': 'E-commerce Platform',
-                'projects.ecommerce.description': 'Modern online store with inventory management, payment processing, and customer analytics. Responsive design for all devices.',
+                'projects.filament.title': 'Filament Check',
+                'projects.filament.description': 'Quality control system for filament production. Enter serial number (starting from 1000 001) to access detailed production data including diameter charts, color sensor data, material type, and other information.',
                 'projects.crm.title': 'Customer Relationship Management',
                 'projects.crm.description': 'Advanced CRM system for managing customer interactions, sales pipeline, and business analytics with real-time reporting.',
 
@@ -103,8 +103,8 @@ class TranslationService {
                 'projects.business.title': 'My Clinic Portal',
                 'projects.business.description': 'Aplikácia pre správu zubných kliník na sledovanie príjmov, výdavkov, správu zamestnancov, laboratórne objednávky a komplexnú obchodnú analytiku. Podpora viacerých jazykov a riadenie prístupu podľa rolí.',
                 'projects.business.try_now': 'Vyskúšať teraz',
-                'projects.ecommerce.title': 'Online obchod',
-                'projects.ecommerce.description': 'Moderný online obchod so správou inventára, spracovaním platieb a analytikými zákazníkov. Responzívny dizajn pre všetky zariadenia.',
+                'projects.filament.title': 'Filament Check',
+                'projects.filament.description': 'Systém kontroly kvality pre výrobu filamentov. Zadajte sériové číslo (začínajúce od 1000 001) a získajte prístup k detailným výrobným údajom vrátane grafov priemeru, dát farebných senzorov, typu materiálu a iných informácií.',
                 'projects.crm.title': 'CRM systém',
                 'projects.crm.description': 'Pokročilý CRM systém na správu interakcií so zákazníkmi, predajného procesu a obchodnej analytiky s real-time reportingom.',
 

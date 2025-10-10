@@ -37,14 +37,14 @@ class TranslationService {
                 // Projects Section
                 'projects.title': 'Our Projects',
                 'projects.subtitle': 'Successful applications we\'ve built for our clients',
-                'projects.view_details': 'View Details',
+                'projects.view_details': 'Coming Soon',
                 'projects.business.title': 'My Clinic Portal',
                 'projects.business.description': 'Dental clinic management application for tracking income, expenses, employee management, laboratory orders, and comprehensive business analytics. Multi-language support and role-based access control.',
                 'projects.business.try_now': 'Try out Now',
                 'projects.filament.title': 'Filament Check',
                 'projects.filament.description': 'Quality control system for filament production. Enter serial number (starting from 1000 001) to access detailed production data including diameter charts, color sensor data, material type, and other information.',
-                'projects.crm.title': 'Customer Relationship Management',
-                'projects.crm.description': 'Advanced CRM system for managing customer interactions, sales pipeline, and business analytics with real-time reporting.',
+                'projects.crm.title': 'KešTrek',
+                'projects.crm.description': 'Track your money and get an overview of your expenses with the KešTrek app. Thanks to detailed statistics, nothing will slip through and you can better manage your finances.',
 
                 // Contact Section
                 'contact.title': 'Get In Touch',
@@ -99,14 +99,14 @@ class TranslationService {
                 // Projects Section
                 'projects.title': 'Naše projekty',
                 'projects.subtitle': 'Úspešné aplikácie, ktoré sme vytvorili pre našich klientov',
-                'projects.view_details': 'Zobraziť detaily',
+                'projects.view_details': 'Už čoskoro',
                 'projects.business.title': 'My Clinic Portal',
                 'projects.business.description': 'Aplikácia pre správu zubných kliník na sledovanie príjmov, výdavkov, správu zamestnancov, laboratórne objednávky a komplexnú obchodnú analytiku. Podpora viacerých jazykov a riadenie prístupu podľa rolí.',
                 'projects.business.try_now': 'Vyskúšať teraz',
                 'projects.filament.title': 'Filament Check',
                 'projects.filament.description': 'Systém kontroly kvality pre výrobu filamentov. Zadajte sériové číslo (začínajúce od 1000 001) a získajte prístup k detailným výrobným údajom vrátane grafov priemeru, dát farebných senzorov, typu materiálu a iných informácií.',
-                'projects.crm.title': 'CRM systém',
-                'projects.crm.description': 'Pokročilý CRM systém na správu interakcií so zákazníkmi, predajného procesu a obchodnej analytiky s real-time reportingom.',
+                'projects.crm.title': 'KešTrek',
+                'projects.crm.description': 'Sledujte cestu vašich peňazí a získajte prehľad o svojich výdavkoch s aplikáciou KešTrek. Vďaka detailným štatistikám vám už nič neujde a vy tak môžete lepšie riadiť svoje financie.',
 
                 // Contact Section
                 'contact.title': 'Kontaktujte nás',

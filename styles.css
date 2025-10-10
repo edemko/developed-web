@@ -311,6 +311,7 @@ a:hover {
     background: var(--gradient-hero);
     position: relative;
     overflow: hidden;
+    padding-top: 80px;
 }
 
 .hero:before {

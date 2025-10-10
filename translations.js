@@ -22,7 +22,7 @@ class TranslationService {
                 'about.title': 'About DevelopED',
                 'about.subtitle': 'Modern solutions for modern businesses',
                 'about.mission.title': 'Our Mission',
-                'about.mission.description': 'We specialize in creating tailored applications for small businesses using the latest technologies including AI-assisted development, cloud databases, and modern hosting solutions. Our approach ensures faster delivery times and more affordable pricing compared to traditional development methods.',
+                'about.mission.description': 'We specialize in creating tailored applications for small and middle businesses using the latest technologies including AI-assisted development, cloud databases, and modern hosting solutions. Our approach ensures faster delivery times and more affordable pricing compared to traditional development methods.',
                 'about.approach.title': 'Our Approach',
                 'about.approach.speed': 'Rapid Development with AI Assistance',
                 'about.approach.cost': 'Cost-Effective Solutions',
@@ -76,7 +76,7 @@ class TranslationService {
                 // Hero Section
                 'hero.title': 'Aplikácie na mieru pre firmy',
                 'hero.subtitle': 'Vytvorené s AI a modernými technológiami',
-                'hero.description': 'S využitím najmodernejších technológií a umelej inteligencie vám dokážeme vytvoriť a doručiť aplikáciu podľa vašich predstáv omnoho rýchlejšie a cenovo dostupnejšie ako použitím bežných vývojárskych metód.',
+                'hero.description': 'S využitím najmodernejších technológií a umelej inteligencie vám dokážeme vytvoriť a doručiť aplikáciu podľa vašich predstáv omnoho rýchlejšie a cenovo dostupnejšie ako použitím bežných metód.',
                 'hero.view_projects': 'Zobraziť projekty',
                 'hero.get_started': 'Začať',
 
@@ -84,7 +84,7 @@ class TranslationService {
                 'about.title': 'O spoločnosti DevelopED',
                 'about.subtitle': 'Moderné riešenia pre moderné firmy',
                 'about.mission.title': 'Naša misia',
-                'about.mission.description': 'Špecializujeme sa na vytváranie aplikácií na mieru pre malé firmy pomocou najnovších technológií vrátane AI-asistovaného vývoja, cloudových databáz a moderných hostingových riešení. Náš prístup zabezpečuje rýchlejšie dodanie a dostupnejšie ceny v porovnaní s tradičnými vývojárskymi metódami.',
+                'about.mission.description': 'Špecializujeme sa na vytváranie aplikácií na mieru pre malé a stredné firmy pomocou najnovších technológií vrátane AI-asistovaného vývoja, cloudových databáz a moderných hostingových riešení. Náš prístup zabezpečuje rýchlejšie dodanie a dostupnejšie ceny v porovnaní s tradičnými vývojárskymi metódami.',
                 'about.approach.title': 'Náš prístup',
                 'about.approach.speed': 'Rýchly vývoj s asistenciou AI',
                 'about.approach.cost': 'Cenovo efektívne riešenia',
@@ -110,7 +110,7 @@ class TranslationService {
 
                 // Contact Section
                 'contact.title': 'Kontaktujte nás',
-                'contact.subtitle': 'Pripravený začať váš projekt? Porozprávajme sa o vašich potrebách.',
+                'contact.subtitle': 'Ste ripravení začať Váš projekt?',
                 'contact.info.title': 'Kontaktné informácie',
                 'contact.form.name': 'Meno',
                 'contact.form.email': 'Email',

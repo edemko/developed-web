@@ -34,21 +34,39 @@ A modern, responsive single-page website for DevelopED, showcasing custom busine
 
 ## Language Support
 
-The website supports two languages:
+The website supports two languages with complete translation coverage:
 - **English (EN)**: Default language
 - **Slovak (SK)**: Full Slovak translation
 
-Language preference is automatically saved to localStorage and restored on subsequent visits.
+### Features:
+- ✅ Real-time language switching (no page reload)
+- ✅ All UI elements translated (navigation, content, forms, buttons)
+- ✅ Form input placeholders translate automatically
+- ✅ Browser title and meta description update
+- ✅ Language preference saved to localStorage
+- ✅ Automatic language detection based on browser settings
+- ✅ HTML lang attribute updates for SEO
+
+### How to Use:
+1. Click the language dropdown in the navigation bar
+2. Select "EN" for English or "SK" for Slovak
+3. All content updates instantly
+4. Your preference is saved for future visits
 
 ## Project Structure
 
 ```
 /
-├── index.html          # Main HTML file
-├── styles.css          # CSS styles and responsive design
-├── script.js           # Main JavaScript functionality
-├── translations.js     # Translation service and dictionaries
-└── README.md          # This file
+├── index.html                          # Main HTML file with translation attributes
+├── styles.css                          # CSS styles and responsive design  
+├── script.js                           # Main JavaScript functionality
+├── translations.js                     # Translation service and dictionaries
+├── README.md                           # This file
+├── CLAUDE.md                           # Project documentation
+├── TRANSLATION_IMPLEMENTATION_GUIDE.md # Translation guide for My Clinic Portal
+└── ai_instructions/                    # AI documentation folder
+    ├── translation_implementation.md   # Implementation details
+    └── testing_guide.md                # Testing procedures
 ```
 
 ## Browser Support

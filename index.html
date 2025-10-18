@@ -195,11 +195,11 @@
                 <!-- Project 3 -->
                 <div class="project-card">
                     <div class="project-button">
-                        <button class="btn btn-primary" disabled>Coming Soon</button>
+                        <button class="btn btn-primary" disabled data-translate="projects.view_details">Coming Soon</button>
                     </div>
                     <div class="project-content">
-                        <h3>KesTrek</h3>
-                        <p>Track your money and get an overview of your expenses with the KesTrek app. Thanks to detailed statistics, nothing will slip through and you can better manage your finances.</p>
+                        <h3 data-translate="projects.kestrek.title">KešTrek</h3>
+                        <p data-translate="projects.kestrek.description">Track your money and get an overview of your expenses with the KešTrek app. Thanks to detailed statistics, nothing will slip through and you can better manage your finances.</p>
                         <div class="project-tech">
                             <span class="tech-tag">NestJS</span>
                             <span class="tech-tag">Supabase</span>
@@ -249,19 +249,19 @@
                 <form class="contact-form" id="contactForm">
                     <div class="form-group">
                         <label for="name" data-translate="contact.form.name">Name</label>
-                        <input type="text" id="name" name="name" required>
+                        <input type="text" id="name" name="name" data-translate="contact.form.name" required>
                     </div>
                     <div class="form-group">
                         <label for="email" data-translate="contact.form.email">Email</label>
-                        <input type="email" id="email" name="email" required>
+                        <input type="email" id="email" name="email" data-translate="contact.form.email" required>
                     </div>
                     <div class="form-group">
                         <label for="company" data-translate="contact.form.company">Company</label>
-                        <input type="text" id="company" name="company">
+                        <input type="text" id="company" name="company" data-translate="contact.form.company">
                     </div>
                     <div class="form-group">
                         <label for="message" data-translate="contact.form.message">Message</label>
-                        <textarea id="message" name="message" rows="5" required></textarea>
+                        <textarea id="message" name="message" rows="5" data-translate="contact.form.message" required></textarea>
                     </div>
                     <button type="submit" class="btn btn-primary" data-translate="contact.form.send">Send Message</button>
                 </form>

@@ -5,6 +5,10 @@ class TranslationService {
         this.listeners = [];
         this.translations = {
             en: {
+                // Page Meta
+                'page.title': 'DevelopED - Custom Business Applications',
+                'page.description': 'DevelopED creates tailored applications for small businesses using modern AI and cloud technologies. Fast, affordable, and reliable solutions.',
+
                 // Navigation
                 'nav.home': 'Home',
                 'nav.about': 'About',
@@ -43,8 +47,8 @@ class TranslationService {
                 'projects.business.try_now': 'Try out Now',
                 'projects.filament.title': 'Filament Check',
                 'projects.filament.description': 'Quality control system for filament production. Enter serial number (starting from 1000 001) to access detailed production data including diameter charts, color sensor data, material type, and other information.',
-                'projects.crm.title': 'KešTrek',
-                'projects.crm.description': 'Track your money and get an overview of your expenses with the KešTrek app. Thanks to detailed statistics, nothing will slip through and you can better manage your finances.',
+                'projects.kestrek.title': 'KešTrek',
+                'projects.kestrek.description': 'Track your money and get an overview of your expenses with the KešTrek app. Thanks to detailed statistics, nothing will slip through and you can better manage your finances.',
 
                 // Contact Section
                 'contact.title': 'Get In Touch',
@@ -67,6 +71,10 @@ class TranslationService {
                 'footer.rights': 'All rights reserved.'
             },
             sk: {
+                // Page Meta
+                'page.title': 'DevelopED - Aplikácie na mieru pre firmy',
+                'page.description': 'DevelopED vytvára aplikácie na mieru pre malé firmy s využitím moderných AI a cloudových technológií. Rýchle, cenovo dostupné a spoľahlivé riešenia.',
+
                 // Navigation
                 'nav.home': 'Domov',
                 'nav.about': 'O nás',
@@ -105,8 +113,8 @@ class TranslationService {
                 'projects.business.try_now': 'Vyskúšať teraz',
                 'projects.filament.title': 'Filament Check',
                 'projects.filament.description': 'Systém kontroly kvality pre výrobu filamentov. Zadajte sériové číslo (začínajúce od 1000 001) a získajte prístup k detailným výrobným údajom vrátane grafov priemeru, dát farebných senzorov, typu materiálu a iných informácií.',
-                'projects.crm.title': 'KešTrek',
-                'projects.crm.description': 'Sledujte cestu vašich peňazí a získajte prehľad o svojich výdavkoch s aplikáciou KešTrek. Vďaka detailným štatistikám vám už nič neujde a vy tak môžete lepšie riadiť svoje financie.',
+                'projects.kestrek.title': 'KešTrek',
+                'projects.kestrek.description': 'Sledujte cestu vašich peňazí a získajte prehľad o svojich výdavkoch s aplikáciou KešTrek. Vďaka detailným štatistikám vám už nič neujde a vy tak môžete lepšie riadiť svoje financie.',
 
                 // Contact Section
                 'contact.title': 'Kontaktujte nás',

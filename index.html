@@ -264,7 +264,12 @@
                     </div>
                 </div>
                 
-                <form class="contact-form" id="contactForm">
+                <form class="contact-form" id="contactForm" action="https://api.web3forms.com/submit" method="POST">
+                    <!-- Web3Forms Configuration -->
+                    <input type="hidden" name="access_key" value="beacef50-e218-4b8e-a513-de06556ce0b7">
+                    <input type="hidden" name="redirect" value="false">
+                    <input type="hidden" name="subject" value="New Contact Form Submission from DevelopED Website">
+                    
                     <div class="form-group">
                         <label for="name" data-translate="contact.form.name">Name</label>
                         <input type="text" id="name" name="name" data-translate="contact.form.name" required>

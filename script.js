@@ -130,7 +130,7 @@ function initContactForm() {
     const contactForm = document.getElementById('contactForm');
     
     if (contactForm) {
-        contactForm.addEventListener('submit', function(e) {
+        contactForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             // Get form data
@@ -148,20 +148,35 @@ function initContactForm() {
                 return;
             }
             
-            // Simulate form submission (replace with actual implementation)
+            // Real form submission via Web3Forms
             const submitButton = this.querySelector('button[type="submit"]');
             const originalText = submitButton.textContent;
             
             submitButton.textContent = 'Sending...';
             submitButton.disabled = true;
             
-            // Simulate API call
-            setTimeout(() => {
-                showNotification('Message sent successfully! We\'ll get back to you soon.', 'success');
-                contactForm.reset();
+            try {
+                // Submit to Web3Forms API
+                const response = await fetch('https://api.web3forms.com/submit', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('Message sent successfully! We\'ll get back to you soon.', 'success');
+                    contactForm.reset();
+                } else {
+                    throw new Error(result.message || 'Failed to send message');
+                }
+            } catch (error) {
+                console.error('Form submission error:', error);
+                showNotification('Failed to send message. Please try again or contact us directly at dddpsk@gmail.com', 'error');
+            } finally {
                 submitButton.textContent = originalText;
                 submitButton.disabled = false;
-            }, 2000);
+            }
         });
     }
 }

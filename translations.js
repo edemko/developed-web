@@ -42,6 +42,7 @@ class TranslationService {
                 'projects.title': 'Our Projects',
                 'projects.subtitle': 'Successful applications we\'ve built for our clients',
                 'projects.view_details': 'Coming Soon',
+                'projects.visit': 'Visit',
                 'projects.business.title': 'My Clinic Portal',
                 'projects.business.description': 'Dental clinic management application for tracking income, expenses, employee management, laboratory orders, and comprehensive business analytics. Multi-language support and role-based access control.',
                 'projects.business.try_now': 'Try out Now',
@@ -49,6 +50,8 @@ class TranslationService {
                 'projects.filament.description': 'Quality control system for filament production. Enter serial number (starting from 1000 001) to access detailed production data including diameter charts, color sensor data, material type, and other information.',
                 'projects.kestrek.title': 'KešTrek',
                 'projects.kestrek.description': 'Track your money and get an overview of your expenses with the KešTrek app. Thanks to detailed statistics, nothing will slip through and you can better manage your finances.',
+                'projects.3dprinted.title': '3D Print<span class="accent">ED</span>',
+                'projects.3dprinted.description': 'A comprehensive platform dedicated to 3D printing enthusiasts. Features an online shop with printing materials and accessories, blog with tips and tutorials, and gallery showcasing creative printed projects.',
 
                 // Contact Section
                 'contact.title': 'Get In Touch',
@@ -108,6 +111,7 @@ class TranslationService {
                 'projects.title': 'Naše projekty',
                 'projects.subtitle': 'Úspešné aplikácie, ktoré sme vytvorili pre našich klientov',
                 'projects.view_details': 'Už čoskoro',
+                'projects.visit': 'Navštíviť',
                 'projects.business.title': 'My Clinic Portal',
                 'projects.business.description': 'Aplikácia pre správu zubných kliník na sledovanie príjmov, výdavkov, správu zamestnancov, laboratórne objednávky a komplexnú obchodnú analytiku. Podpora viacerých jazykov a riadenie prístupu podľa rolí.',
                 'projects.business.try_now': 'Vyskúšať teraz',
@@ -115,6 +119,8 @@ class TranslationService {
                 'projects.filament.description': 'Systém kontroly kvality pre výrobu filamentov. Zadajte sériové číslo (začínajúce od 1000 001) a získajte prístup k detailným výrobným údajom vrátane grafov priemeru, dát farebných senzorov, typu materiálu a iných informácií.',
                 'projects.kestrek.title': 'KešTrek',
                 'projects.kestrek.description': 'Sledujte cestu vašich peňazí a získajte prehľad o svojich výdavkoch s aplikáciou KešTrek. Vďaka detailným štatistikám vám už nič neujde a vy tak môžete lepšie riadiť svoje financie.',
+                'projects.3dprinted.title': '3D Print<span class="accent">ED</span>',
+                'projects.3dprinted.description': 'Komplexná platforma venovaná nadšencom 3D tlače. Obsahuje online obchod s tlačovými materiálmi a príslušenstvom, blog s tipmi a návodmi a galériu prezentujúcu kreatívne vytlačené projekty.',
 
                 // Contact Section
                 'contact.title': 'Kontaktujte nás',
@@ -199,7 +205,8 @@ class TranslationService {
                     element.placeholder = translation;
                 }
             } else {
-                element.textContent = translation;
+                // Use innerHTML to preserve HTML tags in translations (like <span class="accent">)
+                element.innerHTML = translation;
             }
         });
 

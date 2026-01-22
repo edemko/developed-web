@@ -52,6 +52,8 @@ class TranslationService {
                 'projects.kestrek.description': 'Track your money and get an overview of your expenses with the KešTrek app. Thanks to detailed statistics, nothing will slip through and you can better manage your finances.',
                 'projects.3dprinted.title': '3D Print<span class="accent">ED</span>',
                 'projects.3dprinted.description': 'A comprehensive platform dedicated to 3D printing enthusiasts. Features an online shop with printing materials and accessories, blog with tips and tutorials, and gallery showcasing creative printed projects.',
+                'projects.promile.title': 'Promile Club',
+                'projects.promile.description': 'Premium e-commerce platform offering both regular and premium alcohol brands at competitive prices. Features secure payments, user accounts with order tracking, SMS notifications, subscription model, and comprehensive admin tools for managing inventory, orders, and promotional campaigns.',
 
                 // Contact Section
                 'contact.title': 'Get In Touch',
@@ -121,6 +123,8 @@ class TranslationService {
                 'projects.kestrek.description': 'Sledujte cestu vašich peňazí a získajte prehľad o svojich výdavkoch s aplikáciou KešTrek. Vďaka detailným štatistikám vám už nič neujde a vy tak môžete lepšie riadiť svoje financie.',
                 'projects.3dprinted.title': '3D Print<span class="accent">ED</span>',
                 'projects.3dprinted.description': 'Komplexná platforma venovaná nadšencom 3D tlače. Obsahuje online obchod s tlačovými materiálmi a príslušenstvom, blog s tipmi a návodmi a galériu prezentujúcu kreatívne vytlačené projekty.',
+                'projects.promile.title': 'Promile Club',
+                'projects.promile.description': 'Prémiová e-commerce platforma ponúkajúca bežné aj prémiové značky alkoholu za skvelé ceny. Obsahuje bezpečné platby, používateľské účty so sledovaním objednávok, SMS notifikácie, predplatné a komplexné admin nástroje pre správu skladu, objednávok a propagačných kampaní.',
 
                 // Contact Section
                 'contact.title': 'Kontaktujte nás',

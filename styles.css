@@ -1153,6 +1153,111 @@ section {
     margin: 0 auto;
 }
 
+/* OpenClaw How It Works */
+.openclaw-howto {
+    margin-bottom: 4rem;
+}
+
+.openclaw-howto h3 {
+    text-align: center;
+    font-size: var(--font-size-2xl);
+    margin-bottom: 2rem;
+    color: var(--text-primary);
+}
+
+.howto-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+}
+
+.howto-step {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    background: var(--bg-card);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    transition: border-color var(--transition-normal);
+}
+
+.howto-step:hover {
+    border-color: var(--primary-color);
+}
+
+.step-number {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    background: var(--gradient-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: var(--font-size-sm);
+    color: white;
+}
+
+.step-content h4 {
+    font-size: var(--font-size-base);
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.step-content p {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.7;
+}
+
+/* OpenClaw FAQ */
+.openclaw-faq {
+    margin-bottom: 4rem;
+}
+
+.openclaw-faq h3 {
+    text-align: center;
+    font-size: var(--font-size-2xl);
+    margin-bottom: 2rem;
+    color: var(--text-primary);
+}
+
+.faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.faq-item {
+    background: var(--bg-card);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    transition: border-color var(--transition-normal);
+}
+
+.faq-item:hover {
+    border-color: var(--primary-color);
+}
+
+.faq-item h4 {
+    font-size: var(--font-size-base);
+    color: var(--primary-color);
+    margin-bottom: 0.75rem;
+}
+
+.faq-item p {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.7;
+}
+
 .openclaw-cta {
     text-align: center;
 }

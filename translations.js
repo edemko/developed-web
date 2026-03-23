@@ -6,8 +6,8 @@ class TranslationService {
         this.translations = {
             en: {
                 // Page Meta
-                'page.title': 'DevelopED - Custom Business Applications',
-                'page.description': 'DevelopED creates tailored applications for small businesses using modern AI and cloud technologies. Fast, affordable, and reliable solutions.',
+                'page.title': 'DevelopED - Custom Web Application Development | OpenClaw AI Assistant | Slovakia',
+                'page.description': 'Custom web application development for businesses. OpenClaw AI assistant installation and management via Telegram. Fast, affordable IT solutions using AI. Košice, Slovakia.',
 
                 // Navigation
                 'nav.home': 'Home',
@@ -114,8 +114,8 @@ class TranslationService {
             },
             sk: {
                 // Page Meta
-                'page.title': 'DevelopED - Aplikácie na mieru pre firmy',
-                'page.description': 'DevelopED vytvára aplikácie na mieru pre malé firmy s využitím moderných AI a cloudových technológií. Rýchle, cenovo dostupné a spoľahlivé riešenia.',
+                'page.title': 'DevelopED - Vývoj webových aplikácií na mieru | OpenClaw AI asistent | Košice',
+                'page.description': 'Vývoj webových aplikácií na mieru pre firmy. Inštalácia a správa OpenClaw AI asistenta cez Telegram. Rýchle, cenovo dostupné IT riešenia s využitím AI. Košice, Slovensko.',
 
                 // Navigation
                 'nav.home': 'Domov',
@@ -127,15 +127,15 @@ class TranslationService {
                 // Hero Section
                 'hero.title': 'Aplikácie na mieru pre firmy',
                 'hero.subtitle': 'Vytvorené s AI a modernými technológiami',
-                'hero.description': 'S využitím najmodernejších technológií a umelej inteligencie vám dokážeme vytvoriť a doručiť aplikáciu podľa vašich predstáv omnoho rýchlejšie a cenovo dostupnejšie ako použitím bežných metód.',
+                'hero.description': 'Špecializujeme sa na vývoj webových aplikácií a softvéru na mieru pre firmy. S využitím AI a moderných technológií vám doručíme digitálne riešenie podľa vašich predstáv rýchlejšie a cenovo dostupnejšie. Digitalizujte svoju firmu ešte dnes.',
                 'hero.view_projects': 'Zobraziť projekty',
                 'hero.get_started': 'Začať',
 
                 // About Section
                 'about.title': 'O spoločnosti DevelopED',
-                'about.subtitle': 'Moderné riešenia pre moderné firmy',
+                'about.subtitle': 'Vývoj softvéru na mieru a AI automatizácia pre slovenské firmy',
                 'about.mission.title': 'Naša misia',
-                'about.mission.description': 'Špecializujeme sa na vytváranie aplikácií na mieru pre malé a stredné firmy pomocou najnovších technológií vrátane AI-asistovaného vývoja, cloudových databáz a moderných hostingových riešení. Náš prístup zabezpečuje rýchlejšie dodanie a dostupnejšie ceny v porovnaní s tradičnými vývojárskymi metódami.',
+                'about.mission.description': 'Špecializujeme sa na vývoj webových aplikácií a softvéru na mieru pre malé a stredné firmy na Slovensku. Využívame AI-asistovaný vývoj, cloudové databázy a moderné hostingové riešenia pre rýchlejšie dodanie a nižšie náklady. Pomáhame firmám s digitalizáciou a automatizáciou — vrátane inštalácie a správy OpenClaw AI asistenta.',
                 'about.approach.title': 'Náš prístup',
                 'about.approach.speed': 'Rýchly vývoj s asistenciou AI',
                 'about.approach.cost': 'Cenovo efektívne riešenia',
@@ -176,8 +176,8 @@ class TranslationService {
 
                 // OpenClaw Section
                 'openclaw.title': 'OpenClaw <span class="accent">AI</span>',
-                'openclaw.subtitle': 'Váš osobný AI asistent — vždy dostupný, vždy nápomocný',
-                'openclaw.description': 'OpenClaw je inteligentný osobný asistent, ktorý beží na vašom vlastnom serveri a komunikuje cez Telegram. Využíva špičkové AI modely (Google Gemini, Anthropic Claude), automatizuje úlohy, spracováva informácie a pomáha vám zostať organizovaný — pričom vaše dáta zostávajú súkromné.',
+                'openclaw.subtitle': 'Osobný AI asistent pre firmy cez Telegram — vždy dostupný, vždy nápomocný',
+                'openclaw.description': 'OpenClaw je inteligentný osobný AI asistent pre firmy, ktorý beží na vašom vlastnom serveri v EÚ a komunikuje cez Telegram bota. Využíva špičkové AI modely (Google Gemini, Anthropic Claude) na automatizáciu úloh, spracovanie informácií a organizáciu práce — pričom vaše dáta zostávajú súkromné a bezpečné.',
                 'openclaw.features.ai.title': 'Pokročilá AI',
                 'openclaw.features.ai.description': 'Využíva modely triedy GPT-4 prirodzené konverzácie a komplexné úlohy',
                 'openclaw.features.privacy.title': 'Súkromie na prvom mieste',
@@ -211,7 +211,7 @@ class TranslationService {
                 'openclaw.cta': 'Získajte svojho AI asistenta',
 
                 // Footer
-                'footer.description': 'Aplikácie na mieru vytvorené s modernými technológiami a asistenciou AI.',
+                'footer.description': 'Vývoj webových aplikácií a softvéru na mieru | OpenClaw AI asistent pre firmy | Košice, Slovensko',
                 'footer.services.title': 'Služby',
                 'footer.services.web': 'Webové aplikácie',
                 'footer.services.mobile': 'Mobilné riešenia',
@@ -311,7 +311,7 @@ class TranslationService {
         const savedLanguage = localStorage.getItem('selectedLanguage');
         const browserLanguage = navigator.language.split('-')[0];
         const defaultLanguage = savedLanguage || 
-                               (this.translations[browserLanguage] ? browserLanguage : 'en');
+                               (this.translations[browserLanguage] ? browserLanguage : 'sk');
         
         this.setLanguage(defaultLanguage);
         

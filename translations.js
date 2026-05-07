@@ -55,6 +55,10 @@ class TranslationService {
                 'projects.3dprinted.description': 'A comprehensive platform dedicated to 3D printing enthusiasts. Features an online shop with printing materials and accessories, blog with tips and tutorials, and gallery showcasing creative printed projects.',
                 'projects.promile.title': 'Promile Club',
                 'projects.promile.description': 'Premium e-commerce platform offering both regular and premium alcohol brands at competitive prices. Features secure payments, user accounts with order tracking, SMS notifications, subscription model, and comprehensive admin tools for managing inventory, orders, and promotional campaigns.',
+                'projects.otazkomat.title': 'Otazkomat',
+                'projects.otazkomat.description': 'Full-stack test and exam platform for organizations. Features module-based test hierarchy, timed test runner, practice mode from missed questions, role-based access control, multi-tenant organizations, and a fully mobile-optimized interface.',
+                'projects.vocabulum.title': 'Vocabulum',
+                'projects.vocabulum.description': 'Vocabulary learning and testing platform for schools. Teachers manage word and sentence folders, assign typing, multiple-choice, and pronunciation tests with AI grading. Includes text-to-speech, OCR import, and detailed student progress tracking.',
 
                 // Contact Section
                 'contact.title': 'Get In Touch',
@@ -181,6 +185,10 @@ class TranslationService {
                 'projects.3dprinted.description': 'Komplexná platforma venovaná nadšencom 3D tlače. Obsahuje online obchod s tlačovými materiálmi a príslušenstvom, blog s tipmi a návodmi a galériu prezentujúcu kreatívne vytlačené projekty.',
                 'projects.promile.title': 'Promile Club',
                 'projects.promile.description': 'Prémiová e-commerce platforma ponúkajúca bežné aj prémiové značky alkoholu za skvelé ceny. Obsahuje bezpečné platby, používateľské účty so sledovaním objednávok, SMS notifikácie, predplatné a komplexné admin nástroje pre správu skladu, objednávok a propagačných kampaní.',
+                'projects.otazkomat.title': 'Otazkomat',
+                'projects.otazkomat.description': 'Komplexná testovacia platforma pre organizácie. Obsahuje modulárnu hierarchiu testov, časovaný testový režim, precvičovanie z chybných odpovedí, riadenie prístupu podľa rolí, multi-tenant organizácie a plne mobilne optimalizované rozhranie.',
+                'projects.vocabulum.title': 'Vocabulum',
+                'projects.vocabulum.description': 'Platforma na učenie a testovanie slovíčok pre školy. Učitelia spravujú priečinky slov a viet, zadávajú písomné, výberové a výslovnostné testy s AI hodnotením. Obsahuje text-to-speech, OCR import a detailné sledovanie pokroku žiakov.',
 
                 // Contact Section
                 'contact.title': 'Kontaktujte nás',

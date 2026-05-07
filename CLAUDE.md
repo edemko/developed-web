@@ -34,8 +34,9 @@ No build process. Open `index.html` in a browser.
 |---------|--------|-------|
 | Hero | `#home` | Headline, CTAs, tech stack showcase |
 | About | `#about` | Mission, features, stats |
-| Projects | `#projects` | My Clinic Portal, Filament Check, KešTrek (coming soon) |
-| Contact | `#contact` | Form (simulated submit), contact info, social links |
+| Projects | `#projects` | My Clinic Portal, Filament Check, KešTrek, 3D PrintED, Promile Club |
+| OpenClaw | `#openclaw` | AI assistant product: pricing tiers, features, FAQ, how-it-works |
+| Contact | `#contact` | Form (Web3Forms API), contact info, social links |
 
 ### JS Features
 - Fixed navbar with scroll effects and active section highlighting
@@ -56,4 +57,4 @@ No build process. Open `index.html` in a browser.
 - No npm/yarn — pure static site
 - Translations: add keys to both `en` and `sk` objects in `translations.js`
 - To add a project card: add HTML in `#projects`, add translation keys, follow existing card pattern
-- Contact form submission is currently simulated (no backend)
+- Contact form submits via Web3Forms API

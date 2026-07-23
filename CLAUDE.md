@@ -1,60 +1,37 @@
-# DevelopED Website
+# DevelopED website
 
-Landing page for DevelopED — custom business applications built with AI and modern technologies.
+Landing page for B2B custom web applications, internal systems and AI automation.
 
-## Tech Stack
+## Stack
 
-- **HTML5 / CSS3 / Vanilla JS** (ES6+, no frameworks, no build step)
-- Font Awesome 6.4.0, Google Fonts (Inter)
-- Static hosting (Vercel / Netlify / GitHub Pages)
+- HTML5, CSS3 and vanilla JavaScript
+- No framework, package manager or build step
+- Static hosting on Vercel
+- System font stack and first-party assets only
 
-## Project Structure
+## Language architecture
 
-```
-index.html          — single-page structure (sections: #home, #about, #projects, #contact)
-styles.css          — all styling (dark theme, CSS Grid/Flexbox, mobile-first)
-script.js           — navigation, animations, form validation, mobile menu
-translations.js     — TranslationService class (EN/SK), localStorage persistence
-```
+- Slovak homepage: `/`
+- English homepage: `/en/`
+- Do not reintroduce runtime translation or language-preference storage.
+- Add matching copy directly to both HTML pages and maintain reciprocal canonical/hreflang metadata.
 
-## Dev Setup
+## Contact and privacy
 
-No build process. Open `index.html` in a browser.
+- The only enquiry mechanism is `mailto:info@developed.sk`.
+- Do not add a third-party form processor.
+- The current design uses no analytics, advertising, cookies, local storage or session storage.
+- If tracking or embedded content is proposed, update the privacy/storage assessment before implementation and block consent-dependent technology until valid consent.
 
-## Architecture
+## Legal publication gate
 
-### Translation System
-- `TranslationService` class in `translations.js` manages all i18n
-- HTML elements use `data-translate="section.key"` attributes (e.g. `hero.title`, `nav.home`)
-- Language preference stored in localStorage
-- Supports EN (default) and SK
+All eight legal routes are implementation-ready drafts but remain `noindex,nofollow` while mandatory business identity, retention and processor details are placeholders. Never remove the warning or publish those pages as final until the checklist in `README.md` is complete and Slovak counsel has reviewed the copy.
 
-### Sections
-| Section | Anchor | Notes |
-|---------|--------|-------|
-| Hero | `#home` | Headline, CTAs, tech stack showcase |
-| About | `#about` | Mission, features, stats |
-| Projects | `#projects` | My Clinic Portal, Filament Check, KešTrek, 3D PrintED, Promile Club |
-| OpenClaw | `#openclaw` | AI assistant product: pricing tiers, features, FAQ, how-it-works |
-| Contact | `#contact` | Form (Web3Forms API), contact info, social links |
+## JavaScript responsibilities
 
-### JS Features
-- Fixed navbar with scroll effects and active section highlighting
-- Intersection Observer for scroll-in animations
-- Mobile hamburger menu (closes on outside click, resize, navigation)
-- Contact form validation with email regex
-- Debounced scroll handlers
+- Accessible mobile-menu state and labels
+- Closing the menu on navigation, outside click, Escape and desktop resize
+- Navbar scroll state
+- Active section indication through `IntersectionObserver`
 
-## Style Guide
-
-- Dark theme: dark blue/black gradients, blue accent gradient
-- Font: Inter (weights 300–700)
-- Container max-width: 1200px
-- Mobile-first responsive breakpoints
-
-## Key Conventions
-
-- No npm/yarn — pure static site
-- Translations: add keys to both `en` and `sk` objects in `translations.js`
-- To add a project card: add HTML in `#projects`, add translation keys, follow existing card pattern
-- Contact form submits via Web3Forms API
+JavaScript must not be required for primary content, language isolation, contact access or legal notices.

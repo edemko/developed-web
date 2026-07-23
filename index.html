@@ -1,728 +1,355 @@
-<!DOCTYPE html>
-<html lang="sk" data-theme="dark">
+<!doctype html>
+<html lang="sk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DevelopED - Vývoj webových aplikácií na mieru | OpenClaw AI asistent | Košice</title>
-    <meta name="description" content="Vývoj webových aplikácií na mieru pre firmy. Inštalácia a správa OpenClaw AI asistenta cez Telegram. Rýchle, cenovo dostupné IT riešenia s využitím AI. Košice, Slovensko.">
-    <meta name="robots" content="index, follow">
-    <meta name="author" content="Erik Demko - DevelopED">
-    <meta http-equiv="Content-Language" content="sk">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Vývoj webových aplikácií na mieru | DevelopED Košice</title>
+    <meta name="description" content="Navrhujeme a vyvíjame webové aplikácie, interné systémy a AI automatizácie pre firmy. DevelopED, Košice — jasný rozsah, moderný stack a odovzdanie pod vašou kontrolou.">
+    <meta name="robots" content="index,follow,max-image-preview:large">
+    <meta name="author" content="Erik Demko — DevelopED">
     <meta name="google-site-verification" content="sPn8ZiQAK7J2EMIG6RtYWDi38roc1bXWJhorvuqdOyI">
 
-    <!-- Canonical & hreflang -->
     <link rel="canonical" href="https://www.developed.sk/">
     <link rel="alternate" hreflang="sk" href="https://www.developed.sk/">
-    <link rel="alternate" hreflang="en" href="https://www.developed.sk/">
+    <link rel="alternate" hreflang="en" href="https://www.developed.sk/en/">
     <link rel="alternate" hreflang="x-default" href="https://www.developed.sk/">
 
-    <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.developed.sk/">
-    <meta property="og:title" content="DevelopED - Vývoj webových aplikácií na mieru | OpenClaw AI asistent">
-    <meta property="og:description" content="Vývoj webových aplikácií na mieru pre firmy. Inštalácia a správa OpenClaw AI asistenta cez Telegram. Košice, Slovensko.">
+    <meta property="og:title" content="Vývoj webových aplikácií na mieru | DevelopED">
+    <meta property="og:description" content="Webové aplikácie, interné systémy a AI automatizácie pre firmy.">
     <meta property="og:image" content="https://www.developed.sk/og-image.png">
+    <meta property="og:image:alt" content="DevelopED — vývoj firemných aplikácií">
     <meta property="og:locale" content="sk_SK">
     <meta property="og:locale:alternate" content="en_US">
     <meta property="og:site_name" content="DevelopED">
 
-    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="DevelopED - Vývoj webových aplikácií na mieru | OpenClaw AI asistent">
-    <meta name="twitter:description" content="Vývoj webových aplikácií na mieru pre firmy. Inštalácia a správa OpenClaw AI asistenta cez Telegram. Košice, Slovensko.">
+    <meta name="twitter:title" content="Vývoj webových aplikácií na mieru | DevelopED">
+    <meta name="twitter:description" content="Webové aplikácie, interné systémy a AI automatizácie pre firmy.">
     <meta name="twitter:image" content="https://www.developed.sk/og-image.png">
 
-    <!-- Geo Targeting -->
-    <meta name="geo.region" content="SK">
-    <meta name="geo.placename" content="Košice">
-    <meta name="geo.position" content="48.7163;21.2611">
-    <meta name="ICBM" content="48.7163, 21.2611">
-
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="favicon.png">
-
-    <!-- DNS Prefetch -->
-    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
-    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
-    <link rel="dns-prefetch" href="https://api.web3forms.com">
-
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- Main CSS -->
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar" aria-label="Hlavná navigácia">
-        <div class="nav-container">
-            <div class="nav-logo">
-                <a href="#home">
-                    <h2>Develop<span class="accent">ED</span></h2>
-                </a>
-            </div>
-            
-            <div class="nav-menu">
-                <a href="#home" class="nav-link" data-translate="nav.home">Home</a>
-                <a href="#about" class="nav-link" data-translate="nav.about">About</a>
-                <a href="#projects" class="nav-link" data-translate="nav.projects">Projects</a>
-                <a href="#openclaw" class="nav-link" data-translate="nav.openclaw">OpenClaw</a>
-                <a href="#contact" class="nav-link" data-translate="nav.contact">Contact</a>
-                
-                <!-- Language Switcher -->
-                <div class="language-switcher">
-                    <select id="languageSelect" class="language-select">
-                        <option value="en">EN</option>
-                        <option value="sk">SK</option>
-                    </select>
-                </div>
-            </div>
-            
-            <!-- Mobile menu button -->
-            <div class="hamburger" id="hamburger">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-        </div>
-    </nav>
-
-    <main>
-
-    <!-- Hero Section -->
-    <section id="home" class="hero">
-        <div class="container">
-            <div class="hero-content">
-                <h1 class="hero-title">
-                    <span data-translate="hero.title">Custom Business Applications</span>
-                    <span class="hero-subtitle" data-translate="hero.subtitle">Built with AI & Modern Technology</span>
-                </h1>
-                <p class="hero-description" data-translate="hero.description">
-                    Using cutting-edge technologies and artificial intelligence, we create and deliver applications according to your vision much faster and more cost-effectively than traditional development methods.
-                </p>
-                <div class="hero-buttons">
-                    <a href="#projects" class="btn btn-primary" data-translate="hero.view_projects">View Projects</a>
-                    <a href="#contact" class="btn btn-secondary" data-translate="hero.get_started">Get Started</a>
-                </div>
-            </div>
-            <div class="hero-visual">
-                <div class="tech-stack">
-                    <div class="tech-item">
-                        <i class="fab fa-js-square"></i>
-                        <span>JavaScript</span>
-                    </div>
-                    <div class="tech-item">
-                        <i class="fas fa-database"></i>
-                        <span>Supabase</span>
-                    </div>
-                    <div class="tech-item">
-                        <i class="fas fa-cloud"></i>
-                        <span>Vercel</span>
-                    </div>
-                    <div class="tech-item">
-                        <i class="fas fa-robot"></i>
-                        <span>AI</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- About Section -->
-    <section id="about" class="about">
-        <div class="container">
-            <div class="section-header">
-                <h2 data-translate="about.title">About DevelopED</h2>
-                <p data-translate="about.subtitle">Modern solutions for modern businesses</p>
-            </div>
-            
-            <div class="about-content">
-                <div class="about-text">
-                    <h3 data-translate="about.mission.title">Our Mission</h3>
-                    <p data-translate="about.mission.description">
-                        We specialize in creating tailored applications for small businesses using the latest technologies including AI-assisted development, cloud databases, and modern hosting solutions. Our approach ensures faster delivery times and more affordable pricing compared to traditional development methods.
-                    </p>
-                    
-                    <h3 data-translate="about.approach.title">Our Approach</h3>
-                    <ul class="feature-list">
-                        <li>
-                            <i class="fas fa-bolt"></i>
-                            <span data-translate="about.approach.speed">Rapid Development with AI Assistance</span>
-                        </li>
-                        <li>
-                            <i class="fas fa-dollar-sign"></i>
-                            <span data-translate="about.approach.cost">Cost-Effective Solutions</span>
-                        </li>
-                        <li>
-                            <i class="fas fa-cog"></i>
-                            <span data-translate="about.approach.tailored">Fully Customized Applications</span>
-                        </li>
-                        <li>
-                            <i class="fas fa-cloud"></i>
-                            <span data-translate="about.approach.cloud">Modern Cloud Infrastructure</span>
-                        </li>
-                    </ul>
-                </div>
-                
-                <div class="about-stats">
-                    <div class="stat-item">
-                        <div class="stat-number">100%</div>
-                        <div class="stat-label" data-translate="stats.satisfaction">Client Satisfaction</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">3x</div>
-                        <div class="stat-label" data-translate="stats.faster">Faster Development</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">50%</div>
-                        <div class="stat-label" data-translate="stats.savings">Cost Savings</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Projects Section -->
-    <section id="projects" class="projects">
-        <div class="container">
-            <div class="section-header">
-                <h2 data-translate="projects.title">Our Projects</h2>
-                <p data-translate="projects.subtitle">Successful applications we've built for our clients</p>
-            </div>
-            
-            <div class="projects-grid">
-                <!-- Project 1 -->
-                <a href="https://promileclub.sk" target="_blank" class="project-card-link">
-                    <div class="project-card">
-                        <div class="project-button">
-                            <span class="btn btn-primary" data-translate="projects.visit">Visit</span>
-                        </div>
-                        <div class="project-content">
-                            <h3 data-translate="projects.promile.title">Promile Club</h3>
-                            <p data-translate="projects.promile.description">Premium e-commerce platform offering both regular and premium alcohol brands at competitive prices. Features secure payments, user accounts with order tracking, SMS notifications, subscription model, and comprehensive admin tools for managing inventory, orders, and promotional campaigns.</p>
-                            <div class="project-tech">
-                                <span class="tech-tag">Stripe</span>
-                                <span class="tech-tag">Angular</span>
-                                <span class="tech-tag">SMS Gateway</span>
-                                <span class="tech-tag">Supabase</span>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-
-                <!-- Project 2 -->
-                <a href="https://check.filamentree.eu" target="_blank" class="project-card-link">
-                    <div class="project-card">
-                        <div class="project-button">
-                            <span class="btn btn-primary" data-translate="projects.visit">Visit</span>
-                        </div>
-                        <div class="project-content">
-                            <h3 data-translate="projects.filament.title">Filament Check</h3>
-                            <p data-translate="projects.filament.description">Quality control system for filament production. Enter serial numbers (starting from 1000 001) to access detailed production data including diameter charts, color sensor data, material type, color specifications, and production timestamp information.</p>
-                            <div class="project-tech">
-                                <span class="tech-tag">Pyhton</span>
-                                <span class="tech-tag">FastAPI</span>
-                                <span class="tech-tag">Chart.js</span>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-
-                <!-- Project 3 -->
-                <a href="https://my-clinic-three.vercel.app/auth/login" target="_blank" class="project-card-link">
-                    <div class="project-card">
-                        <div class="project-button">
-                            <span class="btn btn-primary" data-translate="projects.visit">Visit</span>
-                        </div>
-                        <div class="project-content">
-                            <h3 data-translate="projects.business.title">My Clinic Portal</h3>
-                            <p data-translate="projects.business.description">Dental clinic management application for tracking income, expenses, employee management, laboratory orders, and comprehensive business analytics. Multi-language support and role-based access control.</p>
-                            <div class="project-tech">
-                                <span class="tech-tag">Angular</span>
-                                <span class="tech-tag">Supabase</span>
-                                <span class="tech-tag">TypeScript</span>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-
-                <!-- Project 4 -->
-                <a href="https://kestrek.developed.sk" target="_blank" class="project-card-link">
-                    <div class="project-card">
-                        <div class="project-button">
-                            <span class="btn btn-primary" data-translate="projects.visit">Visit</span>
-                        </div>
-                        <div class="project-content">
-                            <h3 data-translate="projects.kestrek.title">KešTrek</h3>
-                            <p data-translate="projects.kestrek.description">Track your money and get an overview of your expenses with the KešTrek app. Thanks to detailed statistics, nothing will slip through and you can better manage your finances.</p>
-                            <div class="project-tech">
-                                <span class="tech-tag">NestJS</span>
-                                <span class="tech-tag">Supabase</span>
-                                <span class="tech-tag">Angular</span>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-
-                <!-- Project 5 -->
-                <a href="https://otazkomat.developed.sk" target="_blank" class="project-card-link">
-                    <div class="project-card">
-                        <div class="project-button">
-                            <span class="btn btn-primary" data-translate="projects.visit">Visit</span>
-                        </div>
-                        <div class="project-content">
-                            <h3 data-translate="projects.otazkomat.title">Otazkomat</h3>
-                            <p data-translate="projects.otazkomat.description">Full-stack test and exam platform for organizations. Features module-based test hierarchy, timed test runner, practice mode from missed questions, role-based access control, multi-tenant organizations, and a fully mobile-optimized interface.</p>
-                            <div class="project-tech">
-                                <span class="tech-tag">React</span>
-                                <span class="tech-tag">Express</span>
-                                <span class="tech-tag">Supabase</span>
-                                <span class="tech-tag">JWT</span>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-
-                <!-- Project 6 -->
-                <a href="https://vocabulum.developed.sk" target="_blank" class="project-card-link">
-                    <div class="project-card">
-                        <div class="project-button">
-                            <span class="btn btn-primary" data-translate="projects.visit">Visit</span>
-                        </div>
-                        <div class="project-content">
-                            <h3 data-translate="projects.vocabulum.title">Vocabulum</h3>
-                            <p data-translate="projects.vocabulum.description">Vocabulary learning and testing platform for schools. Teachers manage word and sentence folders, assign typing, multiple-choice, and pronunciation tests with AI grading. Includes text-to-speech, OCR import, and detailed student progress tracking.</p>
-                            <div class="project-tech">
-                                <span class="tech-tag">Next.js</span>
-                                <span class="tech-tag">Prisma</span>
-                                <span class="tech-tag">OpenAI</span>
-                                <span class="tech-tag">TTS</span>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- OpenClaw Section -->
-    <section id="openclaw" class="openclaw">
-        <div class="container">
-            <div class="section-header">
-                <h2 data-translate="openclaw.title">OpenClaw <span class="accent">AI</span></h2>
-                <p data-translate="openclaw.subtitle">Your personal AI assistant — always available, always helpful</p>
-            </div>
-            
-            <div class="openclaw-content">
-                <div class="openclaw-intro">
-                    <p data-translate="openclaw.description">
-                        OpenClaw is an intelligent personal assistant that runs on your own server and communicates via Telegram. 
-                        Powered by cutting-edge AI models (Google Gemini, Anthropic Claude), it automates tasks, 
-                        processes information, and helps you stay organized — all while keeping your data private.
-                    </p>
-                </div>
-                
-                <div class="openclaw-features">
-                    <div class="feature-card">
-                        <i class="fas fa-robot"></i>
-                        <h3 data-translate="openclaw.features.ai.title">Advanced AI</h3>
-                        <p data-translate="openclaw.features.ai.description">Uses GPT-4 class models for natural conversations and complex tasks</p>
-                    </div>
-                    <div class="feature-card">
-                        <i class="fas fa-shield-alt"></i>
-                        <h3 data-translate="openclaw.features.privacy.title">Privacy First</h3>
-                        <p data-translate="openclaw.features.privacy.description">Your data stays on your server in EU — no third-party cloud</p>
-                    </div>
-                    <div class="feature-card">
-                        <i class="fab fa-telegram"></i>
-                        <h3 data-translate="openclaw.features.telegram.title">Telegram Integration</h3>
-                        <p data-translate="openclaw.features.telegram.description">Access your assistant from any device via Telegram</p>
-                    </div>
-                    <div class="feature-card">
-                        <i class="fas fa-plug"></i>
-                        <h3 data-translate="openclaw.features.skills.title">Extensible Skills</h3>
-                        <p data-translate="openclaw.features.skills.description">Add capabilities like web search, file processing, reminders</p>
-                    </div>
-                </div>
-
-                <!-- How It Works -->
-                <div class="openclaw-howto">
-                    <h3 data-translate="openclaw.howto.title">Ako to funguje?</h3>
-                    <div class="howto-steps">
-                        <div class="howto-step">
-                            <div class="step-number">1</div>
-                            <div class="step-content">
-                                <h4 data-translate="openclaw.howto.step1.title">Objednajte a my nainštalujeme</h4>
-                                <p data-translate="openclaw.howto.step1.desc">DevelopED nasadí server a nainštaluje OpenClaw za vás — bez vašej technickej účasti.</p>
-                            </div>
-                        </div>
-                        <div class="howto-step">
-                            <div class="step-number">2</div>
-                            <div class="step-content">
-                                <h4 data-translate="openclaw.howto.step2.title">Konfigurácia podľa vás</h4>
-                                <p data-translate="openclaw.howto.step2.desc">Nakonfigurujeme AI model, Telegram bota a prispôsobíme osobnosť asistenta vašim potrebám.</p>
-                            </div>
-                        </div>
-                        <div class="howto-step">
-                            <div class="step-number">3</div>
-                            <div class="step-content">
-                                <h4 data-translate="openclaw.howto.step3.title">Pridáme vaše skills</h4>
-                                <p data-translate="openclaw.howto.step3.desc">Vyhľadávanie na webe, práca so súbormi, pripomienky, vlastné integrácie — skills rozšíria schopnosti asistenta.</p>
-                            </div>
-                        </div>
-                        <div class="howto-step">
-                            <div class="step-number">4</div>
-                            <div class="step-content">
-                                <h4 data-translate="openclaw.howto.step4.title">Váš AI asistent je online</h4>
-                                <p data-translate="openclaw.howto.step4.desc">Komunikujete cez Telegram 24/7 odkiaľkoľvek. Asistent pracuje za vás kým spíte.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- FAQ -->
-                <div class="openclaw-faq">
-                    <h3 data-translate="openclaw.faq.title">Často kladené otázky</h3>
-                    <div class="faq-list">
-                        <div class="faq-item">
-                            <h4 data-translate="openclaw.faq.q1">Čo je AI asistent pre firmy?</h4>
-                            <p data-translate="openclaw.faq.a1">AI asistent pre firmy je softvér, ktorý automatizuje rutinné úlohy — odpovedá na otázky, spracováva dokumenty a poskytuje informácie okamžite. OpenClaw beží na vašom vlastnom serveri, takže vaše firemné dáta nikdy neopustia EÚ.</p>
-                        </div>
-                        <div class="faq-item">
-                            <h4 data-translate="openclaw.faq.q2">Ako funguje OpenClaw AI asistent?</h4>
-                            <p data-translate="openclaw.faq.a2">OpenClaw beží 24/7 na vašom serveri v EÚ. Komunikujete s ním cez Telegram — rovnako jednoducho ako by ste písali kolegovi. Využíva pokročilé AI modely (Google Gemini, Anthropic Claude) a zvládne vyhľadávanie, prácu so súbormi, pripomienky a oveľa viac.</p>
-                        </div>
-                        <div class="faq-item">
-                            <h4 data-translate="openclaw.faq.q3">Potrebujem technické znalosti na používanie AI asistenta?</h4>
-                            <p data-translate="openclaw.faq.a3">Nie. DevelopED zabezpečí celú inštaláciu, konfiguráciu a spustenie OpenClaw. Vy len píšete asistentovi cez Telegram — žiadne technické znalosti nie sú potrebné.</p>
-                        </div>
-                        <div class="faq-item">
-                            <h4 data-translate="openclaw.faq.q4">Aký je rozdiel medzi OpenClaw a ChatGPT?</h4>
-                            <p data-translate="openclaw.faq.a4">ChatGPT je verejná služba kde vaše vstupy môžu byť použité na tréning modelu. OpenClaw beží na vašom súkromnom serveri v EÚ — rovnako výkonný AI, ale vaše dáta zostávajú výhradne vaše.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="openclaw-pricing">
-                    <h3 data-translate="openclaw.pricing.title">Pricing</h3>
-                    <div class="pricing-cards">
-                        <div class="pricing-card">
-                            <div class="pricing-header">
-                                <h4 data-translate="openclaw.pricing.basic.title">Basic</h4>
-                                <div class="price">€560</div>
-                                <span class="price-note" data-translate="openclaw.pricing.onetime">one-time</span>
-                            </div>
-                            <ul class="pricing-features">
-                                <li data-translate="openclaw.pricing.basic.f1">Server setup & OpenClaw installation</li>
-                                <li data-translate="openclaw.pricing.basic.f2">Telegram bot configuration</li>
-                                <li data-translate="openclaw.pricing.basic.f3">3 basic skills</li>
-                                <li data-translate="openclaw.pricing.basic.f4">30 days email support</li>
-                            </ul>
-                        </div>
-                        <div class="pricing-card featured">
-                            <div class="pricing-badge" data-translate="openclaw.pricing.popular">Popular</div>
-                            <div class="pricing-header">
-                                <h4 data-translate="openclaw.pricing.standard.title">Standard</h4>
-                                <div class="price">€790</div>
-                                <span class="price-note" data-translate="openclaw.pricing.onetime">one-time</span>
-                            </div>
-                            <ul class="pricing-features">
-                                <li data-translate="openclaw.pricing.standard.f1">Everything in Basic</li>
-                                <li data-translate="openclaw.pricing.standard.f2">Custom personality setup</li>
-                                <li data-translate="openclaw.pricing.standard.f3">6 skills of your choice</li>
-                                <li data-translate="openclaw.pricing.standard.f4">90 days support (email + Telegram)</li>
-                                <li data-translate="openclaw.pricing.standard.f5">1 free update</li>
-                            </ul>
-                        </div>
-                        <div class="pricing-card">
-                            <div class="pricing-header">
-                                <h4 data-translate="openclaw.pricing.complete.title">Complete</h4>
-                                <div class="price">€990</div>
-                                <span class="price-note" data-translate="openclaw.pricing.onetime">one-time</span>
-                                <div class="price-monthly">+ €100<span data-translate="openclaw.pricing.monthly">/month</span></div>
-                            </div>
-                            <ul class="pricing-features">
-                                <li data-translate="openclaw.pricing.complete.f1">Everything in Standard</li>
-                                <li data-translate="openclaw.pricing.complete.f2">Unlimited skills</li>
-                                <li data-translate="openclaw.pricing.complete.f3">Monthly server management</li>
-                                <li data-translate="openclaw.pricing.complete.f4">Priority support</li>
-                                <li data-translate="openclaw.pricing.complete.f5">Monthly usage reports</li>
-                            </ul>
-                        </div>
-                    </div>
-                    <p class="pricing-note" data-translate="openclaw.pricing.note">
-                        Monthly operating costs: €30–65 (Hetzner server + API usage). 
-                        You control your API accounts — no markup.
-                    </p>
-                </div>
-                
-                <div class="openclaw-cta">
-                    <a href="#contact" class="btn btn-primary btn-large" data-translate="openclaw.cta">
-                        Get Your AI Assistant
-                    </a>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Contact Section -->
-    <section id="contact" class="contact">
-        <div class="container">
-            <div class="section-header">
-                <h2 data-translate="contact.title">Get In Touch</h2>
-                <p data-translate="contact.subtitle">Ready to start your project? Let's discuss your needs.</p>
-            </div>
-            
-            <div class="contact-content">
-                <div class="contact-info">
-                    <h3 data-translate="contact.info.title">Contact Information</h3>
-                    <div class="contact-item">
-                        <i class="fas fa-user"></i>
-                        <span>Erik Demko, DiS.</span>
-                    </div>
-                    <div class="contact-item">
-                        <i class="fas fa-envelope"></i>
-                        <span>developed@developed.sk</span>
-                    </div>
-                    <div class="contact-item">
-                        <i class="fas fa-phone"></i>
-                        <span>+421 911 327 715</span>
-                    </div>
-                    <div class="contact-item">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>Košice, Slovakia</span>
-                    </div>
-                    
-                    <div class="social-links">
-                        <a href="https://www.linkedin.com/in/erik-demko-6563491aa/" target="_blank" rel="noopener noreferrer" class="social-link"><i class="fab fa-linkedin"></i></a>
-                        <a href="#" class="social-link"><i class="fab fa-github"></i></a>
-                        <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
-                    </div>
-                </div>
-                
-                <form class="contact-form" id="contactForm" action="https://api.web3forms.com/submit" method="POST">
-                    <!-- Web3Forms Configuration -->
-                    <input type="hidden" name="access_key" value="beacef50-e218-4b8e-a513-de06556ce0b7">
-                    <input type="hidden" name="redirect" value="false">
-                    <input type="hidden" name="subject" value="New Contact Form Submission from DevelopED Website">
-                    
-                    <div class="form-group">
-                        <label for="name" data-translate="contact.form.name">Name</label>
-                        <input type="text" id="name" name="name" data-translate="contact.form.name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="email" data-translate="contact.form.email">Email</label>
-                        <input type="email" id="email" name="email" data-translate="contact.form.email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="company" data-translate="contact.form.company">Company</label>
-                        <input type="text" id="company" name="company" data-translate="contact.form.company">
-                    </div>
-                    <div class="form-group">
-                        <label for="message" data-translate="contact.form.message">Message</label>
-                        <textarea id="message" name="message" rows="5" data-translate="contact.form.message" required></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary" data-translate="contact.form.send">Send Message</button>
-                </form>
-            </div>
-        </div>
-    </section>
-
-    </main>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h3>Develop<span class="accent">ED</span></h3>
-                    <p data-translate="footer.description">Custom business applications built with modern technology and AI assistance.</p>
-                </div>
-                <div class="footer-section">
-                    <h4 data-translate="footer.services.title">Services</h4>
-                    <ul>
-                        <li data-translate="footer.services.web">Web Applications</li>
-                        <li data-translate="footer.services.mobile">Mobile Solutions</li>
-                        <li data-translate="footer.services.database">Database Design</li>
-                        <li data-translate="footer.services.hosting">Cloud Hosting</li>
-                    </ul>
-                </div>
-                <div class="footer-section">
-                    <h4 data-translate="footer.technologies.title">Technologies</h4>
-                    <ul>
-                        <li>JavaScript/TypeScript</li>
-                        <li>React/Angular/Vue</li>
-                        <li>Supabase</li>
-                        <li>Vercel</li>
-                    </ul>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2026 DevelopED. <span data-translate="footer.rights">All rights reserved.</span></p>
-            </div>
-        </div>
-    </footer>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon.png">
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/script.js" defer></script>
 
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [
+      "@graph": [
         {
-          "@type": "Question",
-          "name": "Čo je AI asistent pre firmy?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "AI asistent pre firmy je softvér, ktorý automatizuje rutinné úlohy — odpovedá na otázky, spracováva dokumenty a poskytuje informácie okamžite. OpenClaw beží na vašom vlastnom serveri, takže vaše firemné dáta nikdy neopustia EÚ."
-          }
+          "@type": ["Organization", "ProfessionalService"],
+          "@id": "https://www.developed.sk/#organization",
+          "name": "DevelopED",
+          "legalName": "Healthcare Data Solutions s. r. o.",
+          "url": "https://www.developed.sk/",
+          "logo": "https://www.developed.sk/favicon.png",
+          "image": "https://www.developed.sk/og-image.png",
+          "email": "info@developed.sk",
+          "telephone": "+421911327715",
+          "taxID": "2122301698",
+          "identifier": {
+            "@type": "PropertyValue",
+            "propertyID": "IČO",
+            "value": "56400896"
+          },
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "Bauerova 1205/7",
+            "postalCode": "040 23",
+            "addressLocality": "Košice - mestská časť Sídlisko KVP",
+            "addressCountry": "SK"
+          },
+          "priceRange": "€€",
+          "areaServed": [
+            {"@type": "City", "name": "Košice"},
+            {"@type": "Country", "name": "Slovensko"}
+          ],
+          "founder": {"@id": "https://www.developed.sk/#erik-demko"},
+          "sameAs": ["https://www.linkedin.com/in/erik-demko-6563491aa/"]
         },
         {
-          "@type": "Question",
-          "name": "Ako funguje OpenClaw AI asistent?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "OpenClaw beží 24/7 na vašom serveri v EÚ. Komunikujete s ním cez Telegram — rovnako jednoducho ako by ste písali kolegovi. Využíva pokročilé AI modely (Google Gemini, Anthropic Claude) a zvládne vyhľadávanie, prácu so súbormi, pripomienky a oveľa viac."
-          }
+          "@type": "Person",
+          "@id": "https://www.developed.sk/#erik-demko",
+          "name": "Erik Demko",
+          "honorificSuffix": "DiS.",
+          "jobTitle": "Software developer",
+          "worksFor": {"@id": "https://www.developed.sk/#organization"},
+          "sameAs": ["https://www.linkedin.com/in/erik-demko-6563491aa/"]
         },
         {
-          "@type": "Question",
-          "name": "Potrebujem technické znalosti na používanie AI asistenta?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Nie. DevelopED zabezpečí celú inštaláciu, konfiguráciu a spustenie OpenClaw. Vy len píšete asistentovi cez Telegram — žiadne technické znalosti nie sú potrebné."
-          }
+          "@type": "WebSite",
+          "@id": "https://www.developed.sk/#website",
+          "url": "https://www.developed.sk/",
+          "name": "DevelopED",
+          "inLanguage": ["sk", "en"],
+          "publisher": {"@id": "https://www.developed.sk/#organization"}
         },
         {
-          "@type": "Question",
-          "name": "Aký je rozdiel medzi OpenClaw a ChatGPT?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "ChatGPT je verejná služba kde vaše vstupy môžu byť použité na tréning modelu. OpenClaw beží na vašom súkromnom serveri v EÚ — rovnako výkonný AI, ale vaše dáta zostávajú výhradne vaše."
-          }
+          "@type": "WebPage",
+          "@id": "https://www.developed.sk/#webpage",
+          "url": "https://www.developed.sk/",
+          "name": "Vývoj webových aplikácií na mieru | DevelopED Košice",
+          "description": "Webové aplikácie, interné systémy a AI automatizácie pre firmy.",
+          "inLanguage": "sk",
+          "isPartOf": {"@id": "https://www.developed.sk/#website"},
+          "about": {"@id": "https://www.developed.sk/#organization"}
+        },
+        {
+          "@type": "Service",
+          "@id": "https://www.developed.sk/#custom-applications",
+          "name": "Vývoj webových aplikácií na mieru",
+          "provider": {"@id": "https://www.developed.sk/#organization"},
+          "areaServed": {"@type": "Country", "name": "Slovensko"},
+          "url": "https://www.developed.sk/#sluzby"
+        },
+        {
+          "@type": "Service",
+          "@id": "https://www.developed.sk/#ai-automation",
+          "name": "AI automatizácia a nasadenie asistenta",
+          "provider": {"@id": "https://www.developed.sk/#organization"},
+          "areaServed": {"@type": "Country", "name": "Slovensko"},
+          "url": "https://www.developed.sk/#openclaw"
         }
       ]
     }
     </script>
+</head>
+<body>
+    <a class="skip-link" href="#main">Preskočiť na obsah</a>
 
-    <!-- Scripts -->
-    <script src="translations.js"></script>
-    <script src="script.js"></script>
+    <header class="navbar" data-navbar>
+        <div class="nav-container">
+            <a class="brand" href="#home" aria-label="DevelopED — domov">Develop<span>ED</span></a>
+            <button class="menu-toggle" type="button" aria-label="Otvoriť navigáciu" aria-expanded="false" aria-controls="main-menu" data-menu-toggle>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </button>
+            <nav class="nav-menu" id="main-menu" aria-label="Hlavná navigácia" data-menu>
+                <a class="nav-link" href="#sluzby">Služby</a>
+                <a class="nav-link" href="#projekty">Projekty</a>
+                <a class="nav-link" href="#openclaw">AI automatizácia</a>
+                <a class="nav-link" href="#kontakt">Kontakt</a>
+                <a class="language-link" href="/en/" lang="en" hreflang="en" aria-label="View this page in English">EN</a>
+            </nav>
+        </div>
+    </header>
 
-    <!-- Structured Data -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "ProfessionalService",
-      "name": "DevelopED",
-      "description": "Vývoj webových aplikácií na mieru a inštalácia OpenClaw AI asistenta pre firmy na Slovensku",
-      "url": "https://www.developed.sk",
-      "telephone": "+421911327715",
-      "email": "developed@developed.sk",
-      "areaServed": [
-        {
-          "@type": "City",
-          "name": "Košice"
-        },
-        {
-          "@type": "Country",
-          "name": "Slovakia"
-        }
-      ],
-      "priceRange": "€€",
-      "founder": {
-        "@type": "Person",
-        "name": "Erik Demko",
-        "honorificSuffix": "DiS."
-      },
-      "hasOfferCatalog": {
-        "@type": "OfferCatalog",
-        "name": "IT Služby",
-        "itemListElement": [
-          {
-            "@type": "Offer",
-          "availability": "https://schema.org/OnlineOnly",
-            "itemOffered": {
-              "@type": "Service",
-              "name": "Vývoj webových aplikácií na mieru"
-            }
-          },
-          {
-            "@type": "Offer",
-          "availability": "https://schema.org/OnlineOnly",
-            "itemOffered": {
-              "@type": "Service",
-              "name": "OpenClaw AI asistent — inštalácia a správa"
-            }
-          }
-        ]
-      }
-    }
-    </script>
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Service",
-      "name": "Vývoj webových aplikácií na mieru",
-      "alternateName": "Custom Web Application Development",
-      "description": "Tvoríme webové aplikácie a softvér na mieru pre malé a stredné firmy na Slovensku. Využívame moderné technológie a AI na rýchle a cenovo dostupné dodanie riešenia podľa vašich predstáv. Digitalizujte svoju firmu s DevelopED.",
-      "provider": {
-        "@type": "LocalBusiness",
-        "name": "DevelopED",
-        "url": "https://www.developed.sk"
-      },
-      "areaServed": {
-        "@type": "Country",
-        "name": "Slovakia"
-      },
-      "url": "https://www.developed.sk/#about"
-    }
-    </script>
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Product",
-      "name": "OpenClaw AI Asistent",
-      "description": "Inteligentný osobný AI asistent pre firmy bežiaci na vašom vlastnom serveri v EÚ, komunikujúci cez Telegram bota. Využíva modely triedy GPT-4 pre automatizáciu úloh, spracovanie informácií a organizáciu práce. Vaše dáta ostávajú súkromné.",
-      "brand": {
-        "@type": "Brand",
-        "name": "DevelopED"
-      },
-      "image": "https://www.developed.sk/og-image.png",
-      "offers": [
-        {
-          "@type": "Offer",
-          "availability": "https://schema.org/OnlineOnly",
-          "name": "Basic",
-          "price": "560",
-          "priceCurrency": "EUR",
-          "description": "Nastavenie servera, inštalácia OpenClaw, Telegram bot, 3 základné skills, 30 dní podpora"
-        },
-        {
-          "@type": "Offer",
-          "availability": "https://schema.org/OnlineOnly",
-          "name": "Standard",
-          "price": "790",
-          "priceCurrency": "EUR",
-          "description": "Všetko zo Základného + vlastná osobnosť, 6 skills, 90 dní podpora, 1 bezplatná aktualizácia"
-        },
-        {
-          "@type": "Offer",
-          "availability": "https://schema.org/OnlineOnly",
-          "name": "Complete",
-          "price": "990",
-          "priceCurrency": "EUR",
-          "description": "Všetko zo Štandardného + neobmedzené skills, mesačná správa servera, prioritná podpora"
-        }
-      ],
-      "url": "https://www.developed.sk/#openclaw"
-    }
-    </script>
+    <main id="main">
+        <section class="hero" id="home">
+            <div class="container hero-grid">
+                <div class="hero-content">
+                    <p class="eyebrow">Vývoj softvéru pre firmy · Košice a celé Slovensko</p>
+                    <h1>Aplikácie na mieru, ktoré riešia reálnu prácu</h1>
+                    <p class="hero-lead">Navrhneme, vyvinieme a nasadíme webovú aplikáciu, interný systém alebo AI automatizáciu podľa vašich procesov. Rozsah, účty, dodávatelia a dátové toky sú zdokumentované pred spustením.</p>
+                    <div class="hero-actions">
+                        <a class="btn btn-primary" href="#kontakt">Prediskutovať projekt</a>
+                        <a class="btn btn-secondary" href="#projekty">Pozrieť projekty</a>
+                    </div>
+                    <ul class="trust-list" aria-label="Základné princípy spolupráce">
+                        <li>B2B spolupráca</li>
+                        <li>Transparentný rozsah</li>
+                        <li>Kontrola nad účtami a kódom</li>
+                    </ul>
+                </div>
+                <div class="tech-panel" aria-label="Používané technológie">
+                    <div class="tech-item"><span class="tech-mark">TS</span><span>TypeScript</span></div>
+                    <div class="tech-item"><span class="tech-mark">NX</span><span>Next.js / NestJS</span></div>
+                    <div class="tech-item"><span class="tech-mark">DB</span><span>Supabase</span></div>
+                    <div class="tech-item"><span class="tech-mark">AI</span><span>AI integrácie</span></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section section-muted" id="sluzby">
+            <div class="container">
+                <div class="section-heading">
+                    <p class="eyebrow">Služby</p>
+                    <h2>Od prvého návrhu po stabilnú prevádzku</h2>
+                    <p>Každý projekt začína analýzou problému, používateľov, integrácií a rizík. Výsledkom je konkrétna ponuka, nie univerzálny balík.</p>
+                </div>
+                <div class="service-grid">
+                    <article class="service-card">
+                        <span class="card-index" aria-hidden="true">01</span>
+                        <h3>Webové aplikácie na mieru</h3>
+                        <p>Klientske portály, interné systémy, evidencie, dashboardy a workflow navrhnuté podľa vašich rolí a procesov.</p>
+                    </article>
+                    <article class="service-card">
+                        <span class="card-index" aria-hidden="true">02</span>
+                        <h3>Integrácie a automatizácia</h3>
+                        <p>Prepojenie databáz, platieb, správ, e-mailov a externých API s jasným rozdelením zodpovednosti.</p>
+                    </article>
+                    <article class="service-card">
+                        <span class="card-index" aria-hidden="true">03</span>
+                        <h3>Nasadenie a údržba</h3>
+                        <p>Cloudové nasadenie, monitoring, bezpečnostné aktualizácie a dohodnutá podpora po odovzdaní.</p>
+                    </article>
+                </div>
+                <div class="principles">
+                    <div><strong>Vy vlastníte rozhodnutia</strong><span>Účty, licencie a prístupy sa nastavujú transparentne.</span></div>
+                    <div><strong>Rozsah je písomný</strong><span>Výstupy, predpoklady, cena a termíny sú v ponuke alebo zmluve.</span></div>
+                    <div><strong>Riziká pomenúvame</strong><span>Tretie strany, dátové toky a limity riešime pred nasadením.</span></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="projekty">
+            <div class="container">
+                <div class="section-heading">
+                    <p class="eyebrow">Vybrané projekty</p>
+                    <h2>Produkty postavené pre konkrétne procesy</h2>
+                    <p>Ukážky demonštrujú typy riešení a technológie. Rozsah každej novej spolupráce sa posudzuje samostatne.</p>
+                </div>
+                <div class="project-grid">
+                    <a class="project-card" href="https://promileclub.sk/" target="_blank" rel="noopener noreferrer">
+                        <span class="project-type">E-commerce</span>
+                        <h3>Promile Club</h3>
+                        <p>Predajná platforma s platbami, účtami, notifikáciami a administračnými nástrojmi.</p>
+                        <span class="project-stack">Stripe · Angular · Supabase</span>
+                        <span class="project-link">Navštíviť projekt <span aria-hidden="true">↗</span></span>
+                    </a>
+                    <a class="project-card" href="https://check.filamentree.eu/" target="_blank" rel="noopener noreferrer">
+                        <span class="project-type">Výroba a kvalita</span>
+                        <h3>Filament Check</h3>
+                        <p>Systém na sprístupnenie výrobných a kontrolných údajov podľa sériového čísla.</p>
+                        <span class="project-stack">Python · FastAPI · Chart.js</span>
+                        <span class="project-link">Navštíviť projekt <span aria-hidden="true">↗</span></span>
+                    </a>
+                    <a class="project-card" href="https://my-clinic-three.vercel.app/auth/login" target="_blank" rel="noopener noreferrer">
+                        <span class="project-type">Firemný portál</span>
+                        <h3>My Clinic Portal</h3>
+                        <p>Správa príjmov, výdavkov, zamestnancov a laboratórnych objednávok pre kliniky.</p>
+                        <span class="project-stack">Angular · Supabase · TypeScript</span>
+                        <span class="project-link">Navštíviť projekt <span aria-hidden="true">↗</span></span>
+                    </a>
+                    <a class="project-card" href="https://kestrek.developed.sk/" target="_blank" rel="noopener noreferrer">
+                        <span class="project-type">Financie</span>
+                        <h3>KešTrek</h3>
+                        <p>Aplikácia na evidenciu výdavkov a prehľad osobných finančných tokov.</p>
+                        <span class="project-stack">NestJS · Supabase · Angular</span>
+                        <span class="project-link">Navštíviť projekt <span aria-hidden="true">↗</span></span>
+                    </a>
+                    <a class="project-card" href="https://otazkomat.developed.sk/" target="_blank" rel="noopener noreferrer">
+                        <span class="project-type">Vzdelávanie</span>
+                        <h3>Otazkomat</h3>
+                        <p>Testovacia platforma s rolami, organizáciami, časovanými testami a precvičovaním.</p>
+                        <span class="project-stack">React · Express · Supabase</span>
+                        <span class="project-link">Navštíviť projekt <span aria-hidden="true">↗</span></span>
+                    </a>
+                    <a class="project-card" href="https://vocabulum.developed.sk/" target="_blank" rel="noopener noreferrer">
+                        <span class="project-type">Vzdelávanie a AI</span>
+                        <h3>Vocabulum</h3>
+                        <p>Platforma na učenie slovíčok s rôznymi typmi testov, OCR a AI hodnotením.</p>
+                        <span class="project-stack">Next.js · Prisma · AI API</span>
+                        <span class="project-link">Navštíviť projekt <span aria-hidden="true">↗</span></span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section class="section section-accent" id="openclaw">
+            <div class="container">
+                <div class="section-heading">
+                    <p class="eyebrow">AI automatizácia</p>
+                    <h2>OpenClaw asistent vo vašom prostredí</h2>
+                    <p>Nasadenie servera, komunikačného kanála, modelu a vybraných schopností. Konkrétni poskytovatelia, dátové toky, regióny a prevádzkové náklady sú súčasťou návrhu riešenia.</p>
+                </div>
+                <div class="feature-grid">
+                    <article><h3>Kontrola účtov</h3><p>Server a API účty môžu byť vedené priamo na klienta, aby boli náklady a prístupy transparentné.</p></article>
+                    <article><h3>Zdokumentované dáta</h3><p>Pred nasadením sa určí, ktoré údaje smerujú k hostingu, messengeru, modelu a integráciám.</p></article>
+                    <article><h3>Rozšíriteľné workflow</h3><p>Vyhľadávanie, súbory, pripomienky a firemné integrácie sa pridávajú podľa dohodnutého rozsahu.</p></article>
+                    <article><h3>Podpora podľa dohody</h3><p>Aktualizácie, monitoring a reakčné časy sa definujú v samostatnom servisnom rozsahu.</p></article>
+                </div>
+
+                <div class="process-block">
+                    <h3>Ako prebieha nasadenie</h3>
+                    <ol class="process-list">
+                        <li><span>01</span><div><strong>Úvodná analýza</strong><p>Účel, používatelia, dáta, integrácie a obmedzenia.</p></div></li>
+                        <li><span>02</span><div><strong>Návrh konfigurácie</strong><p>Hosting, model, messaging, prístupy, náklady a bezpečnostné pravidlá.</p></div></li>
+                        <li><span>03</span><div><strong>Implementácia a test</strong><p>Inštalácia, schopnosti, prístupové roly a akceptačné scenáre.</p></div></li>
+                        <li><span>04</span><div><strong>Odovzdanie</strong><p>Dokumentácia, prístupy, zaškolenie a dohodnutá podpora.</p></div></li>
+                    </ol>
+                </div>
+
+                <div class="pricing-block">
+                    <h3>Orientačné balíky</h3>
+                    <p class="pricing-disclaimer">Ceny sú informatívne a nepredstavujú ponuku. Poskytovateľ nie je platiteľom DPH, preto sa k uvedeným cenám DPH nepripočítava. Konečný rozsah, náklady hostingu a API budú uvedené v individuálnej cenovej ponuke.</p>
+                    <div class="pricing-grid">
+                        <article class="price-card">
+                            <h4>Základný</h4>
+                            <p class="price">od 560 €</p>
+                            <ul><li>Server a základná inštalácia</li><li>Komunikačný kanál</li><li>3 základné schopnosti</li><li>30 dní e-mailovej podpory</li></ul>
+                        </article>
+                        <article class="price-card featured">
+                            <span class="badge">Najčastejšia voľba</span>
+                            <h4>Štandard</h4>
+                            <p class="price">od 790 €</p>
+                            <ul><li>Rozsah Základného</li><li>Konfigurácia správania</li><li>6 zvolených schopností</li><li>90 dní podpory</li></ul>
+                        </article>
+                        <article class="price-card">
+                            <h4>Kompletný</h4>
+                            <p class="price">od 990 €</p>
+                            <ul><li>Rozsah Štandardu</li><li>Individuálny rozsah schopností</li><li>Možnosť mesačnej správy</li><li>Prioritná podpora podľa dohody</li></ul>
+                        </article>
+                    </div>
+                </div>
+
+                <div class="faq-block">
+                    <h3>Časté otázky</h3>
+                    <details><summary>Kde sa spracúvajú údaje asistenta?</summary><p>Závisí to od konkrétnej konfigurácie. Server môže byť v EÚ, no samostatne treba posúdiť messaging, modelové API, vyhľadávanie a ďalšie integrácie. Tieto toky budú zdokumentované pred spustením.</p></details>
+                    <details><summary>Používajú poskytovatelia modelov dáta na tréning?</summary><p>Podmienky sa líšia podľa poskytovateľa, produktu, plánu a nastavení. Návrh riešenia preto určí schválené služby, účty, retenčné pravidlá a dostupné zmluvné ochrany.</p></details>
+                    <details><summary>Potrebujem technické znalosti?</summary><p>Bežné používanie môže prebiehať cez známy komunikačný kanál. Klient však určí zodpovednú osobu pre prístupy, schvaľovanie integrácií a bezpečnostné rozhodnutia.</p></details>
+                    <details><summary>Čo je zahrnuté v podpore?</summary><p>Presný rozsah, reakčné časy, aktualizácie a limity sa uvádzajú v ponuke alebo servisnej dohode.</p></details>
+                </div>
+            </div>
+        </section>
+
+        <section class="section section-muted" id="kontakt">
+            <div class="container contact-layout">
+                <div class="section-heading align-left">
+                    <p class="eyebrow">Kontakt</p>
+                    <h2>Začnime stručným opisom problému</h2>
+                    <p>Napíšte, čo dnes riešite, kto bude systém používať a aký výsledok očakávate. E-mail slúži na B2B dopyt; nie je objednávkou ani uzatvorením zmluvy.</p>
+                </div>
+                <div class="contact-card">
+                    <p class="contact-name">Erik Demko, DiS.</p>
+                    <a class="contact-email" href="mailto:info@developed.sk">info@developed.sk</a>
+                    <a class="contact-phone" href="tel:+421911327715">+421 911 327 715</a>
+                    <p>Košice · Slovensko · vzdialená spolupráca</p>
+                    <a class="btn btn-primary" href="mailto:info@developed.sk?subject=B2B%20dopyt%20z%20developed.sk">Napísať e-mail</a>
+                    <p class="privacy-note">E-mailovú adresu a obsah korešpondencie spracujeme v Zoho Mail na vybavenie dopytu podľa <a href="/ochrana-osobnych-udajov/">informácií o súkromí</a>. Bežným e-mailom neposielajte heslá, prístupové kľúče ani citlivé údaje.</p>
+                    <a class="linkedin-link" href="https://www.linkedin.com/in/erik-demko-6563491aa/" target="_blank" rel="noopener noreferrer">LinkedIn profil <span aria-hidden="true">↗</span></a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-grid">
+            <div>
+                <a class="brand footer-brand" href="#home">Develop<span>ED</span></a>
+                <p>Webové aplikácie, interné systémy a AI automatizácie pre firmy.</p>
+            </div>
+            <div>
+                <h2>Služby</h2>
+                <a href="#sluzby">Vývoj aplikácií</a>
+                <a href="#openclaw">AI automatizácia</a>
+                <a href="#projekty">Projekty</a>
+            </div>
+            <div>
+                <h2>Právne informácie</h2>
+                <a href="/pravne-informacie/">Poskytovateľ</a>
+                <a href="/ochrana-osobnych-udajov/">Ochrana osobných údajov</a>
+                <a href="/cookies/">Cookies a úložiská</a>
+                <a href="/podmienky-pouzivania/">B2B podmienky webu</a>
+            </div>
+        </div>
+        <div class="container footer-bottom">
+            <p>© 2026 DevelopED · obchodná značka Healthcare Data Solutions s. r. o., IČO 56400896.</p>
+            <a href="/en/" lang="en" hreflang="en">English version</a>
+        </div>
+    </footer>
 </body>
 </html>

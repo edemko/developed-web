@@ -1,0 +1,4 @@
+Contact: mailto:info@developed.sk
+Preferred-Languages: sk, en
+Canonical: https://www.developed.sk/.well-known/security.txt
+Expires: 2027-07-23T23:59:59Z

@@ -1,103 +1,76 @@
-# DevelopED - Custom Business Applications
+# DevelopED website
 
-A modern, responsive single-page website for DevelopED, showcasing custom business application development services using AI and modern technologies.
+Static bilingual B2B website for DevelopED, focused on custom web applications, internal systems and AI automation. DevelopED is the commercial and marketing brand of Healthcare Data Solutions s. r. o.
 
-## Features
+## Architecture
 
-- 🌙 **Dark Theme**: Modern dark design with smooth animations
-- 🌍 **Bilingual**: English and Slovak language support with real-time switching
-- 📱 **Responsive**: Optimized for all devices (desktop, tablet, mobile)
-- ⚡ **Fast**: Optimized performance with smooth animations
-- 🤖 **AI-Focused**: Highlights AI-assisted development approach
+- Slovak is served at `/`.
+- English is an independently crawlable page at `/en/`.
+- Each language has its own canonical URL, metadata and reciprocal `hreflang`.
+- Contact is email-only through `info@developed.sk`; there is no contact-form processor.
+- The website does not use analytics, advertising, cookies, `localStorage` or `sessionStorage`.
+- Fonts, CSS and JavaScript are first-party. There is no external font or icon dependency.
 
-## Technologies Used
+## Local development
 
-- **Frontend**: Vanilla HTML5, CSS3, JavaScript (ES6+)
-- **Styling**: CSS Grid, Flexbox, CSS Custom Properties
-- **Fonts**: Inter font family from Google Fonts
-- **Icons**: Font Awesome 6
-- **Translation**: Custom JavaScript translation service
+No build step or package installation is required:
 
-## Sections
-
-1. **Hero**: Company introduction and value proposition
-2. **About**: Mission, approach, and statistics
-3. **Projects**: Portfolio of completed applications
-4. **Contact**: Contact form and information
-5. **Footer**: Additional links and information
-
-## Setup
-
-1. Clone or download the repository
-2. Open `index.html` in a web browser
-3. No build process required - pure vanilla web technologies
-
-## Language Support
-
-The website supports two languages with complete translation coverage:
-- **English (EN)**: Default language
-- **Slovak (SK)**: Full Slovak translation
-
-### Features:
-- ✅ Real-time language switching (no page reload)
-- ✅ All UI elements translated (navigation, content, forms, buttons)
-- ✅ Form input placeholders translate automatically
-- ✅ Browser title and meta description update
-- ✅ Language preference saved to localStorage
-- ✅ Automatic language detection based on browser settings
-- ✅ HTML lang attribute updates for SEO
-
-### How to Use:
-1. Click the language dropdown in the navigation bar
-2. Select "EN" for English or "SK" for Slovak
-3. All content updates instantly
-4. Your preference is saved for future visits
-
-## Project Structure
-
-```
-/
-├── index.html                          # Main HTML file with translation attributes
-├── styles.css                          # CSS styles and responsive design  
-├── script.js                           # Main JavaScript functionality
-├── translations.js                     # Translation service and dictionaries
-├── README.md                           # This file
-├── CLAUDE.md                           # Project documentation
-├── TRANSLATION_IMPLEMENTATION_GUIDE.md # Translation guide for My Clinic Portal
-└── ai_instructions/                    # AI documentation folder
-    ├── translation_implementation.md   # Implementation details
-    └── testing_guide.md                # Testing procedures
+```sh
+python3 -m http.server 4173
 ```
 
-## Browser Support
+Then open `http://127.0.0.1:4173/`.
 
-- Chrome/Edge 90+
-- Firefox 88+
-- Safari 14+
+## Main files
 
-## Performance Features
+```text
+index.html                         Slovak homepage
+en/index.html                      English homepage
+styles.css                         Shared responsive design
+script.js                          Accessible navigation behaviour
+pravne-informacie/                 Slovak provider notice
+ochrana-osobnych-udajov/           Slovak GDPR notice
+cookies/                           Slovak storage notice
+podmienky-pouzivania/              Slovak B2B website terms
+en/legal-notice/                   English provider notice
+en/privacy/                        English GDPR notice
+en/cookies/                        English storage notice
+en/website-terms/                  English B2B website terms
+robots.txt                         Crawler rules
+sitemap.xml                        Indexable language URLs
+vercel.json                        Production security headers
+.well-known/security.txt           Security contact
+docs/                              SEO/GEO/legal audit and source copy
+```
 
-- CSS custom properties for efficient theming
-- Optimized animations with transform/opacity
-- Debounced scroll events
-- Intersection Observer for scroll animations
-- Lazy-loaded animations
+## Publication gate
 
-## Responsive Breakpoints
+The registered entity, address, IČO, DIČ, VAT status and register entry are now populated. The legal pages still contain visible operational placeholders and use `noindex,nofollow`. Before production publication:
 
-- Desktop: 1024px+
-- Tablet: 768px - 1024px
-- Mobile: 480px - 768px
-- Small Mobile: < 480px
+1. Confirm the Zoho contracting entity, signed data-processing agreement, data region and email-retention settings.
+2. Resolve the confirmed Vercel Hobby contractual gap: upgrade to a plan covered by the Vercel DPA or obtain Slovak counsel’s confirmation of another compliant treatment. The account audit confirmed Web Analytics disabled, Speed Insights without data, no Observability Plus, no Log Drains and no server functions.
+3. Adopt and follow a concrete enquiry-retention period.
+4. Obtain Slovak counsel review.
+5. Remove the draft warnings and change legal-page robots directives to `index,follow` only after every item is complete.
+6. Add the final legal URLs to `sitemap.xml`.
+
+Never deploy legal placeholders as if they were complete provider information.
+
+## Validation
+
+Recommended pre-deployment checks:
+
+```sh
+node --check script.js
+xmllint --noout sitemap.xml
+git diff --check
+```
+
+Also verify all internal links, canonical/hreflang reciprocity, structured data, keyboard navigation, mobile layout, browser storage, third-party requests and response headers in the deployed environment.
 
 ## Contact
 
-For inquiries about custom business applications:
+- Email: [info@developed.sk](mailto:info@developed.sk)
+- Website: [www.developed.sk](https://www.developed.sk/)
 
-- **Email**: erik@developed.sk
-- **Website**: [DevelopED](https://developed.sk)
-- **Services**: Web Applications, Mobile Solutions, Database Design, Cloud Hosting
-
----
-
-© 2024 DevelopED. All rights reserved.
+© 2026 Healthcare Data Solutions s. r. o. · commercial brand DevelopED.

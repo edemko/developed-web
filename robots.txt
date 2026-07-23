@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://developed.sk/sitemap.xml
+User-agent: OAI-SearchBot
+Allow: /
+
+Sitemap: https://www.developed.sk/sitemap.xml

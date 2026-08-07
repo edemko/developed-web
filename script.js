@@ -84,4 +84,44 @@ document.addEventListener("DOMContentLoaded", () => {
 
         sections.forEach((section) => observer.observe(section));
     }
+
+    // Scroll reveal — progressive enhancement only.
+    // CSS hides these elements solely while the `js` class is present.
+    const revealTargets = Array.from(
+        document.querySelectorAll(
+            [
+                ".hero-content",
+                ".hero-visual",
+                ".feature-card",
+                ".feature-list li",
+                ".project-card-link",
+                ".howto-step",
+                ".pricing-card",
+                ".faq-item",
+                ".contact-info",
+                ".contact-cta"
+            ].join(", ")
+        )
+    );
+
+    revealTargets.forEach((element) => element.classList.add("reveal-target"));
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (prefersReducedMotion || !("IntersectionObserver" in window)) {
+        revealTargets.forEach((element) => element.classList.add("animate-in"));
+    } else {
+        const revealObserver = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    entry.target.classList.add("animate-in");
+                    revealObserver.unobserve(entry.target);
+                });
+            },
+            { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
+        );
+
+        revealTargets.forEach((element) => revealObserver.observe(element));
+    }
 });

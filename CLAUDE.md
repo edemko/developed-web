@@ -8,6 +8,8 @@ Landing page for B2B custom web applications, internal systems and AI automation
 - No framework, package manager or build step
 - Static hosting on Vercel
 - System font stack and first-party assets only
+- Icons come from a first-party inline `<symbol>` sprite at the top of each page `<body>`, used as `<svg class="icon"><use href="#i-name"/></svg>`. Never add a CDN icon font or a runtime-fetched web font.
+- The design system lives in the `:root` custom properties of `styles.css` (indigo `--primary-color: #4f46e5` on `--bg-primary: #0f0f0f`). Reuse those tokens; do not introduce a parallel palette.
 
 ## Language architecture
 
@@ -33,5 +35,6 @@ All eight legal routes are implementation-ready drafts but remain `noindex,nofol
 - Closing the menu on navigation, outside click, Escape and desktop resize
 - Navbar scroll state
 - Active section indication through `IntersectionObserver`
+- Optional scroll-reveal animations, gated behind the `js` class so all content stays visible without JavaScript
 
 JavaScript must not be required for primary content, language isolation, contact access or legal notices.

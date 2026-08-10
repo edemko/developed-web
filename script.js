@@ -94,7 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 ".hero-visual",
                 ".feature-card",
                 ".feature-list li",
-                ".project-card-link",
+                ".project-card",
                 ".howto-step",
                 ".pricing-card",
                 ".faq-item",

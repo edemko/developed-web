@@ -629,29 +629,8 @@ section {
     gap: 2rem;
 }
 
-.project-card-link {
-    text-decoration: none;
-    color: inherit;
-    display: flex;
-    height: 100%;
-    transition: all var(--transition-normal);
-}
-
-.project-card-link:hover {
-    color: inherit;
-}
-
-.project-card-link:hover .project-card {
-    transform: translateY(-10px);
-    box-shadow: var(--shadow-xl);
-    border-color: var(--primary-color);
-}
-
-.project-card-link:hover .btn:before {
-    left: 100%;
-}
-
 .project-card {
+    position: relative;
     background: var(--bg-card);
     border-radius: var(--border-radius);
     border: 1px solid var(--border-color);
@@ -660,6 +639,49 @@ section {
     display: flex;
     flex-direction: column;
     width: 100%;
+}
+
+.project-card:hover {
+    transform: translateY(-10px);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--primary-color);
+}
+
+.project-card:hover .btn:before {
+    left: 100%;
+}
+
+/*
+ * The whole card stays clickable through an overlay on the Visit link, so the
+ * card itself is not an anchor and descriptions can carry real outbound links.
+ * The anchor stays `static` so its overlay resolves against .project-card —
+ * the inner .btn keeps position/overflow for the hover shine.
+ */
+.project-visit {
+    position: static;
+    display: block;
+    width: 100%;
+    max-width: 200px;
+    text-decoration: none;
+}
+
+.project-visit::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+
+.project-content a {
+    position: relative;
+    z-index: 2;
+    color: var(--primary-light);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
+.project-content a:hover {
+    color: var(--text-primary);
 }
 
 .project-button {
@@ -673,7 +695,6 @@ section {
 
 .project-button .btn {
     width: 100%;
-    max-width: 200px;
     font-size: var(--font-size-base);
     font-weight: 600;
     padding: 0.75rem 1.5rem;

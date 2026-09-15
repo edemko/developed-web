@@ -1,7 +1,9 @@
 # Portfolio project icons
 
 The Slovak and English homepages share first-party copies in `assets/projects/`.
-Images are decorative beside visible project names; dimensions reserve their space
+Images are decorative in the bottom-right corner of each card, beside the technology
+tags. The footer stays in normal flow so wrapped tags cannot overlap the logo;
+dimensions reserve their space
 and lazy loading keeps them out of the initial viewport's critical requests.
 
 - Mega Music: optimized 64px logo from `mega-media-player/website/dist/assets/`.

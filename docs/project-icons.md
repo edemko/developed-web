@@ -6,10 +6,11 @@ tags. The footer stays in normal flow so wrapped tags cannot overlap the logo;
 dimensions reserve their space
 and lazy loading keeps them out of the initial viewport's critical requests.
 
-- Mega Music: 96/144/192px lossless WebP exports made directly from
+- Mega Music: 96/144/192px-high lossless WebP exports made directly from
   `mega-media-player/assets/branding/mega-logo-hd.png` (commit `4da2587`).
-  The 48px card logo uses 2x/3x/4x density variants for sharper high-density display.
-  Complete artwork is centered on black without cropping. Decoded WebP pixels
+  The 48px-high card logo uses 2x/3x/4x density variants for sharper high-density display.
+  Complete artwork keeps its original landscape proportions without square padding
+  or cropping. Decoded WebP pixels
   match each resized export exactly; content-hashed URLs refresh existing caches.
 - ScreenTime: SVG transcription of the existing Android launcher vector and its
   `#1E3A5F` background (`screentime/android/app/src/main/res/`). No web favicon exists.

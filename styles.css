@@ -301,24 +301,47 @@ svg {
 }
 
 /* Language switcher (pill link - never a native select) */
-.language-link {
-    display: inline-grid;
-    width: 2.6rem;
-    min-height: 2.6rem;
-    place-items: center;
+.language-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.5rem;
     border: 1px solid var(--border-color);
     border-radius: 999px;
     background: var(--bg-tertiary);
-    color: var(--text-secondary);
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    text-decoration: none;
-    transition: all var(--transition-fast);
 }
 
-.language-link:hover {
-    border-color: var(--primary-color);
-    color: var(--text-primary);
+.lang-option {
+    display: block;
+    line-height: 0;
+    border-radius: 3px;
+    transition: opacity var(--transition-fast), filter var(--transition-fast),
+        box-shadow var(--transition-fast);
+}
+
+.lang-option .flag {
+    display: block;
+    width: 1.4rem;
+    height: auto;
+    border-radius: 3px;
+}
+
+/* The language you are reading: full colour, ringed, not a link. */
+.lang-option.is-current {
+    box-shadow: 0 0 0 2px var(--primary-color);
+    cursor: default;
+}
+
+/* The language you can switch to: dimmed until hovered or focused. */
+a.lang-option {
+    opacity: 0.5;
+    filter: saturate(0.5);
+}
+
+a.lang-option:hover,
+a.lang-option:focus-visible {
+    opacity: 1;
+    filter: none;
 }
 
 /* Mobile Menu Button */
@@ -1519,7 +1542,7 @@ section {
         font-size: var(--font-size-lg);
     }
 
-    .language-link {
+    .language-switch {
         margin-top: 1rem;
     }
 
@@ -1661,7 +1684,7 @@ section {
 @media print {
     .navbar,
     .menu-toggle,
-    .language-link,
+    .language-switch,
     .skip-link,
     .legal-nav,
     .hero-buttons,

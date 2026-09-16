@@ -124,6 +124,12 @@ svg {
     max-width: 100%;
 }
 
+/* Guard the HTML `hidden` attribute against element-type display rules above
+   (the inline icon sprite is <svg hidden> and must not occupy layout). */
+[hidden] {
+    display: none !important;
+}
+
 :focus-visible {
     outline: 3px solid var(--accent-color);
     outline-offset: 3px;

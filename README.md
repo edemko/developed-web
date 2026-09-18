@@ -1,6 +1,6 @@
 # DevelopED website
 
-Static bilingual B2B website for DevelopED, focused on custom web applications, internal systems and AI automation. DevelopED is the commercial and marketing brand of Healthcare Data Solutions s. r. o.
+Static bilingual B2B website for DevelopED, focused on custom web applications, business websites, e-commerce and internal systems. DevelopED is the commercial and marketing brand of Healthcare Data Solutions s. r. o.
 
 ## Architecture
 

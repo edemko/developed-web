@@ -612,9 +612,8 @@ section {
     font-weight: 500;
 }
 
-/* Feature cards (services + OpenClaw capabilities) */
-.feature-cards,
-.openclaw-features {
+/* Feature cards */
+.feature-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 2rem;
@@ -789,27 +788,18 @@ section {
     border: 1px solid var(--border-color);
 }
 
-/* OpenClaw Section */
-.openclaw {
+/* Custom solutions section */
+.solutions {
     padding: var(--section-padding);
     background: var(--gradient-hero);
 }
 
-.openclaw-intro {
-    max-width: 800px;
-    margin: 0 auto 3rem;
-    text-align: center;
-    font-size: var(--font-size-lg);
-    color: var(--text-secondary);
-    line-height: 1.8;
-}
-
-/* OpenClaw How It Works */
-.openclaw-howto {
+/* Custom solutions process */
+.solutions-howto {
     margin-bottom: 4rem;
 }
 
-.openclaw-howto h3 {
+.solutions-howto h3 {
     text-align: center;
     font-size: var(--font-size-2xl);
     margin-bottom: 2rem;
@@ -867,18 +857,12 @@ section {
     line-height: 1.7;
 }
 
-/* Service and OpenClaw FAQs */
-.service-faq,
-.openclaw-faq {
-    margin-bottom: 4rem;
-}
-
+/* Service FAQs */
 .service-faq {
-    margin-top: 4rem;
+    margin: 4rem 0;
 }
 
-.service-faq h3,
-.openclaw-faq h3 {
+.service-faq h3 {
     text-align: center;
     font-size: var(--font-size-2xl);
     margin-bottom: 2rem;
@@ -918,12 +902,12 @@ section {
     line-height: 1.7;
 }
 
-/* OpenClaw Pricing */
-.openclaw-pricing {
+/* Website pricing */
+.solutions-pricing {
     margin-bottom: 3rem;
 }
 
-.openclaw-pricing h3 {
+.solutions-pricing h3 {
     text-align: center;
     font-size: var(--font-size-2xl);
     margin-bottom: 1.5rem;
@@ -1026,8 +1010,29 @@ section {
     font-weight: bold;
 }
 
-.openclaw-cta {
+.solutions-cta {
     text-align: center;
+}
+
+.custom-pricing-card {
+    max-width: 800px;
+    margin: 2rem auto 0;
+    padding: 1.5rem 2rem;
+    background: var(--bg-card);
+    border: 1px solid var(--primary-color);
+    border-radius: var(--border-radius);
+    text-align: center;
+}
+
+.custom-pricing-card h4 {
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+    font-size: var(--font-size-lg);
+}
+
+.custom-pricing-card p {
+    margin: 0;
+    color: var(--text-secondary);
 }
 
 /* Contact Section */
@@ -1601,8 +1606,7 @@ section {
         grid-template-columns: 1fr;
     }
 
-    .feature-cards,
-    .openclaw-features {
+    .feature-cards {
         grid-template-columns: 1fr;
     }
 

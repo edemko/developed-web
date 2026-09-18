@@ -35,7 +35,7 @@ No build process. Open `index.html` in a browser.
 | Hero | `#home` | Headline, CTAs, tech stack showcase |
 | About | `#about` | Mission, features, stats |
 | Projects | `#projects` | My Clinic Portal, Filament Check, KešTrek, 3D PrintED, Promile Club |
-| OpenClaw | `#openclaw` | AI assistant product: pricing tiers, features, FAQ, how-it-works |
+| Custom solutions | `#riesenia` / `#solutions` | E-commerce, inventory, clinic software, internal systems and website pricing |
 | Contact | `#contact` | Form (Web3Forms API), contact info, social links |
 
 ### JS Features

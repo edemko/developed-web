@@ -1,0 +1,11 @@
+{
+  "name": "@developed/ecosystem-auth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "exports": "./index.mjs",
+  "files": ["index.mjs", "README.md"],
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "dependencies": { "openid-client": "6.8.8", "jose": "6.2.12" }
+}

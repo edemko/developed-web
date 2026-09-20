@@ -1,0 +1,41 @@
+# QUALIFICATION TEMPLATE ONLY: not a drop-in replacement for the shared gateway.
+# Harness substitutes two loopback addresses. Production integration must retain
+# other Supabase services and explicitly migrate every legacy Auth consumer.
+{
+  admin off
+  persist_config off
+  auto_https off
+}
+
+http://127.0.0.1:GATEWAY_PORT {
+  bind 127.0.0.1
+  route {
+    @protocol_read {
+      method GET HEAD
+      path /auth/v1/.well-known/openid-configuration /auth/v1/.well-known/jwks.json /auth/v1/.well-known/oauth-authorization-server /auth/v1/oauth/authorize /auth/v1/oauth/userinfo
+    }
+    handle @protocol_read {
+      uri strip_prefix /auth/v1
+      reverse_proxy http://127.0.0.1:PROVIDER_PORT
+    }
+    @oauth_token {
+      method POST
+      path /auth/v1/oauth/token
+    }
+    handle @oauth_token {
+      uri strip_prefix /auth/v1
+      reverse_proxy http://127.0.0.1:PROVIDER_PORT
+    }
+    @oauth_metadata {
+      method GET HEAD
+      path /.well-known/oauth-authorization-server/auth/v1
+    }
+    handle @oauth_metadata {
+      rewrite * /.well-known/oauth-authorization-server
+      reverse_proxy http://127.0.0.1:PROVIDER_PORT
+    }
+    # Deny even a valid shared anon/service key: no key or spoofable header
+    # elevates a public call. Central Auth management takes a private upstream.
+    respond "Central identity endpoint required" 403
+  }
+}

@@ -1,0 +1,8 @@
+# Static marketing deployment only. The private account service is deployed
+# separately from a curated release directory on the VPS.
+server/
+packages/
+supabase/
+docs/
+AGENTS.md
+CLAUDE.md

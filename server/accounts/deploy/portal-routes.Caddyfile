@@ -1,0 +1,35 @@
+# IMPORT INSIDE the existing canonical www.developed.sk site block.
+# This snippet does NOT configure DNS, TLS, a site root or the marketing server.
+# Existing static marketing handlers must follow this route block.
+# Cookie presence selects the backend; only its validated session authorizes
+# the picker redirect. Invalid cookies get exact public marketing HTML there.
+route {
+  @accounts_root {
+    method GET HEAD
+    path / /en/
+    header_regexp Cookie "(^|;[ ]*)__Host-developed_session="
+  }
+  reverse_proxy @accounts_root 127.0.0.1:3140 {
+    header_up -Forwarded
+    header_up -X-Forwarded-For
+    header_up -X-Real-IP
+  }
+
+  @accounts_public path /api/account/* /account-assets/* /apps /login /register /verify-email /forgot-password /reset-password /profile /security /account/authorize /admin/apps /admin/users /admin/reports /report-bug /report-bug/*
+  # /api/account/internal/* intentionally uses this HTTPS route too. Each request
+  # requires its app's private server key; no browser credentials or CORS grant.
+  # Do not confuse these central checks with provider control-plane APIs, which
+  # require the separate strict gateway/network boundary.
+  reverse_proxy @accounts_public 127.0.0.1:3140 {
+    # The backend deliberately does not authorize or rate-limit by these
+    # spoofable headers. Do not let a second upstream begin trusting them later.
+    header_up -Forwarded
+    header_up -X-Forwarded-For
+    header_up -X-Real-IP
+  }
+}
+
+# Do NOT use `file_server` with the Git repository or account service release as
+# root. Static marketing has its own curated public-only directory.
+# Do NOT send all www.developed.sk paths to the Node service: it does not serve
+# marketing/legal pages. Bare developed.sk should retain its canonical redirect.

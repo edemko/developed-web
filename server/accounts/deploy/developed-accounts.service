@@ -1,8 +1,8 @@
 # Staging template only. Review paths/user and release gates before installation.
 [Unit]
 Description=DevelopED central accounts
-After=network-online.target developed-uid-boundary.service bind-boundary.service
-Requires=developed-uid-boundary.service bind-boundary.service
+After=network-online.target developed-uid-boundary.service bind-boundary.service developed-auth-green.service
+Requires=developed-uid-boundary.service bind-boundary.service developed-auth-green.service
 Wants=network-online.target
 
 [Service]
@@ -23,15 +23,19 @@ PrivateTmp=true
 PrivateDevices=true
 ProtectSystem=strict
 ProtectHome=true
+ProtectProc=invisible
 ProtectKernelTunables=true
 ProtectKernelModules=true
+ProtectKernelLogs=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true
 RestrictRealtime=true
+RestrictNamespaces=true
 LockPersonality=true
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 CapabilityBoundingSet=
 AmbientCapabilities=
+InaccessiblePaths=-/run/docker.sock -/var/run/docker.sock -/run/tailscale/tailscaled.sock
 MemoryMax=256M
 TasksMax=64
 LimitNOFILE=4096

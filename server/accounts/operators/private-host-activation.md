@@ -1,7 +1,8 @@
 # Six private central-mode candidates — reviewed operation
 
-Prepared 2026-09-20. This is a bounded command review, not a public cutover and
-not evidence that activation has run. Execute only after the coordinator's GO.
+Prepared 2026-09-20 and executed after coordinator review; see the verified
+private checkpoint below. This is not a public cutover. The installation
+commands are one-time operations and now reject the existing drop-ins.
 Keep registration closed, publication and `enforce_oidc` off, mail disabled,
 public routes unchanged and legacy public services running. No schema, provider,
 firewall, static-root or public deployment changes belong to this operation.
@@ -158,7 +159,10 @@ private listeners; public availability must be measured separately throughout.
 ## Bounded acceptance, without live sign-in
 
 Use loopback requests with redirects disabled, canonical Host and (for POST)
-canonical Origin/JSON content type, no real cookie/token, and body `{}`. Capture
+canonical Origin/JSON content type, no real cookie/token, and body `{}`.
+Vocabulum's native `/api/v1` probes must omit Origin, matching native clients:
+its separate Flutter-web CORS policy otherwise correctly returns 403 before the
+central-credential guard. Do not configure a new allowed origin for this probe. Capture
 only status and expected booleans/error codes; never raw response headers,
 Set-Cookie values, OAuth query strings, provider bodies or credential-bearing
 journal lines. Do not follow registration links to the public portal.
@@ -218,3 +222,76 @@ continuity, protected static publication and full application behavior. Mega's
 managed-S4/import bridge credentials are absent in the staged contract; private
 health does not make those features configured. Public owner MFA/mail/restore
 requirements stay separate. No public SSO completion is implied by this runbook.
+
+The instance-specific overrides deliberately leave the original template env
+paths untouched. A future fresh instance would therefore still select the legacy
+environment. Before public activation, the production deployment path must select
+a stable central environment and guard templates/new instances against legacy
+rollback. Do not generalize these private overrides or change the templates as
+part of this checkpoint.
+
+## Verified private checkpoint — 2026-09-20
+
+Reviewed runbook commit `8e6bc6e` preceded all host writes. The immutable
+`5211760` staging verifier passed immediately before and after activation;
+all six original environments remain byte-identical to their protected backups.
+Its output label `verified-not-installed` describes that staging operator's own
+non-installing contract: it does not inspect systemd drop-ins. This checkpoint
+records the separate, approved private runtime activation.
+
+Six root:root0644 `central-private.conf` files now reset EnvironmentFile to their
+corresponding root:root0600 staged central artifacts. All effective units retained
+their existing bind-boundary overrides. Unit verification and daemon-reload passed.
+Five private units were restarted individually; only the old private ScreenTime
+instance was stopped and replaced. No original environment, public unit/container,
+route, firewall rule, static release, boot-enable state or deployment guard changed.
+
+| App | Verified PID | UID | Loopback port | Drop-in SHA256 |
+| --- | --- | --- | --- | --- |
+| Mega | 3534993 | 984 | 3168 | `74321bc54e6065e4872daa838bd5abff702b2dec230094f1d23e5c898654912b` |
+| ScreenTime | 3538874 | 983 | 3167 | `b9ea471341607cfb9c652ae600c5c2ad54d78a88a4fffbe2062fb96254ff9ab9` |
+| KešTrek | 3539845 | 982 | 3164 | `370a9bc6291ded7c7945c01ba98afbd181bdd2d5c6628565442b5255d08f3078` |
+| Otázkomat | 3540915 | 981 | 3166 | `99baa2fa5f88cdcb712bd5d586f070ebef6fd90a14d09c6521dad672335768c7` |
+| Airsoft | 3542385 | 986 | 3162 | `215c79900bb24d6efa13bef382b03c81ad4041d4427963c3c86eb33a0dbee442` |
+| Vocabulum | 3543092 | 985 | 3161 | `0a7287ee04bab9a3f1e3169547ebbaa97054f5f8ece9b36846a6fdbc2e862754` |
+
+All six were active with NRestarts=0 at final verification and listened only on
+their listed IPv4 loopback port. The four instance services remain disabled;
+the two pre-existing standalone units retain `static` boot state. Actual process
+environments report central=true, no legacy service-role/signing/Mailjet names,
+ScreenTime's compiled/runtime central flag true, and all three maintenance flags
+false. Environment SHA256 values match the staging checkpoint exactly.
+
+After readiness, all 29 bounded private HTTP checks in the table passed. The old
+ScreenTime process returned 143 after its requested SIGTERM, which systemd records
+as failed/exit-code, with MainPID=0 and port3167 free. A strict inactive-state
+assertion initially prevented the new start; the coordinator reviewed this benign
+stop classification before continuation. The old failed state was not reset.
+The new instance's first immediate requests raced startup; readiness plus repeat
+acceptance passed without restart. Vocabulum native checks initially received the
+expected CORS403 when sent an Origin; native-shaped no-Origin requests then
+returned both required CENTRAL_LOGIN_REQUIRED409 responses. No application or
+security configuration was relaxed to obtain these results.
+
+Actual-UID probes inside each service's mount namespace denied its private env,
+the Mega source env, developer SSH directory and Docker socket; all six denied
+connections to loopback8000/3141/2019/9000 with EHOSTUNREACH and an unapproved
+loopback3199 bind with EPERM. Five direct database probes ran as those same UIDs:
+each connected as its exact scoped role and received permission denial for
+`auth.users.encrypted_password`, within an explicitly read-only transaction.
+No identity/session/product row was written. Vocabulum's scoped HTTPS credential
+qualification remains the separate runtime-credential operator evidence; no
+session RPC was invoked in this operation.
+
+All seven public PIDs in the preflight table and the Caddyfile hash remained
+unchanged. A continuous six-site HTTPS monitor observed 311 successful responses
+and one Otázkomat transport failure across 312 requests. The monitor did not retain
+the transport exception subtype, so its cause cannot be established. Ten immediate
+follow-up public Otázkomat health requests returned200 (66–224ms), and ten old3126
+local health requests returned200 (4–9ms); old PID1126 remained active with no
+restart. This establishes recovery/current health, not a zero-interruption claim.
+No public config/restart was used in response to that observation.
+
+No real sign-in, OAuth start flow, mail, device ingestion, data mutation, migration,
+MCP operation, static publication or public SSO switch was performed. Central
+policy gates remain under the coordinator's separate read-only verification.

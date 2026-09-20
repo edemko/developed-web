@@ -1,9 +1,16 @@
-# DevelopED central account service — staged implementation
+# DevelopED central account service — private runtime
 
 This directory contains the new Node/TypeScript account backend and its vanilla
 browser UI. It is **not deployed by creating these files**. Registration starts
 closed and transactional email starts disabled. Existing static Slovak/English
 marketing remains a separate public artifact; it is not replaced by this app.
+
+The approved private runtime is now `developed-accounts.service`, UID988,
+loopback3140, application release `c561a81`; public SSO remains off. The exact
+credential paths, two anonymous acceptance sessions, scoped-role checks and
+remaining activation gates are recorded in the
+[private runtime checkpoint](deploy/central-runtime.md). No public account
+routes, real users, client registrations or mail delivery were enabled.
 
 Read the [implementation plan](../../docs/ecosystem-identity-plan.md),
 [API contract](../../docs/ecosystem-identity-api.md) and
@@ -268,9 +275,9 @@ templates:
 - [developed-accounts.service](deploy/developed-accounts.service): dedicated
   non-login OS service user, resource limits, read-only filesystem and loopback
   Node service. Review the actual Node binary path before installation. This
-  VPS currently has Node under the developer's home, not `/usr/bin/node`; the
-  unit intentionally blocks home-directory access. Provision a reviewed Node
-  22.23+ runtime outside home and update the executable path before activation.
+  VPS has a reviewed root-owned Node22.23.2 runtime at
+  `/opt/developed-runtimes/node-v22.23.2/bin/node`; the unit intentionally blocks
+  home-directory access and requires the UID, bind and private-provider services.
 - [portal-routes.Caddyfile](deploy/portal-routes.Caddyfile): route additions
   inside the existing canonical site, preserving the separate marketing root
   and serving app-key-authenticated central checks over HTTPS.

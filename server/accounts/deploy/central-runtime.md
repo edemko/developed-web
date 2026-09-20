@@ -1,6 +1,7 @@
 # Private central runtime — 2026-09-20
 
-The approved stage keeps registration closed, every app unpublished and
+Status: **running privately and verified**, public SSO remains off. The approved
+stage keeps registration closed, every app unpublished and
 `enforce_oidc=false`, and mail disabled. No Caddy/public route, identity,
 OAuth-client registration or product activation belongs to this operation.
 
@@ -8,7 +9,7 @@ OAuth-client registration or product activation belongs to this operation.
 
 - Runtime UID/GID: `developed-accounts`, UID988; no login shell, sudo or Docker.
 - Node: `/opt/developed-runtimes/node-v22.23.2/bin/node`, root-owned.
-- Application: `/opt/developed-accounts/releases/<reviewed-commit>/`; only
+- Application: `/opt/developed-accounts/releases/c561a81/`; only
   `dist`, `public`, `package.json`, `package-lock.json`, production `node_modules`.
 - Environment: `/etc/developed-accounts/accounts.env`, root-owned0600.
 - Independent initial encryption-key backup:
@@ -75,6 +76,47 @@ backup, DB schemas and all network gates. No shared provider/database restore or
 public route reversal is part of private staging. Public launch and real user,
 MFA, mail, native and all seven product acceptance remain separately gated.
 
-Preparation checks: provisioning unit tests and `systemd-analyze verify` passed.
-The application build and actual private runtime checkpoint will be recorded
-after verification; these instructions alone do not claim startup happened.
+## Verified private checkpoint
+
+Source preparation commit `c561a81` was built under the shared build lock in
+`/tmp/developed-central-build-gGBRHc`. The initial archive omitted committed test
+fixtures (migrations/project icons), producing five ENOENT failures. Adding those
+exact pinned files to the disposable checkout fixed the preparation error:
+the complete default suite passed61, skipped11 optional integration/browser
+tests, failed0. Production dependencies installed with scripts disabled and
+zero reported npm vulnerabilities. Two provisioning unit tests and systemd unit
+validation passed. No live integration suite was run.
+
+The installed `developed-accounts.service` is active and boot-enabled, serving
+only `127.0.0.1:3140`, with no restart at verification. Its actual PostgreSQL
+connection was observed as `developed_accounts`, application name
+`developed-accounts`, source `172.18.0.1`. A separate UID988 direct-login check
+proved the exact non-superuser/non-BYPASSRLS role, rejection of an incorrect
+password, denial of password-hash SELECT, and zero table-SELECT access in all11
+checked product/storage/vault private schemas. No grants or memberships changed.
+Existing PUBLIC extension/network functions remain a separate platform review;
+these checks do not prove complete effective network or database isolation.
+
+Health, login and the real account JavaScript returned200; unknown assets/routes
+returned404, all without cookies and with no-store/security headers. Approved
+bounded stale-cookie probes on `/` and `/en/` returned the exact root-owned
+curated HTML and new host-only Secure/HttpOnly/Lax cookies. The reused anonymous
+session endpoint returned closed registration; protected apps and missing app-key
+checks returned401. Exactly two anonymous sessions were created, with zero
+authenticated sessions, configured apps, OAuth mappings or outbox jobs. They
+expire through ordinary maintenance; no manual deletion was performed.
+
+The76-row Auth ledger remains unchanged with ordered MD5
+`60589993deff051bb630bbf046781f15`. Root-private configuration verifies mail and
+insecure-local mode are false, retained provider/Mailjet credentials match the
+approved original, and the independent encryption-key backup matches. Releases
+and marketing HTML are root-owned without group/other writes; UID988 has only
+its own GID982. A bounded journal scan found two startup messages and zero
+errors or credential-shaped messages. Provider/public routes, users, memberships,
+product data, existing keys and all public activation flags were not changed.
+
+Later client staging must coordinate the existing registry prerequisites and
+private provider registrations. The deployed web operator can attach the seven
+manifest entries. The deployed native operator and callback validator currently
+support only KešTrek; a Vocabulum native client requires an independently reviewed
+source extension and exact implemented callback before registration.

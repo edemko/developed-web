@@ -65,6 +65,17 @@ and network boundaries are absent are superseded by these completed checkpoints:
   All four candidate/automatic URLs independently require Vercel authentication.
   The staging gate is again disabled and its revision allowlist removed. No
   canonical promotion, protection bypass creation or deletion occurred.
+- The owner subsequently approved temporary automation access for the two exact
+  Odonto candidates. Reviewed workflow `b5ab924`, run `35529688224`, completed at
+  18:38 UTC with five of six checks passing: frontend config200 (including actual
+  HTTPS session-role verification), session401, forbidden identity BFF404,
+  allowed business BFF401, and backend health200 with startup guard invoked.
+  Backend `/auth/session` unexpectedly returned302 rather than401, so overall
+  qualification failed and no promotion followed. Both uniquely marked tokens
+  were verified revoked by the in-process cleanup and separate cleanup job.
+  Anonymous protection/canonical pins passed, and the probe revision gate was
+  removed. The backend redirect and authenticated-user/data acceptance remain
+  unresolved; no user login, session, mail or registration was created.
 - Mailjet sender/SPF/DKIM read-only checks and localized template/browser tests
   passed. No registration confirmation email has been sent to the approved
   test mailbox, and live mailbox delivery is not yet proven.

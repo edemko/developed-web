@@ -298,6 +298,30 @@ uploaded file hashes, READY production state and no credential/function metadata
 Neither phase promotes, deletes old deployments, detaches a domain or reopens a
 legacy alias. Any ambiguous POST or unexpected state stops for reconciliation.
 
+The qualified browser-handoff candidate is `dpl_FUDnzBVCZ2FPNHceyC8TuYbSiCpZ`
+(`vocabulary-builder-5j102456o-erik-demkos-projects.vercel.app`). Its metadata/file
+qualification passed, including exactly the expected default-alias advance and
+preservation of all 28 prior artifacts and canonical VPS behavior. The inherited
+framework label remains `nextjs`, despite function-free metadata and source.
+
+The next reviewed operator revision adds only `promote` and `verify-public`:
+promotion repeats the qualified-record/full-state/file guards and POSTs this
+exact production ID with `{}`. Public verification requires its production
+target and exact three promoted bindings, actual static HTML 200 without
+Location/Set-Cookie, eight protocol/non-navigation 410 cases, direct canonical
+Vercel Host 410 and unchanged normal VPS responses. It writes a root-only HTTP
+receipt, explicitly marked as still requiring browser verification. No alias,
+domain or deletion operation is present in this repair operator.
+
+After HTTP qualification, run the same browser test with
+`VOCABULUM_LIVE_HANDOFF=1` and the reviewed Playwright module path. It loads the
+actual public handoff HTML; only the fixed canonical destination is intercepted
+with a fixture page to record the generated request without sending fixture
+tokens or creating a VPS session. Query-free destination, cleared fragment and
+absent Referer are asserted. Do not run this live-browser check against the
+known-bad 303 predecessor, and do not mistake local fixture success for remote
+qualification.
+
 Follow [the complete inventory and closure runbook](../../../../docs/ecosystem-vocabulum-vercel-closure-20260920.md).
 Promotion of this routing artifact only neutralizes aliases assigned to it.
 The 26 old credential-bearing immutable runtimes remain active until separately

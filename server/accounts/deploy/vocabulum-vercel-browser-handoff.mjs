@@ -2,13 +2,17 @@ import assert from 'node:assert/strict';
 import { readFile, open, lstat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
+import https from 'node:https';
 import { PROJECT, TEAM, OLD_IDS, ENV_NAMES, CONFIG_SHA256, snapshot, servingFingerprint } from './vocabulum-vercel-operator.mjs';
 import { STATIC_ID as PREVIEW_ID, PRODUCTION_ID as PREVIOUS_ID, CANONICAL, PUBLIC_ALIAS,
   LEGACY_ALIASES } from './vocabulum-vercel-close.mjs';
 
 export const DESTINATION = 'https://vocabulum.developed.sk/auth/login#';
+export const HANDOFF_ID = 'dpl_FUDnzBVCZ2FPNHceyC8TuYbSiCpZ';
+export const HANDOFF_HOST = 'vocabulary-builder-5j102456o-erik-demkos-projects.vercel.app';
 export const HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="referrer" content="no-referrer"><meta http-equiv="refresh" content="0;url=${DESTINATION}"><title>Vocabulum has moved</title></head><body><p>Vocabulum has moved.</p><a href="${DESTINATION}" rel="noreferrer" referrerpolicy="no-referrer">Continue to Vocabulum</a></body></html>\n`;
 const RECORD = '/root/vocabulum-vercel-browser-handoff-stage-20260920.json';
+const VERIFIED = '/root/vocabulum-vercel-browser-handoff-http-verified-20260920.json';
 const DEFAULT_ALIAS = 'vocabulary-builder-erik-demkos-projects.vercel.app';
 const PURPOSE = 'vocabulum-static-browser-handoff-20260920';
 const digest = (s) => createHash('sha256').update(s).digest('hex');
@@ -47,9 +51,9 @@ export function assertBefore(s) {
   }
 }
 
-export function assertHandoffMetadata(d, id, payload) {
+export function assertHandoffMetadata(d, id, payload, expectedAliases = [DEFAULT_ALIAS]) {
   assert.equal(d.id, id); assert.equal(d.projectId, PROJECT); assert.equal(d.readyState, 'READY');
-  assert.equal(d.target, 'production'); assert.deepEqual(d.alias, [DEFAULT_ALIAS]);
+  assert.equal(d.target, 'production'); assert.deepEqual(sorted(d.alias), sorted(expectedAliases));
   assert.equal(d.meta?.purpose, PURPOSE); assert.equal(d.meta?.routingSha256, payload.meta.routingSha256);
   for (const key of ['functions', 'builds', 'crons']) assert.ok(d[key] == null
     || (typeof d[key] === 'object' && Object.keys(d[key]).length === 0));
@@ -65,16 +69,61 @@ async function canonicalState() {
   const providers = await fetch(`https://${CANONICAL}/api/auth/providers`, { redirect: 'manual' });
   assert.equal(providers.status, 200); assert.deepEqual(Object.keys(await providers.json()), ['credentials']);
 }
-async function readRecord() {
-  const s = await lstat(RECORD); assert.ok(s.isFile() && !s.isSymbolicLink());
+async function readRecord(path = RECORD) {
+  const s = await lstat(path); assert.ok(s.isFile() && !s.isSymbolicLink());
   assert.equal(s.uid, 0); assert.equal(s.nlink, 1); assert.equal(s.mode & 0o777, 0o600);
-  return JSON.parse(await readFile(RECORD, 'utf8'));
+  return JSON.parse(await readFile(path, 'utf8'));
 }
-async function saveRecord(value) {
-  const f = await open(RECORD, 'wx', 0o600);
+async function saveRecord(value, path = RECORD) {
+  const f = await open(path, 'wx', 0o600);
   try { await f.writeFile(JSON.stringify(value)); await f.sync(); } finally { await f.close(); }
   const dir = await open('/root', 'r'); try { await dir.sync(); } finally { await dir.close(); }
-  assert.deepEqual(await readRecord(), value);
+  assert.deepEqual(await readRecord(path), value);
+}
+
+function probe(host, path, method = 'GET', direct = false) {
+  return new Promise((resolve, reject) => {
+    const req = https.request({ hostname: direct ? HANDOFF_HOST : host, servername: host, method, path,
+      headers: { Host: host, 'User-Agent': 'Mozilla/5.0 (Vocabulum migration check)' } }, (res) => {
+      let body = ''; res.on('data', (part) => { body += part; if (body.length > 100000) req.destroy(); });
+      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body }));
+    });
+    req.on('error', reject); req.setTimeout(15000, () => req.destroy(new Error('Timeout')));
+    req.end(method === 'POST' ? 'fixture=nonsecret' : undefined);
+  });
+}
+export async function smoke(probeFn = probe) {
+  let checks = 0;
+  for (const [method, path, status] of [
+    ['GET', '/?code=fixture-code&token=fixture-token', 200], ['HEAD', '/auth/login?next=https://untrusted.invalid', 200],
+    ['GET', '/reset-password?token=fixture-token', 200], ['GET', '/folders/fixture', 200],
+    ['GET', '/api/auth/providers', 410], ['GET', '/api/auth/session', 410],
+    ['GET', '/api/auth/callback/developed?code=fixture-code&state=fixture-state', 410],
+    ['POST', '/api/v1/auth/login', 410], ['POST', '/api/auth/callback/credentials', 410],
+    ['POST', '/auth/login', 410], ['POST', '/', 410], ['OPTIONS', '/api/auth/session', 410],
+  ]) {
+    const r = await probeFn(PUBLIC_ALIAS, path, method); assert.equal(r.status, status);
+    assert.equal(r.headers.location, undefined); assert.equal(r.headers['set-cookie'], undefined);
+    assert.equal(r.headers['cache-control'], 'no-store'); assert.equal(r.headers['referrer-policy'], 'no-referrer');
+    if (status === 200 && method === 'GET') assert.equal(r.body, HTML);
+    checks++;
+  }
+  const direct = await probeFn(CANONICAL, '/api/auth/providers', 'GET', true); assert.equal(direct.status, 410);
+  return { navigation200: 4, protocol410: 8, directCanonical410: true, checks: checks + 1 };
+}
+
+export function assertPromoted(s) {
+  assert.equal(s.project.targets?.production?.id, HANDOFF_ID);
+  assert.deepEqual(sorted(s.deployments.map((d) => d.uid)), sorted([...OLD_IDS, PREVIEW_ID, PREVIOUS_ID, HANDOFF_ID]));
+  assert.ok(s.deployments.every((d) => d.state === 'READY'));
+  // Reduce only the three explicitly promoted bindings and target to the pinned
+  // prior state, then apply its complete Git/protection/env/domain/alias gate.
+  assertBefore({ ...s, project: { ...s.project, targets: { ...s.project.targets, production: { id: PREVIOUS_ID } } },
+    deployments: s.deployments.filter((d) => d.uid !== HANDOFF_ID),
+    aliases: s.aliases.map((a) => {
+      if (![PUBLIC_ALIAS, CANONICAL, DEFAULT_ALIAS].includes(a.alias)) return a;
+      assert.equal(a.deploymentId, HANDOFF_ID); return { ...a, deploymentId: PREVIOUS_ID };
+    }) });
 }
 async function verifyFiles(api, id, payload) {
   const files = [];
@@ -92,7 +141,7 @@ async function verifyFiles(api, id, payload) {
   }
 }
 async function run(phase) {
-  assert.equal(process.getuid(), 0); assert.ok(['stage', 'inspect'].includes(phase));
+  assert.equal(process.getuid(), 0); assert.ok(['stage', 'inspect', 'promote', 'verify-public'].includes(phase));
   const { token } = JSON.parse(await readFile('/home/openclaw/.local/share/com.vercel.cli/auth.json', 'utf8'));
   const api = async (path, method = 'GET', body) => {
     const url = new URL(path, 'https://api.vercel.com'); assert.equal(url.origin, 'https://api.vercel.com'); url.searchParams.set('teamId', TEAM);
@@ -114,15 +163,28 @@ async function run(phase) {
     console.log(JSON.stringify({ phase, id: d.id, url: d.url, readyState: d.readyState, target: d.target, completed: true }));
   } else {
     const record = await readRecord(); assert.equal(record.project, PROJECT); assert.equal(record.team, TEAM);
-    assert.match(record.id, /^dpl_[a-zA-Z0-9]+$/); assert.equal(record.routingSha256, payload.meta.routingSha256);
-    const d = await api(`/v13/deployments/${record.id}`); assertHandoffMetadata(d, record.id, payload);
+    assert.equal(record.id, HANDOFF_ID); assert.equal(record.routingSha256, payload.meta.routingSha256);
+    const d = await api(`/v13/deployments/${record.id}`);
+    assertHandoffMetadata(d, record.id, payload, phase === 'verify-public' ? [DEFAULT_ALIAS, PUBLIC_ALIAS, CANONICAL] : undefined);
     await verifyFiles(api, record.id, payload);
+    if (phase === 'verify-public') {
+      assertPromoted(current);
+      const result = await smoke(); await canonicalState();
+      await saveRecord({ id: HANDOFF_ID, routingSha256: payload.meta.routingSha256,
+        time: new Date().toISOString(), ...result, browserVerificationStillRequired: true }, VERIFIED);
+      console.log(JSON.stringify({ phase, id: HANDOFF_ID, ...result, canonicalVpsUnchanged: true, completed: true }));
+      return;
+    }
     const expected = JSON.parse(record.beforeServing);
     const alias = expected.aliases.find(([name]) => name === DEFAULT_ALIAS); assert.equal(alias[1], PREVIOUS_ID); alias[1] = record.id;
     assert.equal(servingFingerprint(current), JSON.stringify(expected));
     assert.equal(current.deployments.filter((entry) => entry.uid === record.id).length, 1);
     assertBefore({ ...current, deployments: current.deployments.filter((entry) => entry.uid !== record.id),
       aliases: current.aliases.map((a) => a.alias === DEFAULT_ALIAS ? { ...a, deploymentId: PREVIOUS_ID } : a) });
+    if (phase === 'promote') {
+      await api(`/v10/projects/${PROJECT}/promote/${HANDOFF_ID}`, 'POST', {});
+      console.log(JSON.stringify({ phase, id: HANDOFF_ID, completed: true })); return;
+    }
     console.log(JSON.stringify({ phase, id: record.id, url: d.url, exactTwoFiles: true, zeroApplicationEnv: true,
       zeroFunctionsBuildsCrons: true, all28Preserved: true, onlyDefaultAliasAdvanced: true,
       canonicalVpsUnchanged: true, frameworkLabel: d.projectSettings?.framework, completed: true }));

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
-import { browserPayload, HTML, DESTINATION, assertHandoffMetadata } from './vocabulum-vercel-browser-handoff.mjs';
+import { browserPayload, HTML, DESTINATION, assertHandoffMetadata, smoke, assertPromoted, HANDOFF_ID } from './vocabulum-vercel-browser-handoff.mjs';
 import { PROJECT, ENV_NAMES } from './vocabulum-vercel-operator.mjs';
 const payload = browserPayload(await readFile(new URL('./vocabulum-vercel-retirement/config.json', import.meta.url), 'utf8'));
 const routes = JSON.parse(payload.files[0].data).routes;
@@ -45,9 +45,11 @@ test('real Chromium meta refresh clears incoming query and fragment without any 
       for (const suffix of ['/?code=fixture-code&token=fixture-token#access_token=fragment-secret',
         '/auth/login?next=https://untrusted.invalid#fixture-fragment', '/folders/example?state=fixture#fixture']) {
         const context = await browser.newContext(); const seen = [];
+        const host = process.env.VOCABULUM_LIVE_HANDOFF === '1' ? 'vocabulary-builder-plum.vercel.app' : 'old.example';
         await context.route('**/*', async (route) => {
           const req = route.request(); seen.push({ url: req.url(), referrer: req.headers().referer });
-          if (new URL(req.url()).hostname === 'old.example') {
+          if (new URL(req.url()).hostname === host) {
+            if (process.env.VOCABULUM_LIVE_HANDOFF === '1') { await route.continue(); return; }
             const r = routeFor(req.method(), req.url());
             await route.fulfill({ status: r.status, headers: r.headers, body: HTML });
           } else {
@@ -55,7 +57,7 @@ test('real Chromium meta refresh clears incoming query and fragment without any 
             await route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>Canonical fixture</title>' });
           }
         });
-        const page = await context.newPage(); await page.goto(`https://old.example${suffix}`);
+        const page = await context.newPage(); await page.goto(`https://${host}${suffix}`);
         await page.waitForURL(DESTINATION);
         assert.equal(page.url(), DESTINATION); assert.equal(seen.length, 2);
         assert.equal(seen[1].url, DESTINATION.slice(0, -1)); assert.equal(seen[1].referrer, undefined);
@@ -63,3 +65,16 @@ test('real Chromium meta refresh clears incoming query and fragment without any 
       }
     } finally { await browser.close(); }
   });
+
+test('public HTTP handoff refuses platform redirects, altered HTML, query forwarding and live protocols', async () => {
+  const fixture = async (host, path, method = 'GET', direct = false) => {
+    const r = routeFor(method, path, direct ? 'vocabulum.developed.sk' : 'old.example');
+    return { status: r.status, headers: { 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' },
+      body: r.status === 200 && method === 'GET' ? HTML : '' };
+  };
+  assert.equal((await smoke(fixture)).checks, 13);
+  for (const change of [(r) => { r.status = 303; }, (r) => { r.headers.location = `${DESTINATION}?code=fixture`; },
+    (r) => { r.headers['set-cookie'] = ['fixture']; }, (r) => { r.body = 'changed'; }])
+    await assert.rejects(smoke(async (...args) => { const r = await fixture(...args); change(r); return r; }));
+  assert.throws(() => assertPromoted({ project: { targets: { production: { id: `${HANDOFF_ID}-other` } } } }));
+});

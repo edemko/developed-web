@@ -265,6 +265,39 @@ preview ID remains retained and is not a retirement target. At this checkpoint
 the corrected production promotion has not been executed; it requires the
 coordinator's next GO after source review.
 
+### Static browser handoff repair
+
+The corrected production promotion succeeded at `2026-09-20T19:26:03.291Z`.
+Public verification then stopped: Vercel's edge appended the incoming query to
+the configured 303 Location. API requests correctly returned 410, but the strict
+query-free redirect requirement failed. No verification receipt was created and
+no old deployment was deleted. The normal canonical VPS remained unchanged.
+
+`vocabulum-vercel-browser-handoff.mjs` replaces only navigation responses with a
+static 200 HTML document. It contains a literal meta refresh to
+`https://vocabulum.developed.sk/auth/login#` and a matching no-referrer manual link.
+There is no JavaScript, HTTP Location header, external asset, function, middleware
+or application environment. Existing protocol/non-navigation and canonical Host
+410 routes are unchanged. Headers remain no-store, no-referrer and restrictive
+CSP. The generated production payload contains exactly `vercel.json` and
+`handoff.html`, with automatic custom-domain assignment disabled.
+
+Local real-Chromium tests intercept and record every request, testing incoming
+query and fragment fixtures on three paths. Only the initial fixture navigation
+and a query-free, fragment-cleared canonical navigation occur; the canonical
+request has no Referer. This establishes browser semantics, not the new Vercel
+runtime, which must be tested again after separately approved promotion.
+
+The repair operator supports only `stage` and `inspect`. It requires the exact
+28 READY IDs and post-promotion five bindings, empty project/shared environment,
+original Git/protection boundary and unchanged normal VPS responses. It saves an
+exclusive root:root0600/fsynced
+`/root/vocabulum-vercel-browser-handoff-stage-20260920.json`. Inspection permits
+only the known automatic default protected-alias advance, requires 29 IDs, exact
+uploaded file hashes, READY production state and no credential/function metadata.
+Neither phase promotes, deletes old deployments, detaches a domain or reopens a
+legacy alias. Any ambiguous POST or unexpected state stops for reconciliation.
+
 Follow [the complete inventory and closure runbook](../../../../docs/ecosystem-vocabulum-vercel-closure-20260920.md).
 Promotion of this routing artifact only neutralizes aliases assigned to it.
 The 26 old credential-bearing immutable runtimes remain active until separately

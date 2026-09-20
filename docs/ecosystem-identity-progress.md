@@ -1,7 +1,8 @@
 # Ecosystem identity implementation progress
 
-Started 2026-09-20 at the owner's request. Local implementation only: no live
-account mutations, migration, deployment, secret changes or session revocation.
+Started 2026-09-20 at the owner's request. Central SSO remains inactive: no live
+account mutations, migrations, secret changes or session revocation. Source was
+pushed at the owner's subsequent request; see the publication note below.
 
 ## Work streams
 
@@ -129,3 +130,32 @@ registration remains closed and every product integration flag remains off.
 See [API contract](ecosystem-identity-api.md), [plan](ecosystem-identity-plan.md)
 and [evidence](ecosystem-identity-evidence.md). Update this record with actual
 test results and remaining gaps; do not equate source changes with deployment.
+
+## Commit/push and publication follow-up (2026-09-20)
+
+- Pushed `92360bd` (portal), `39273a8` (KešTrek), and `6cace5f` (Screen Time)
+  to their `origin/main`. Mega Music awaits the owner's decision about earlier
+  uncommitted web-player prerequisites interleaved with its SSO integration.
+- Clean `npm ci --ignore-scripts` and real packaged OIDC imports passed in three
+  standalone disposable directories. Each product archive contains only the
+  reviewed helper source, package manifest and README, not a sibling symlink.
+- The existing DevelopED VPS webhook was discovered to run `git reset --hard`
+  on the development checkout and rsync almost the entire repository. The first
+  requested push therefore cleared the pre-existing `styles.css` modification
+  and copied backend/package/migration files into the static web root. This was
+  not an account-service activation. The original CSS difference was not captured
+  and has not been recovered; Git's unreachable object check contained only a
+  progress-document blob, not the CSS edit.
+- Removed the unintended public copies, and previously copied project metadata,
+  by moving exact paths to the private directory
+  `/tmp/developed-deploy-quarantine-lCy9jq` (recoverable, not deleted).
+  No literal credential-shaped fields were found in the quarantined MCP config;
+  this limited check is not a comprehensive exposure/access audit.
+- Corrected only `/usr/local/bin/deploy-developed-web`, retaining its old version
+  in that quarantine. The reviewed replacement is
+  `server/accounts/deploy/deploy-marketing.sh`: it archives an explicit static
+  path allowlist from `origin/main` and never resets the development checkout.
+  Re-ran this static deployment. Origin backend/config probes return 404. Public
+  probes from this VPS receive 403 (including the homepage), so public-browser
+  acceptance is not established by those probes. Shared auth/proxy configuration
+  was not changed. No central login activation is claimed.

@@ -1,7 +1,8 @@
-# Separate central mail worker — source-only preparation
+# Separate central mail worker — staged, inactive
 
-No worker has been installed/started, no live database query has been executed by
-this preparation, and no email has been sent. The existing central API continues
+The reviewed worker is installed but disabled/inactive. A separate read-only
+database-role verification succeeded; no worker tick or mail send was invoked.
+The existing central API continues
 on loopback3140 with its current process and `ACCOUNTS_MAIL_ENABLED=false`.
 Starting the new worker is an explicit mail-delivery activation and needs the
 coordinator's separate approval after security/canonical-link readiness and
@@ -26,7 +27,7 @@ one-time account action. No outbox payload or recipient is logged.
 
 ## Inputs and startup gates
 
-`central-mail-worker-input.mjs --apply` is a future root-only, exclusive-create
+`central-mail-worker-input.mjs --apply` is a root-only, exclusive-create
 assembler. It reads the existing protected central file only in memory and
 selects exactly six values into root:root0600
 `/etc/developed-accounts/mail-worker.json`: database URL, encryption key, Mailjet
@@ -85,7 +86,7 @@ The startup guard is a point-in-time check, not a new
 central API reconfiguration mechanism. Do not bypass it with direct developer
 execution or reuse the full API environment file in this unit.
 
-Future installation must copy only these reviewed launcher/input/guard modules
+Installation copies only these reviewed launcher/input/guard modules
 into a root-owned immutable mail-worker directory, preserve the existing c561a81
 release and central PID, validate the unit in isolation, assemble the protected
 input, and obtain separate start/send approval. No API restart is needed. Before
@@ -108,3 +109,36 @@ deadline behavior. It also imports the actual pinned immutable MailWorker with
 mocked DB and Mailjet request functions, proving preserved lease/cap/template
 behavior without network or database access. The Supabase role/security review
 informed the startup role gate; no Supabase schema/API change was required.
+
+## Observed staging — 2026-09-20
+
+Source commit `733903a` was pushed with `[no deploy]`; all seven fixture tests
+passed. The three launcher/input/guard modules were copied unchanged into
+root:root0555 `/opt/developed-accounts/mail-worker` with root:root0444 module
+files. The unit was installed root:root0644, validated with
+`systemd-analyze verify`, and systemd reloaded without starting/enabling it.
+Source-to-installed byte equality and Node syntax checks passed. Installed hashes:
+
+| File | SHA-256 |
+| --- | --- |
+| central-mail-worker-input.mjs | `10356d28c8850bd582f56aea92f9b78bb6b967336742574ece7728e6b7cf92de` |
+| central-mail-worker-guard.mjs | `28b712d7fb7fd7341049dbe34abcb13c0231f8e86130dc9d6136e477538dcb8f` |
+| central-mail-worker.mjs | `3447f372fbdfc6906122e3ce851b0e158ea05e521e32fcf64721fa6ff99c74ec` |
+| developed-accounts-mail-worker.service | `3fdd29522b82d8752525f08b09a8d66138ef4d5c65096b6931ace9c9c93f9b98` |
+
+The approved exclusive assembler created the six-field input as root:root0600,
+link count1; file and parent fsync/readback passed. The root guard confirmed the
+actual API process has mail disabled, matches the selected inputs, and is the
+only central API, with no standalone mail worker.
+
+A separate process dropped to actual UID988/GID982, received only the database
+URL through stdin, imported the installed `ROLE_SQL`/`assertRole` and immutable
+Database module, executed that read-only role query, and closed its pool. Both
+database identities were `developed_accounts`; superuser, BYPASSRLS, role/database
+creation, replication and membership were false. It never invoked the worker
+entry point, instantiated MailWorker, queried outbox payloads, or ran a tick.
+
+Final unit evidence: central API active/enabled, PID3197193, NRestarts0 unchanged;
+mail worker inactive/disabled, PID0, NRestarts0. Actual worker namespace/protected
+file-denial/listener checks and delivery checks remain pending an explicit
+start/send authorization. No delivery success is claimed by this staging.

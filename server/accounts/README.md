@@ -322,6 +322,12 @@ schemas. Keep registration closed during any uncertain cutover.
 
 ## Email and support operations
 
+The staged [separate central mail worker](deploy/central-mail-worker.md) reuses
+the immutable mail implementation without restarting the API. Keep the API's
+`ACCOUNTS_MAIL_ENABLED=false` while that worker is used; never run both senders.
+Worker start/send approval is separate from installation, and registration
+remains closed until its own activation is approved.
+
 Verify Mailjet sender/domain authentication and controlled-address delivery
 before enabling mail. Do not enable sending merely to exercise a unit test.
 Confirm link destinations use the canonical central origin, not the historic

@@ -90,7 +90,43 @@ mapping. The project production alias and direct Vercel Host/SNI access still
 expose legacy credentials login. Disconnecting Git prevents accidental source
 push deployment; it does **not** retire those runtimes. Static replacement and
 exact old-artifact retirement are still pending. Personal free-tier source work
-is under review and has not replaced the private or public application build.
+is committed and pushed as `1b4e623`; `305dd90` adds the Vercel Git deployment
+guard without changing application bytes. The new private artifact is being
+built and has not replaced either running application. Personal folder creation
+and renaming and word/sentence authoring are enabled in source; student folder
+deletion deliberately fails closed pending an atomic cascading-delete guard.
+
+### Handoff order: preserve device and integration access
+
+Publication policy and public human-login admission are separate controls.
+`ensureAccess()` rejects an unpublished or closed app before considering existing
+membership, even for the owner. These same checks serve device/integration owner
+validation. Do not switch preserved device traffic to a central-mode candidate
+while its app policy is still closed.
+
+In particular, ScreenTime maps a central owner-check403 to ingest401, and the
+installed Android source's `Sync.kt` clears its unsent buffer on401/403. This is
+a data-loss risk, not an acceptable interactive re-login window. A central
+availability failure instead becomes503 and is retried. KešTrek's MCP guard also
+maps a closed-policy403 to401, although that server path does not delete its
+integration key. Keep the existing device/MCP routes serving until their new
+authenticated central checks and intended app policy are available.
+
+The coordinated sequence must therefore expose only app-key-authenticated
+central internal checks first, keep public human login/consent unavailable,
+make all seven app policies usable before switching device/MCP routes, then
+complete client/data enforcement, gateway closure and exact legacy-runtime
+retirement. Verify device/integration positives immediately. Only after the
+complete security boundary passes may public human SSO open. Registration and
+mail may remain closed while owner MFA, physical Android and product acceptance
+are completed; this is not permission for a partial security pilot.
+
+Owner MFA alone can be exercised with all app policies closed through a reviewed
+private canonical-origin path. Android/OIDC app acceptance cannot. If retaining
+the pre-public-login acceptance gate, that private path must also contain the
+required product/provider routes and usable app policies. Hiding picker tiles
+does not provide such containment. No admission, policy or route change was
+made by this source review.
 
 ## Historical baseline — do not use as current deployment state
 

@@ -1,11 +1,11 @@
-# Vocabulum/Airsoft footer follow-up — candidates qualified, routes unchanged
+# Vocabulum/Airsoft footer follow-up — handoff complete
 
 This is a UI-only follow-up to the central-auth runtime cutover. Both new
-unrouted candidates are qualified; the exact own-UID bind additions are applied.
-The old serving units, central environment files and packet policy are unchanged.
-The coordinator separately opened the human portal before final candidate
-qualification; this operator did not change Caddy. Route changes require their
-own reviewed handoff and approval. The final observed checkpoint is below.
+candidates are qualified and now serve their public routes following the
+separately reviewed [route handoff](footer-route-handoff.md). The exact own-UID
+bind additions are applied. The old units, central environment files and packet
+policy are preserved. Historical preparation checkpoints below describe their
+state at the time; the latest public acceptance is recorded at the end.
 
 ## Pinned source and local qualification
 
@@ -253,3 +253,71 @@ with a60-second timeout and no ExecStop; no reverse stop-propagation dependency
 was present. Require PID0/ControlPID0, no old listener, unchanged new PIDs and
 public health afterward. Any unexpected failed state requires read-only
 reconciliation, not a reset-failed, restart, deletion or broadened retry.
+
+## Public Chromium acceptance after the route handoff
+
+The coordinator applied the separately reviewed two-dial Caddy handoff; its
+resulting SHA256 is
+`aa28db0fdd4c64a5c398e5c7e045ef59e19fae2e53e3e28dc437742ba072fdcc`.
+Actual public Chromium checks then passed for Vocabulum `/login` and `/`, and
+Airsoft `/sk/login`, `/cs/login`, `/uk/login`: HTTP200, no visible legacy password
+form, exactly one correct report/support link and one decoded DevelopED footer
+logo. Clicking each report link from a page with a synthetic query and fragment
+was intercepted before any external request. Only the fixed central app-specific
+report URL with `platform=web` appeared, with no Referer or synthetic query/fragment.
+No bug report was submitted. Actual Vocabulum `/register` and Airsoft `/sk/signup`
+navigated to central `/register`, showing closed registration and no password
+form. No real sign-in, signup, mail or product write was performed.
+
+The boot/drain command preflight initially used the nonexistent public endpoint
+`/api/accounts/health` and stopped on404 before even creating its protected
+recovery directory. No boot link or unit state changed. Central source exposes
+`/health` internally; the corrected probe uses root-accessible
+`http://127.0.0.1:3140/health` (verified200), plus the public central login page.
+The nonexistent public route is not a central availability failure.
+
+## Final boot selection and old-process retirement
+
+After the coordinator reviewed the corrected health probe, protected capture and
+the exact `add-wants` phase completed. Recovery evidence is stored root0600 in
+the root0700 directory `/var/backups/developed-footer-boot-drain-20260920`,
+including before-state/link proof, both old/new base unit files, supplemental
+effective old-unit/drop-in copies, the public browser probe, and exclusive
+boot/stop/reconciliation receipts. No original unit, drop-in, release, cache,
+environment file or product/session data was deleted or modified.
+
+Each new unit has its exact root-owned persistent
+`/etc/systemd/system/multi-user.target.wants/developed-<slug>-footer.service`
+symlink pointing to `/etc/systemd/system/developed-<slug>-footer.service`.
+`systemctl add-wants` was used without `--now` or `--force`; no service restart or
+unit-file rewrite was required. Both report enabled and retain their original
+running PIDs and zero restarts.
+
+Both-family old-port socket checks allowed only LISTEN/TIME_WAIT before the
+individual disable/stop operations. Vocabulum's first post-stop check stopped
+because systemd reported exit143 instead of clean success. Read-only inspection
+confirmed that each exact installed Next `start-server.js` SIGTERM cleanup
+explicitly calls `process.exit(143)` after server/cleanup completion; the units
+use control-group SIGTERM and do not declare that exit status successful.
+The coordinator approved an exact receipt-only Vocabulum reconciliation, followed
+by the single remaining Airsoft stop accepting only clean success or that precise
+fully-stopped143 signature. Both completed with the143 signature. No stop replay,
+`reset-failed`, restart, broad status relaxation or automatic retry was used.
+
+| Unit | Final PID / boot selection | Final runtime result |
+| --- | --- | --- |
+| `developed-vocabulum-footer.service` | 723605 / enabled, exact wants link | active/running, zero restarts |
+| `developed-airsoft-footer.service` | 767388 / enabled, exact wants link | active/running, zero restarts |
+| `developed-vocabulum-green.service` | 0 / static, old wants link absent | failed retained; exit-code, Code1/Status143 |
+| `developed-airsoft-green.service` | 0 / static, old wants link absent | failed retained; exit-code, Code1/Status143 |
+
+For both old units, ControlPID is0, the old `/proc` entry and systemd cgroup are
+absent, restart count is0, and ports3161/3162 have no IPv4 or IPv6 listener.
+The failed labels are retained shutdown evidence, not running failed services or
+a falsely claimed clean-success state. The old root-owned artifacts and separate
+caches remain available for a reviewed recovery, but no rollback was performed.
+Final public product/central login checks and internal central health returned200;
+central API PID3197193 and Caddy PID862 were unchanged with zero restarts. The
+route handoff's Caddy SHA256 remained `aa28db0f…` (full hash above). No credential,
+registration-policy, mail, personal-account or product-data change was made by
+the footer handoff.

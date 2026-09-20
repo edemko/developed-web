@@ -12,9 +12,10 @@ test('production staging changes only target and disabled automatic assignment',
   assert.deepEqual(payload, buildStaticPayload(config));
 });
 
-test('production stage requires exact preserved set, unassigned READY artifact and zero credentials/runtime', () => {
+test('production stage allows only observed default alias advance, exact preserved set and zero credentials/runtime', () => {
   const id = 'dpl_fixtureProduction';
-  const d = { id, projectId: PROJECT, readyState: 'READY', target: 'production', alias: [],
+  const d = { id, projectId: PROJECT, readyState: 'READY', target: 'production',
+    alias: ['vocabulary-builder-erik-demkos-projects.vercel.app'],
     meta: { purpose: 'vocabulum-static-retirement-20260920', routingSha256: CONFIG_SHA256 },
     env: ['VERCEL'], build: { env: ['VERCEL'] }, builds: [] };
   const current = { project: { id: PROJECT, accountId: TEAM,
@@ -24,10 +25,14 @@ test('production stage requires exact preserved set, unassigned READY artifact a
     domains: [PUBLIC_ALIAS, CANONICAL].map((name) => ({ name })) };
   const record = { id, project: PROJECT, team: TEAM, previewId: STATIC_ID, autoAssignCustomDomains: false,
     routingSha256: CONFIG_SHA256, beforeServing: servingFingerprint(current) };
+  current.aliases.find((entry) => entry.alias === 'vocabulary-builder-erik-demkos-projects.vercel.app').deploymentId = id;
   assertProductionStage(d, current, record);
   for (const mutation of [
     (a, s) => { s.project.targets.production.id = id; },
     (a, s) => { s.deployments.pop(); }, (a, s) => { s.aliases[0].deploymentId = id; },
+    (a, s) => { s.aliases.find((entry) => entry.alias === CANONICAL).deploymentId = id; },
+    (a, s) => { s.aliases.find((entry) => entry.alias === 'vocabulary-builder-git-main-erik-demkos-projects.vercel.app').deploymentId = id; },
+    (a, s) => { s.project.link = { type: 'github' }; },
     (a, s) => { s.envs.push({ key: ENV_NAMES[0] }); },
     (a, s) => { s.sharedEnvs.push({ id: 'fixture' }); },
     (a) => { a.alias.push(PUBLIC_ALIAS); }, (a) => { a.target = null; },

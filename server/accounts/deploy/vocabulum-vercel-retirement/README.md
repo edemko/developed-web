@@ -237,6 +237,34 @@ credential-bearing retirement targets. Neither corrective phase promotes or
 changes aliases/domains. A new reviewed revision must pin the qualified
 production ID before direct promotion with JSON body `{}`.
 
+### Production candidate qualification and default-alias exception
+
+Production candidate `dpl_JAKKv2iPuQdbh53NDeMtLZACwFiu`
+(`vocabulary-builder-7xyhq91tz-erik-demkos-projects.vercel.app`) reached READY.
+The initial post-create check preceded build completion and saw no serving
+change. Once READY, Vercel automatically advanced only
+`vocabulary-builder-erik-demkos-projects.vercel.app` to this candidate despite
+`autoAssignCustomDomains=false`. The original strict inspection stopped. A
+complete read-only reconciliation then confirmed all 28 deployments READY,
+unchanged original production target, both custom domains and the other four
+alias bindings unchanged, Git disconnected, protection unchanged and zero
+project/shared environment entries. The moved default alias remains protected:
+anonymous `/api/auth/providers` returns 302 to `vercel.com`.
+
+The coordinator accepted this early advance of one intended static alias. The
+revised inspection compares the original captured serving fingerprint with
+exactly this one named mapping substituted; any other mapping, production,
+domain or protection drift fails. It does not restore the old credential-bearing
+alias. Both uploaded hashes match the preview, and metadata has no application
+environment names or functions/builds/crons. The inherited framework label is
+still `nextjs`; actual public 303/410 remains unproven until separate promotion.
+
+The closure now pins this production ID for promotion (JSON body `{}`), public
+verification, alias reassignment and eventual exact-26 retirement. The safe
+preview ID remains retained and is not a retirement target. At this checkpoint
+the corrected production promotion has not been executed; it requires the
+coordinator's next GO after source review.
+
 Follow [the complete inventory and closure runbook](../../../../docs/ecosystem-vocabulum-vercel-closure-20260920.md).
 Promotion of this routing artifact only neutralizes aliases assigned to it.
 The 26 old credential-bearing immutable runtimes remain active until separately

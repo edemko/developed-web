@@ -8,6 +8,9 @@ import { PROJECT, TEAM, OLD_IDS, ENV_NAMES, CONFIG_SHA256, snapshot,
 
 export const STATIC_ID = 'dpl_J2es9uhrzdS1fcxo7gAV1U4rRpZr';
 export const STATIC_HOST = 'vocabulary-builder-cev55ut27-erik-demkos-projects.vercel.app';
+export const PRODUCTION_ID = 'dpl_JAKKv2iPuQdbh53NDeMtLZACwFiu';
+export const PRODUCTION_HOST = 'vocabulary-builder-7xyhq91tz-erik-demkos-projects.vercel.app';
+const DEFAULT_ALIAS = 'vocabulary-builder-erik-demkos-projects.vercel.app';
 export const CANONICAL = 'vocabulum.developed.sk';
 export const PUBLIC_ALIAS = 'vocabulary-builder-plum.vercel.app';
 export const LEGACY_ALIASES = [PUBLIC_ALIAS,
@@ -54,18 +57,19 @@ export function assertStaticMetadata(d, expectedId = STATIC_ID) {
   }
 }
 
-export function assertPreserved(s, { promoted = false, aliasesMoved = false, detached = false } = {}) {
+export function assertPreserved(s, { promoted = false, aliasesMoved = false, detached = false,
+  productionId = STATIC_ID, retainedIds = [] } = {}) {
   assert.equal(s.project.id, PROJECT); assert.equal(s.project.accountId, TEAM);
   assert.ok(!s.project.link); assert.equal(s.project.ssoProtection?.deploymentType, 'all_except_custom_domains');
-  assert.equal(s.project.targets?.production?.id, promoted ? STATIC_ID : OLD_IDS[0]);
+  assert.equal(s.project.targets?.production?.id, promoted ? productionId : OLD_IDS[0]);
   assert.deepEqual(s.envs, []); assert.deepEqual(s.sharedEnvs, []);
-  assert.deepEqual(sorted(s.deployments.map((d) => d.uid)), sorted([...OLD_IDS, STATIC_ID]));
+  assert.deepEqual(sorted(s.deployments.map((d) => d.uid)), sorted([...OLD_IDS, productionId, ...retainedIds]));
   assert.ok(s.deployments.every((d) => d.state === 'READY'));
   assert.deepEqual(sorted(s.domains.map((d) => d.name)), sorted(detached ? [PUBLIC_ALIAS] : [PUBLIC_ALIAS, CANONICAL]));
   for (const alias of LEGACY_ALIASES) {
     const a = s.aliases.find((a) => a.alias === alias); assert.ok(a);
-    if (aliasesMoved) assert.equal(a.deploymentId, STATIC_ID);
-    else assert.ok(a.deploymentId === STATIC_ID || OLD_IDS.includes(a.deploymentId));
+    if (aliasesMoved) assert.equal(a.deploymentId, productionId);
+    else assert.ok(a.deploymentId === productionId || OLD_IDS.includes(a.deploymentId));
   }
   assert.ok(s.aliases.every((a) => [...LEGACY_ALIASES, CANONICAL].includes(a.alias)), 'Unexpected alias needs review');
   if (detached) assert.ok(!s.aliases.some((a) => a.alias === CANONICAL));
@@ -81,13 +85,22 @@ export function assertProductionStage(d, current, record) {
   assert.match(record.id, /^dpl_[a-zA-Z0-9]+$/);
   assert.ok(![STATIC_ID, ...OLD_IDS].includes(record.id));
   assertStaticMetadata(d, record.id);
-  assert.equal(d.target, 'production'); assert.deepEqual(d.alias, []);
+  assert.equal(d.target, 'production'); assert.deepEqual(d.alias, [DEFAULT_ALIAS]);
   assert.equal(record.autoAssignCustomDomains, false);
   assert.equal(record.routingSha256, CONFIG_SHA256);
-  assert.equal(servingFingerprint(current), record.beforeServing);
+  assert.equal(servingFingerprint(current), productionStageFingerprint(record));
   assert.deepEqual(sorted(current.deployments.map((entry) => entry.uid)), sorted([...OLD_IDS, STATIC_ID, record.id]));
   assert.ok(current.deployments.every((entry) => entry.state === 'READY'));
-  assertPreserved({ ...current, deployments: current.deployments.filter((entry) => entry.uid !== record.id) });
+  assertPreserved({ ...current, deployments: current.deployments.filter((entry) => entry.uid !== record.id),
+    aliases: current.aliases.map((entry) => entry.alias === DEFAULT_ALIAS
+      ? { ...entry, deploymentId: OLD_IDS[0] } : entry) });
+}
+
+export function productionStageFingerprint(record) {
+  const expected = JSON.parse(record.beforeServing);
+  const alias = expected.aliases.find(([name]) => name === DEFAULT_ALIAS);
+  assert.ok(alias); assert.equal(alias[1], OLD_IDS[0]); alias[1] = record.id;
+  return JSON.stringify(expected);
 }
 
 async function verifyFiles(api, deploymentId = STATIC_ID) {
@@ -110,7 +123,7 @@ async function verifyFiles(api, deploymentId = STATIC_ID) {
 
 async function httpProbe(host, path, method = 'GET', directCanonical = false) {
   return new Promise((resolve, reject) => {
-    const req = https.request({ hostname: directCanonical ? STATIC_HOST : host,
+    const req = https.request({ hostname: directCanonical ? PRODUCTION_HOST : host,
       servername: host, path, method, headers: { Host: host, 'User-Agent': 'Mozilla/5.0 (Vocabulum migration check)' } }, (res) => {
       let body = ''; res.on('data', (part) => { body += part; if (body.length > 1000000) req.destroy(); });
       res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body }));
@@ -154,7 +167,7 @@ export async function publicSmoke(probe, expectedCanonical, { detached = false }
 
 export async function retireExact(api, journal) {
   for (const id of OLD_IDS) {
-    assert.notEqual(id, STATIC_ID);
+    assert.notEqual(id, STATIC_ID); assert.notEqual(id, PRODUCTION_ID);
     const deployment = await api(`/v13/deployments/${id}`);
     assert.equal(deployment.id, id); assert.equal(deployment.projectId, PROJECT);
     await api(`/v13/deployments/${id}`, 'DELETE');
@@ -220,25 +233,34 @@ async function run(phase) {
       assert.deepEqual(await canonicalSnapshot(), saved.canonical);
       console.log(JSON.stringify({ phase, id: record.id, url: staged.url, readyState: staged.readyState,
         target: staged.target, alias: staged.alias, exactTwoFiles: true, zeroApplicationEnv: true,
-        zeroFunctionsBuildsCrons: true, all27Preserved: true, servingUnchanged: true,
+        zeroFunctionsBuildsCrons: true, all27Preserved: true, customDomainsAndProductionUnchanged: true,
+        expectedDefaultAliasAdvanced: true,
         frameworkLabel: staged.projectSettings?.framework, completed: true }));
       return;
     } else if (phase === 'promote') {
-      assertPreserved(current); assert.equal(servingFingerprint(current), saved.beforeServing);
+      const record = await privateRead(PRODUCTION_RECORD);
+      assert.equal(record.id, PRODUCTION_ID);
+      const production = await api(`/v13/deployments/${PRODUCTION_ID}`);
+      assertProductionStage(production, current, record);
+      assert.equal(record.beforeServing, saved.beforeServing);
+      await verifyFiles(api, PRODUCTION_ID);
       assert.deepEqual(await canonicalSnapshot(), saved.canonical);
-      assert.equal(deployment.target, 'production', 'Preview cannot be directly promoted');
-      await api(`/v10/projects/${PROJECT}/promote/${STATIC_ID}`, 'POST', {});
+      await api(`/v10/projects/${PROJECT}/promote/${PRODUCTION_ID}`, 'POST', {});
     } else {
       const detached = phase === 'retire';
-      assertPreserved(current, { promoted: true, aliasesMoved: ['detach', 'retire'].includes(phase), detached });
+      const production = await api(`/v13/deployments/${PRODUCTION_ID}`);
+      assertStaticMetadata(production, PRODUCTION_ID); await verifyFiles(api, PRODUCTION_ID);
+      assert.equal(production.target, 'production');
+      assertPreserved(current, { promoted: true, aliasesMoved: ['detach', 'retire'].includes(phase), detached,
+        productionId: PRODUCTION_ID, retainedIds: [STATIC_ID] });
       await publicSmoke(httpProbe, saved.canonical, { detached });
       if (phase === 'verify-public') {
-        await privateCreate(VERIFIED, { staticId: STATIC_ID, time: new Date().toISOString(), routingSha256: CONFIG_SHA256 });
+        await privateCreate(VERIFIED, { staticId: PRODUCTION_ID, time: new Date().toISOString(), routingSha256: CONFIG_SHA256 });
       } else {
         const receipt = await privateRead(VERIFIED);
-        assert.equal(receipt.staticId, STATIC_ID); assert.equal(receipt.routingSha256, CONFIG_SHA256);
+        assert.equal(receipt.staticId, PRODUCTION_ID); assert.equal(receipt.routingSha256, CONFIG_SHA256);
         if (phase === 'aliases') {
-          for (const alias of LEGACY_ALIASES) await api(`/v2/deployments/${STATIC_ID}/aliases`, 'POST', { alias });
+          for (const alias of LEGACY_ALIASES) await api(`/v2/deployments/${PRODUCTION_ID}/aliases`, 'POST', { alias });
         } else if (phase === 'detach') {
           await api(`/v9/projects/${PROJECT}/domains/${CANONICAL}`, 'DELETE', { removeRedirects: false });
         } else if (phase === 'retire') {
@@ -250,7 +272,7 @@ async function run(phase) {
       }
     }
   }
-  console.log(JSON.stringify({ phase, staticId: STATIC_ID, completed: true, time: new Date().toISOString() }));
+  console.log(JSON.stringify({ phase, staticId: PRODUCTION_ID, completed: true, time: new Date().toISOString() }));
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   run(process.argv[2]).catch((error) => {

@@ -53,8 +53,11 @@ deployment; this is not permission to discard other dirty work.
 - Central SSO is still **off**, pending the full shared security cutover.
 - Runtime/firewall/public-data templates have isolated-test evidence; no complete
   host network enforcement or central activation is claimed.
-- My Clinic's non-login UID and root-owned Node22 runtime/credential copy are
-  staged; traffic still uses the old API until its own runbook records a switch.
+- My Clinic is now live as `developed-myclinic` UID996 on loopback3155, system
+  `developed-myclinic@release-37c2650.service`. Old user API stopped/disabled;
+  cron schedules preserved and targets updated.295/295 route-switch probes
+  passed. Its own runbook records the frontend, exact approved migration and
+  remaining owner acceptance. This is not complete ecosystem network isolation.
 - Worker cutovers must preserve active jobs, queue/SQLite state and S4 keys.
   A temporary pause in taking new jobs is not permission to drop API requests.
 - The retired Otázkomat hosted Supabase project's key review and broader security

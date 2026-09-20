@@ -59,3 +59,28 @@ public native client ID may be put in the Android build.
 
 Tests use mock provider responses and temporary synthetic files only:
 `node --test server/accounts/test/private-client-operator.test.mjs`.
+
+## Private checkpoint — 2026-09-20 15:41 UTC
+
+Following coordinated authorization, source operator commit `5185fff` created
+eight clients through the protected green provider: seven confidential web
+clients and one public KešTrek Android client. Each creation passed exact GET
+read-back. All eight IDs, seven confidential secrets and seven random server-check
+keys are distinct. Primary/backup credential copies match; every file is
+root-owned0600 in its root0700 directory. All eight `.attach.json` inputs passed
+the existing central operators' offline validation. Client IDs/keys remain in
+those private files; no credential values are recorded in Git.
+
+Provider dynamic registration is false and issuer remains
+`https://sam-api.developed162.bid/auth/v1`. At this checkpoint the canonical
+central client registry still has zero rows; attachment is coordinated separately
+after the closed catalog seed. Published, enforce-OIDC and non-closed app-policy
+counts are zero, and registration remains closed. No app/browser configuration,
+public route, APK, identity user or mail operation was changed by this staging.
+
+Verification: TypeScript build and default account suite passed (73 passed,
+14 opt-in skips, zero failures). This includes 11 focused registration/durability
+and central authorization tests. The latter explicitly reject plain/missing PKCE,
+wrong user/callback, unregistered clients, missing nonce/openid and unapproved
+scopes before any provider consent/token call. No retained qualification fixture
+or user identity was mutated by the tests.

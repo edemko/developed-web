@@ -118,8 +118,10 @@ with existing login retained; see the publication/production notes below.
 - Controlled test email and rollback rehearsal without restoring shared data.
 - Central MFA login/enrollment UI is not implemented; enrolled factors fail
   closed, not bypassed. Resolve superadmin MFA policy before public activation.
-- KešTrek native Flutter still uses legacy password tokens: explicitly resolve
-  native migration/scope before enabling the new rejecting web/API boundary.
+- Installed KešTrek Android clients still use legacy password tokens. Native
+  central-login source is now implemented and tested, but production client
+  registration, a configured release-signed APK, installation and device
+  acceptance must precede the new rejecting web/API boundary.
 - Shared service-role holders and KešTrek storage/business API isolation remain
   a documented hardening gate. Do not confuse client-aware RLS with containment
   of a compromised backend that still holds an administrator key.
@@ -215,17 +217,41 @@ test results and remaining gaps; do not equate source changes with deployment.
   lifecycle: 14/14 passed. Separate native protocol qualification rejects wrong
   PKCE, wrong clients, wrong callbacks, supplied secrets, and code replay.
 - User confirmed Android and willingness to install/test an updated APK.
-  Native source implementation is in progress; no production public client has
-  been provisioned, and installed-device acceptance has not occurred.
+  Native source implementation is complete behind a default-off switch: final
+  Flutter suite 151/151, central-mode suite 13/13, analyzer clean, backend native
+  suite 23/23 and TypeScript clean. Exact-source Android debug build passed.
+  This debug-signed, deliberately unconfigured artifact is a compile check, not
+  a production SSO update. No production public client has been provisioned,
+  and installed-device acceptance has not occurred.
 - Subapp registration suspension is staged behind off-by-default switches. The
   old forms remain in source and stale local creation requests are rejected in
   central mode. A flag alone is not an SSO implementation or a safe cutover.
 - The owner authorized a controlled new-account email test. No real test account
   or email has been created/sent by this follow-up yet; delivery remains a gate.
-- Odonto AI's live Vercel frontend/API were positively located. Its auth/email
-  files contain pre-existing uncommitted prerequisite work; inclusion approval
-  was requested. Do not sweep that work into a cross-repository commit.
+- Odonto AI's live Vercel frontend/API were positively located. The owner
+  approved including reviewed pre-existing auth/email prerequisite work, with
+  new central behavior taking precedence. Review and regression testing remain
+  in progress; unrelated changes must stay outside the commit.
 - Production central schema/service/provider configuration, constrained generic
   Auth ingress, product runtime credential isolation, remaining legacy consumer
   migrations and the coordinated deployment are still pending. Do not describe
   isolated tests or source commits as production E2E readiness.
+
+### Follow-up publication record
+
+- Pushed staged source: DevelopED `2609b2f`, Mega Music `0b4a602`, KešTrek
+  `2386d3c`, Screen Time `eb9fa7f`, Vocabulum `ebbbe48`, Airsoft `3a3369c`,
+  and Otázkomat `9c67898`. These are source revisions, not evidence that all
+  corresponding production services serve them or that SSO is active.
+- Mega's `[no deploy]` workflow completed successfully without its old coupled
+  deployment. KešTrek's existing host auto-deployer now honors that same marker;
+  its next timer execution explicitly skipped the marked source revision.
+  The prior script is recoverable from
+  `/home/openclaw/kestrek-deploy-guard-backup-4R0oTr/kestrek-autodeploy`.
+  No KešTrek service was restarted for this source push.
+- Latest central default suite: 37 passed, five opt-in suites skipped; actual
+  isolated browser/database/native acceptance results are recorded above.
+  Mega default suite: 61 passed, two opt-in skips. Otázkomat's isolated focused
+  registration/cleanup/mail suite: 28/28; frontend production build passed.
+- No production test account or live Mailjet message was created by these
+  publication steps. Production activation and mailbox delivery remain open.

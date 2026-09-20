@@ -1,10 +1,49 @@
 # Dedicated UID fixed-listener bind boundary
 
-Status: reviewed-source candidate and disposable real-kernel proof, 2026-09-20.
-**Not deployed.** No production cgroup attachment, BPF pin, mount, systemd change,
-host firewall change, package install, kernel upgrade or SSO activation is made
-by the fixture. This supplements the separate UID OUTPUT policy; it does not
+Status: deployed fixed-listener boundary, 2026-09-20; public SSO remains off.
+The fixture itself makes no production cgroup attachment, BPF pin, mount,
+systemd change, host firewall change, package install or kernel upgrade.
+This supplements the separate UID OUTPUT policy; it does not
 replace egress authorization, scoped database roles or filesystem isolation.
+
+## Verified live checkpoint
+
+Root-owned wrapper/native operator and private policy are installed at the paths
+below. `bind-boundary.service` is enabled and active(exited), both root-cgroup
+hooks are pinned, and two atomic policy reloads passed. No existing service was
+restarted. Actual UID probes passed permitted loopback binds (or EADDRINUSE from
+the legitimate existing listener), denied private3141/wildcard3143/IPv63143/TCP0,
+and the configured UDP0 cases for all fourteen identities:
+
+| Runtime UID | Permitted fixed TCP loopback listener |
+| --- | --- |
+| My Clinic996 |3155|
+| Importer995 |8787|
+| Status broker994 |18088|
+| JASOM web993 |18091|
+| JASOM worker990 |none|
+| Central988 |3140|
+| Download relay987 |1088|
+| Airsoft986 |3162|
+| Vocabulum985 |3161|
+| Mega accounts984 |3168|
+| ScreenTime983 |3167|
+| KešTrek982 |3164|
+| Otázkomat981 |3166|
+| Import front980 |18887|
+
+UDP ephemeral binds are allowed for DNS/library compatibility except broker994
+and front980. Matching unit/template drop-ins require the boundary and protect
+kernel tunables/cgroup configuration. My Clinic and JASOM remained active with
+zero restarts; actual Airsoft/Mega public HTTPS+DNS probes returned200 afterward.
+The host ephemeral range remains32768–60999, privileged port threshold1024.
+The complete reviewed protected-port inventory is private policy configuration;
+all its fixed ports are below32768. Reboot behavior has not been exercised.
+
+The new tailscaled identity979 is deliberately not covered yet: its userspace
+networking listener/UDP needs require separate qualification. Old privileged
+UID1000 processes remain a wider-cutover blocker. This checkpoint is not a claim
+of complete host or identity isolation.
 
 ## Why this is separate from systemd's unit directives
 

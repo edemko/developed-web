@@ -3,8 +3,8 @@
 [Unit]
 Description=DevelopED isolated application %i
 Wants=network-online.target
-After=network-online.target developed-uid-boundary.service
-Requires=developed-uid-boundary.service
+After=network-online.target developed-uid-boundary.service bind-boundary.service
+Requires=developed-uid-boundary.service bind-boundary.service
 
 [Service]
 Type=simple

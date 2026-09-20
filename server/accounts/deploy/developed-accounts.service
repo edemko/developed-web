@@ -1,8 +1,8 @@
 # Staging template only. Review paths/user and release gates before installation.
 [Unit]
 Description=DevelopED central accounts
-After=network-online.target developed-uid-boundary.service
-Requires=developed-uid-boundary.service
+After=network-online.target developed-uid-boundary.service bind-boundary.service
+Requires=developed-uid-boundary.service bind-boundary.service
 Wants=network-online.target
 
 [Service]

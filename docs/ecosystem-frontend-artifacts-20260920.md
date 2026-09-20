@@ -42,7 +42,7 @@ Legacy source strings can remain in lazy chunks; their literal absence is not
 claimed as a security test.
 
 Production build passed with existing budget warnings: 961.74 kB initial bundle
-against a 500 kB warning budget, plus five component/style warnings reported in
+against a 500 kB warning budget, plus four component/style warnings reported in
 the retained build log. No error budget was exceeded. Build and focused-test
 logs remain at the disposable build root.
 

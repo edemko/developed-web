@@ -23,9 +23,21 @@ function unit(user, name) {
   const text = user ? userCommand(args) : run('/usr/bin/systemctl', args);
   return Object.fromEntries(text.trim().split('\n').map(line => line.split('=')));
 }
+export function verifyLegacyGroup(passwd, group) {
+  const users = passwd.trim().split('\n').map(line => line.split(':'));
+  const groups = group.trim().split('\n').map(line => line.split(':')).filter(fields => fields[2] === '1000');
+  assert.ok(groups.length === 1 && groups[0][0] === 'openclaw' && users.some(fields => fields[0] === 'openclaw' && fields[2] === '1000' && fields[3] === '1000'), 'Legacy operator group identity changed');
+  assert.ok(users.filter(fields => fields[3] === '1000').every(fields => fields[0] === 'openclaw' && fields[2] === '1000') && groups[0][3].split(',').filter(Boolean).every(name => name === 'openclaw'), 'Legacy operator group gained another member');
+}
+export function safePathStat(s, owner, legacyDirectory = false) {
+  return !s.isSymbolicLink() && [0, owner].includes(s.uid) && !(s.mode & 0o002)
+    && (!(s.mode & 0o020) || (legacyDirectory && owner === 1000 && s.isDirectory() && s.uid === 1000 && s.gid === 1000));
+}
 function trusted(path, owner = 0, privateFile = false) {
+  const legacy = owner === 1000 && [OLD, oldDirectory + '/.env'].includes(path);
+  if (legacy) verifyLegacyGroup(run('/usr/bin/getent', ['passwd']), run('/usr/bin/getent', ['group']));
   let prefix = '';
-  for (const part of path.split('/').filter(Boolean)) { prefix += '/' + part; const s = lstatSync(prefix); assert.ok(!s.isSymbolicLink() && [0, owner].includes(s.uid) && !(s.mode & 0o022), 'Unsafe handoff path'); }
+  for (const part of path.split('/').filter(Boolean)) { prefix += '/' + part; const s = lstatSync(prefix); assert.ok(safePathStat(s, owner, legacy && prefix !== path), 'Unsafe handoff path'); }
   const s = lstatSync(path);
   if (privateFile) assert.ok(s.isFile() && s.uid === owner && s.nlink === 1 && (s.mode & 0o777) === 0o600, 'Unsafe private handoff file');
 }
@@ -84,7 +96,7 @@ function runtimeCheck() {
   for (const name of ['kestrek-backend.service', 'kestrek-frontend.service']) { const state = unit(true, name); assert.ok(state.ActiveState === 'inactive' && state.MainPID === '0' && state.UnitFileState === 'disabled', 'Development consumer is not suspended'); }
   const initial = proc(OLD_PID, 1000, oldDirectory), nextEnv = proc(Number(next.MainPID), 982, newDirectory);
   assert.ok(initial.NODE_ENV !== 'development', 'Unexpected legacy environment source');
-  const envFile = oldDirectory + '/.env'; trusted(envFile, 1000);
+  const envFile = oldDirectory + '/.env'; trusted(envFile, 1000, true);
   const oldEnvBytes = readFileSync(envFile); const oldEnv = { ...parseEnv(oldEnvBytes.toString()), ...initial };
   verifyIdentity(oldEnv, nextEnv);
   return { candidatePid: Number(next.MainPID), oldEnvSha256: sha(oldEnvBytes) };

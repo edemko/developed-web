@@ -153,3 +153,30 @@ It proves IPv4/IPv6 non-loopback3124 rejection, unrelated-port continuity, retai
 root/Caddy/legacy local calls, KešTrek's exact self3164 allowance, other-UID denial
 and preservation of the independent temporary INPUT table. Source/unit tests do
 not exercise the real production state-copy mutation before approval.
+# Narrow self-MCP policy preparation (reviewed separately)
+
+`kestrek-self-mcp-policy.mjs` changes only the installed KešTrek UID982 policy:
+IPv4 `127.0.0.1:3164` becomes reachable by that UID. Old3124, sibling services,
+control3141, filter3143, IPv6 and other app UIDs remain denied. The existing full
+policy inventory and loader are preserved; the generator change is checked to
+produce byte-identical original rules when the new option is absent.
+
+Install this operator and the reviewed `uid-network-boundary.mjs` together in a
+new root-owned immutable directory. The current installed config/generator/loader
+hashes are pinned in the operator. After a separate approval, use the fixed
+root-owned Node22 executable to run `--stage`, review the root-private proof in
+`/var/backups/developed-kestrek-self-mcp-20260920`, and then run `--apply` once.
+Staging calls the existing loader implementation with the staged generator and
+config in check-only mode; apply calls the installed loader `--check`, then the
+existing `developed-uid-boundary.service` reload. The loader continues to use its
+existing lock and replaces only its named nft table. It does not restart apps.
+`--verify` repeats the real UID982 positive and negative socket probes, including
+the UID985 negative control. A failed apply restores the exact original generator
+and config then reloads the original policy; its attempt marker prevents blind
+replay. Do not remove any other UID or exception to obtain a passing probe.
+
+Legacy `.env` and OAuth-store ancestry is allowed to retain group-writable
+directories only for UID1000/GID1000 after checking that the complete NSS group
+and passwd inventories give that group exclusively to `openclaw`. Files remain
+single-link mode0600; world-write, symlinks and all broader exceptions are rejected.
+This does not relax the root-owned operator or UID982 private-store checks.

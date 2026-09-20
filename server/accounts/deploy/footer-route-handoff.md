@@ -1,10 +1,44 @@
 # Two footer routes — guarded handoff
 
-Source preparation only. The human portal is already enabled; the required live
-Caddy SHA-256 is `3f49a9a881a51683a787d103d191911bb9bb842c058116fb2d846b04751b8a9c`.
+Applied checkpoint: 2026-09-20 21:28:50 UTC. The human portal was already enabled;
+the required pre-switch Caddy SHA-256 was
+`3f49a9a881a51683a787d103d191911bb9bb842c058116fb2d846b04751b8a9c`.
 The only changes are Vocabulum `127.0.0.1:3161` → `127.0.0.1:3171` and Airsoft
 `127.0.0.1:3162` → `127.0.0.1:3172`. Do not use the old `501bbc…` human-portal
 input or rerun its installer.
+
+The reviewed operator from source commit `a2eb961` was installed root-owned0444,
+staged once and applied once following the coordinator's separate protected
+approval. Current Caddy SHA-256 is
+`aa28db0fdd4c64a5c398e5c7e045ef59e19fae2e53e3e28dc437742ba072fdcc`.
+The complete adapted-config proof and full candidate validation passed. The
+atomic installation and graceful Caddy reload completed; both public and loopback
+login pages passed the footer/branding checks. At completion all seven monitored
+PIDs remained unchanged and active with zero restarts: old Voc4056033/Air3542385,
+candidate Voc723605/Air767388, central3197193, mail700440 and Caddy862.
+
+Protected evidence remains under `/var/backups/developed-footer-routes-20260920`
+(root0700, files root0600). Its exact SHA-256 records are:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Installed operator | `fbd0150bd9f3e4b59681d14f7f5406f598f3a21cb5331ab7096f04fddc8f000b` |
+| `before.Caddyfile` | `3f49a9a881a51683a787d103d191911bb9bb842c058116fb2d846b04751b8a9c` |
+| `candidate.Caddyfile` | `aa28db0fdd4c64a5c398e5c7e045ef59e19fae2e53e3e28dc437742ba072fdcc` |
+| `prepared.json` | `8b1dc1f814964ab09c846c7818cd462185c35ec5284297124c2b72af5e8b92ad` |
+| `approval.json` | `3556c2cbddc10cdb14251f124457575f6db81d0e3bc1bd5cbe37c72eb247e8c8` |
+| `apply-attempt.json` | `041132bcf15f6ec9496a227f20abb08fb513d11ef5285730b1b3e8d0e381d10e` |
+| `applied.json` | `e0d3cc6986d63c087f87dc7f84056a4c022b1baa22f47ff3b596c51466a92b5e` |
+
+The applied proof records `twoDialsOnly=true`, `humanPortalPreserved=true` and
+`oldUnitsStillRunning=true`. This checkpoint covers the route switch and anonymous
+HTTP checks; it does not establish authenticated browser acceptance or retire the
+old units. Public Chromium checks and the separately coordinated boot/drain work
+have their own evidence. No database, authentication policy, registration or mail
+setting was changed by this operator.
+
+The procedure below documents the completed handoff. Do not rerun stage/apply;
+the one-shot receipt and changed source hash intentionally prevent repetition.
 
 The coordinator installs the reviewed self-contained `route-footer-candidates.mjs`
 at `/opt/developed-control/footer-routes-v1/route-footer-candidates.mjs`, root-owned

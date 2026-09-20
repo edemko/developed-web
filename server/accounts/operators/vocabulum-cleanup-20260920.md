@@ -1,9 +1,53 @@
-# Approved empty Vocabulum account cleanup — review checkpoint
+# Approved empty Vocabulum account cleanup — completed checkpoint
 
-The owner authorized deleting the three empty non-owner accounts. Execution is
-pending coordinator review of the concrete operator below. No production rows
-have been changed, sessions revoked, identities deleted, SSO enabled or mail sent
-at this checkpoint.
+The owner authorized and reconfirmed deleting the three empty non-owner accounts.
+After coordinator review, the exact immutable operator was executed once and
+reported a successful commit, verified at **2026-09-20 18:28:40 UTC**. It removed
+the three identities and 24 exact backed-up rows, revoking their provider session
+material first. Owner/remaining relational data fingerprints passed. No SSO,
+registration, mail, app deployment or service restart was enabled/performed.
+
+## Completed execution and verification
+
+Reviewed source commit: `a4a426085429c3176b0f1c648f1a6ed65b625bff`
+(`Prepare reviewed fixed-target Vocabulum cleanup operator [no deploy]`). The
+root-owned bundle at
+`/opt/developed-operators/vocabulum-cleanup/a4a426085429c3176b0f1c648f1a6ed65b625bff/`
+has directory0555/files0444 and contains only three operator modules (apply,
+backup and restore), the preflight SQL and the source-time runbook. Immediately
+before execution, each installed
+file was compared byte-for-byte with the pinned Git commit and root-owned safe
+ancestors were verified. The helper uses Node built-ins only; no npm dependencies
+or mutable-checkout code executed as root.
+
+Pinned apply-module SHA-256:
+`d9293e5d81caed48b5b4e4d44a6e6d3adff93f161ea06b19e529a532e707bff0`.
+The reviewed Node22.23.2 binary hash
+`3517c2df0b2f8cd7f422b4b8450ef81c6889f08eb03e281d6de9079b15e6a327`
+and `/usr/bin/docker` hash
+`6d1ac33d27f9f73d1feb0184e7c0847c1b6051dd60b7a6ec7b3ad9a2f7ca01ea`
+were rechecked before the one apply invocation:
+
+```sh
+sudo -n env -i PATH=/usr/bin:/bin \
+  /opt/developed-runtimes/node-v22.23.2/bin/node \
+  /opt/developed-operators/vocabulum-cleanup/a4a426085429c3176b0f1c648f1a6ed65b625bff/vocabulum-cleanup-apply.mjs --apply
+```
+
+At **2026-09-20 18:29:16 UTC**, the full read-only postflight completed with
+snapshot `4675998:4675998:`: 503 reference columns scanned, zero target rows or
+reference hits, and 248 FK constraints inspected. All owner counts remained
+22 folders, 544 words, 0 sentences, 3 tests (2 teacher-owned plus 1 student-owned),
+and 2 classes; owner Voc role remained SUPERADMIN. Shared Auth users decreased
+from 7 to 4. Central registration remained `closed`, exactly seven app settings
+remained unpublished/non-reportable/unenforced with closed join policies, and
+outbox count remained 0. Neither a content transfer nor a retry was necessary.
+
+The two private backup copies below remain available. Narrow recovery restores
+only the three backed-up identities and Voc access, with fresh login required;
+it must not restore old sessions or overwrite the shared database. No recovery
+was performed. Do not rerun apply: it is deliberately bound to the former exact
+24-row snapshot and will refuse the now-absent targets.
 
 Exact targets:
 
@@ -88,7 +132,7 @@ expiry check and current application membership gate address the observed sessio
 
 After coordinator GO, execute only the root-owned immutable bundle under
 `/opt/developed-operators/vocabulum-cleanup/<full-source-commit>/`. The source
-commit must contain `[no deploy]`; no push is needed. Copy all four `.mjs` files
+commit must contain `[no deploy]`; no push is needed. Copy all three `.mjs` files
 and the preflight SQL from that exact commit, verify SHA-256 against Git bytes,
 and make the directory0555/files0444, root:root. The only module dependencies
 are Node built-ins and the included backup helper; there is no npm installation.

@@ -1,0 +1,35 @@
+# CANDIDATE ONLY. Append/import at the top level of the existing Caddyfile.
+# Existing Caddy80 accepts the original Host from the remote-managed tunnel.
+# Do not route the tunnel here until the full shared cutover gates pass.
+http://sam-api.developed162.bid {
+  route {
+    @protocol_read {
+      method GET HEAD
+      path /auth/v1/.well-known/openid-configuration /auth/v1/.well-known/jwks.json /auth/v1/.well-known/oauth-authorization-server /auth/v1/oauth/authorize /auth/v1/oauth/userinfo
+    }
+    handle @protocol_read {
+      uri strip_prefix /auth/v1
+      reverse_proxy 127.0.0.1:3141
+    }
+    @oauth_token {
+      method POST
+      path /auth/v1/oauth/token
+    }
+    handle @oauth_token {
+      uri strip_prefix /auth/v1
+      reverse_proxy 127.0.0.1:3141
+    }
+    @oauth_metadata {
+      method GET HEAD
+      path /.well-known/oauth-authorization-server/auth/v1
+    }
+    handle @oauth_metadata {
+      rewrite * /.well-known/oauth-authorization-server
+      reverse_proxy 127.0.0.1:3141
+    }
+    import public-data-routes.Caddyfile
+    # No generic Auth, consent, administration, GraphQL, Functions, Meta, Studio
+    # or alternate Storage protocols. Operator Studio stays behind its own Access.
+    respond "Central identity endpoint required" 403
+  }
+}

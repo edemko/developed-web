@@ -1,0 +1,7 @@
+# CANDIDATE ONLY. Import inside the existing shared www/test.developed.sk site.
+# The host matcher prevents central routes/cookies from reaching the test alias.
+# Existing static marketing and /hooks/* handlers remain after this route.
+@accounts_canonical host www.developed.sk
+route @accounts_canonical {
+  import portal-routes.Caddyfile
+}

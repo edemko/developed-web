@@ -181,3 +181,64 @@ session contents or complete credential-bearing configuration were printed.
 Current [Supabase self-hosting documentation](https://supabase.com/docs/guides/self-hosting/docker)
 was checked; this host's observed Kong-based deployment takes precedence over
 newer default gateway descriptions.
+
+## Source candidates and disposable verification
+
+`server/accounts/deploy/public-supabase-site.Caddyfile` is the concrete sam-api
+site candidate. It imports the existing data-boundary snippet, so the public
+REST/Storage/Realtime policy has a single source. The separate
+`portal-canonical-routes.Caddyfile` wraps the existing portal routes with an exact
+`www.developed.sk` matcher for the currently shared www/test site; test never
+receives central sessions or APIs. Both remain **unpublished candidates**.
+
+The real-Caddy disposable fixture runs only on ephemeral loopback ports, with
+mock provider/data/portal upstreams and the real data-denial filter:
+
+```sh
+PUBLIC_SUPABASE_CADDY_TEST=1 node --test server/accounts/deploy/public-supabase-caddy.test.mjs
+node server/accounts/deploy/validate-public-ingress.mjs --validate-current
+```
+
+The fixture passed protocol discovery/JWKS/authorize/userinfo/token positives;
+generic password/signup/recovery/user/factor/consent/admin, legacy aliases,
+GraphQL/functions/Meta/MCP negatives; service-role header/query credentials,
+spoofed forwarding metadata, and S3/vector denial; normal scoped data and signed
+Storage capability forwarding; and canonical portal routing while the test
+alias and marketing remain outside central. This proves routing/filter behavior,
+not real provider login, cryptographic token validation, upstream RLS or a
+production app acceptance flow.
+
+The validator privately combined both candidates with the current Caddy source,
+ran adaptation and validation, and deleted only its private temporary directory.
+It verified exactly one added site,15 unchanged other sites and no listener
+change. It normalizes Caddy-generated handler group numbers and private temporary
+source-file hide entries when comparing unchanged routes. Source SHA256 was
+`70f2334404e5bf29b1b5f3810f8cc32da3ee73178051cd055c4b1ecf3df43851`.
+No live reload or tunnel update occurred. Re-run against the current source
+immediately before an authorized final merge.
+
+## Existing Cloudflare control access
+
+The current operator environment contains `CLOUDFLARE_API_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID`. The API token verification returned200/active, and a
+GET for **only the actual running remote tunnel's configuration** returned200,
+source `cloudflare`, version1 and the four already inventoried routes. No other
+account secret/configuration inventory was fetched. Token-permission metadata
+returned403: configuration read access is confirmed, but write permission was
+not established and no PUT was attempted.
+
+Existing CLI: `/usr/local/bin/cloudflared`; no Wrangler CLI was found. Existing
+local operator certificate: `/home/openclaw/.cloudflared/cert.pem`, UID1000,0600.
+The remote tunnel unit uses an inline connector token rather than an environment
+file. Its connector identity was decoded privately to identify the exact tunnel;
+no token, certificate, account identifier or complete service definition was
+printed. A connector token is not itself proof of account API configuration-write
+authority. No plugin installation or new credentials are needed for the verified
+read operations.
+
+The later authorized change would use Cloudflare's exact-tunnel
+`PUT /accounts/{account_id}/cfd_tunnel/{tunnel_id}/configurations`, preserving
+unrelated routes and origin settings. Required write permission is documented
+in [Cloudflare's tunnel setup guide](https://developers.cloudflare.com/tunnel/get-started/).
+Capture the current version and protected rollback configuration immediately
+before changing the sam-api origin; never submit a stale whole-account snapshot.

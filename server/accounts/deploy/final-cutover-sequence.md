@@ -1,6 +1,7 @@
 # Coordinated final cutover sequence
 
-Prepared 2026-09-20. This is a source plan, not a record of executed changes.
+Prepared 2026-09-20. Phase A has an execution checkpoint below; later phases are
+a source plan, not a record of executed changes.
 The [current activation checklist](../../../docs/ecosystem-activation-checklist.md),
 [internal-ingress checkpoint](internal-ingress.md) and app-owned runtime records
 provide the changing live facts. The owner authorized all-seven deployment and
@@ -88,6 +89,35 @@ source has already changed, rebuild/review its pin against that actual source;
 do not rewrite a current config to satisfy the old hash. Record installed hash,
 PID and health, test no-credential protocol paths and unchanged human routes.
 The tunnel still reaches legacy Kong at this point; closure is not claimed.
+
+### Phase A execution checkpoint
+
+Reviewed commit `86e7efe5cd08eab64f0b7fe0304a166cf18ba215` was pushed with
+`[no deploy]`. Its exact three runtime files were extracted from Git and installed
+root-owned under `/opt/developed-control/gateway-ingress-86e7efe`. The operator
+completed `--stage` then `--apply` once. Recovery/candidate/proof files are at the
+root-private backup path above. Installed Caddy SHA256:
+`9b25d5d170f901c8be78cecab23fcf64a672b4a41c52f0cce15df8af69dca33c`.
+Caddy remained active with PID862 and NRestarts0. No tunnel configuration,
+product route, app policy, database, credential, service lifetime or mail changed.
+
+Local Caddy requests with Host `sam-api.developed162.bid` returned200 for OpenID
+metadata, JWKS and the RFC8414 alias; generic password/user/factor paths,
+functions and the unmatched root returned403. Fake service-role class,
+malformed bearer and invalid apikey data requests returned403. Credentialless
+REST returned upstream401: the denial filter deliberately permits credentialless
+public/signed Storage requests and leaves authentication to the upstream. The
+first probe incorrectly expected403 for this case; source inspection and a
+corrected bounded check confirmed401 without any configuration adjustment.
+
+Public central marketing remained200 and `/login`, `/security`, `/apps`404.
+All six original product homepage statuses matched the preflight: five200 and
+Airsoft307. The public issuer's no-key legacy health route remained401, consistent
+with its unchanged direct-Kong tunnel. Its first probe likewise used an incorrect
+200 expectation without the anon key; the corrected no-key expectation passed.
+No real token, user check, login, mail or data mutation was used in these probes.
+The new current-source merge tests passed2/2 before installation, and the existing
+real-Caddy disposable protocol/data fixture passed1/1. No reboot was tested.
 
 ## Phase B: usable policies and coordinated product routes
 

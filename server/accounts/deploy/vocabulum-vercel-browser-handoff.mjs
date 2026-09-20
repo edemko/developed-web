@@ -165,7 +165,9 @@ async function run(phase) {
     const record = await readRecord(); assert.equal(record.project, PROJECT); assert.equal(record.team, TEAM);
     assert.equal(record.id, HANDOFF_ID); assert.equal(record.routingSha256, payload.meta.routingSha256);
     const d = await api(`/v13/deployments/${record.id}`);
-    assertHandoffMetadata(d, record.id, payload, phase === 'verify-public' ? [DEFAULT_ALIAS, PUBLIC_ALIAS, CANONICAL] : undefined);
+    // v13 alias describes deployment creation, not the authoritative current
+    // project bindings. Verify the latter separately through snapshot/v4 aliases.
+    assertHandoffMetadata(d, record.id, payload);
     await verifyFiles(api, record.id, payload);
     if (phase === 'verify-public') {
       assertPromoted(current);

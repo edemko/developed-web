@@ -322,6 +322,31 @@ absent Referer are asserted. Do not run this live-browser check against the
 known-bad 303 predecessor, and do not mistake local fixture success for remote
 qualification.
 
+### Public repair qualification completed
+
+The browser-handoff production promotion succeeded from reviewed immutable
+operator commit `41415f8`. All 13 actual HTTP checks passed: four navigation
+responses returned 200 with byte-identical static HTML and no Location or
+Set-Cookie; eight API/protocol/non-navigation checks returned 410; direct
+canonical Host at Vercel returned 410. No-store/no-referrer headers matched.
+The normal VPS root and credentials-provider response remained unchanged.
+
+The first receipt attempt stopped on deployment `alias` metadata still listing
+only its original default alias. Read-only reconciliation established that this
+field is not the live-binding inventory: the authoritative v4 alias list and
+project production target correctly point canonical/plum/default to the new
+artifact. The check now keeps the original deployment metadata expectation and
+independently enforces the exact live mappings; no promotion retry was made.
+
+Live Chromium verification then passed against the actual plum HTML for all
+three query/fragment fixtures. Every canonical request was exactly
+`https://vocabulum.developed.sk/auth/login`, with empty browser fragment and no
+Referer. There were no external asset requests. Only that destination request
+was intercepted with a fixture response, so the tests created no VPS session.
+All 26 credential-bearing old runtimes remain intact pending the separately
+reviewed final alias/domain/retirement phases. The two prior safe static artifacts
+are not included in the exact-26 deletion authorization.
+
 Follow [the complete inventory and closure runbook](../../../../docs/ecosystem-vocabulum-vercel-closure-20260920.md).
 Promotion of this routing artifact only neutralizes aliases assigned to it.
 The 26 old credential-bearing immutable runtimes remain active until separately

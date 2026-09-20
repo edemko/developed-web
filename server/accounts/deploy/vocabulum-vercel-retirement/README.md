@@ -167,6 +167,40 @@ is not DNS or registered-domain deletion. It is safe only after verifying normal
 canonical traffic continues to the VPS. No old deployment can be retired before
 the static target/legacy aliases and canonical preservation checks pass.
 
+## Second-phase operator awaiting review and GO
+
+`vocabulum-vercel-close.mjs` pins the exact staged deployment ID above and the
+two submitted-file SHA256 values. Every phase rechecks READY state, zero
+function/build/cron metadata, absence of the seven old application environment
+names, and re-fetches both uploaded files for byte-hash verification. It does
+not treat the inherited `nextjs` framework label or Vercel-authentication 302 as
+evidence that the routes work.
+
+The operator accepts one phase per invocation. No phase runs another mutation
+phase automatically:
+
+| Phase | Operation and gate |
+| --- | --- |
+| `capture` | Read current state and canonical VPS root/provider behavior; exclusively create root:root0600 `/root/vocabulum-vercel-closure-before-20260920.json` containing the original target/mappings, the exact 26-ID list and nonsecret canonical response signature. |
+| `promote` | Require unchanged captured serving state and VPS behavior, then POST the exact static deployment to the project's promotion endpoint. No old deletion. |
+| `verify-public` | Require the static production target and run actual `vocabulary-builder-plum.vercel.app` navigation 303 and API/POST/OPTIONS 410 checks, literal query-free Location ending `#`, no-store, no-referrer, no Set-Cookie, canonical Host directly at Vercel 410, and unchanged normal VPS behavior. Write a root-only success receipt only if all pass. |
+| `aliases` | Repeat the public smoke; require the receipt, then bind exactly the four legacy Vercel aliases to the static deployment. |
+| `detach` | Require all four bindings to the static target, repeat smoke, then DELETE only the canonical Vercel project-domain attachment with `removeRedirects=false`. |
+| `retire` | Require all four static alias bindings, absent canonical domain/alias, all 26 old READY deployments, no extra deployments, zero project/shared env, unchanged Git/protection and static production target. Repeat public smoke with direct stale-origin 404/410/421 accepted after detachment. Only then DELETE the exact 26 old deployment IDs, rechecking each deployment's project ownership immediately before deletion. |
+
+Each retirement success is fsynced to an exclusive root:root0600
+`/root/vocabulum-vercel-retirement-journal-20260920.jsonl`. The original snapshot
+and public-verification receipt are separately retained. There is no project,
+DNS, registered-domain or shared-key deletion path. API or smoke failure stops
+execution before the next mutation. Do not retry partial retirement or ambiguous
+promotion automatically; reconcile read-only. A failing public smoke leaves all
+old deployments intact and requires an explicit repair decision, not a broad
+rollback to an executable legacy identity endpoint.
+
+Tests use fixture-only requests and cover the source/credential gate, real-smoke
+assertions, alias/domain/protection preconditions, exact deletion targets and
+wrong-project refusal. No second-phase live request has been performed yet.
+
 Follow [the complete inventory and closure runbook](../../../../docs/ecosystem-vocabulum-vercel-closure-20260920.md).
 Promotion of this routing artifact only neutralizes aliases assigned to it.
 The 26 old credential-bearing immutable runtimes remain active until separately

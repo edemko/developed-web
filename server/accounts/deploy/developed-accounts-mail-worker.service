@@ -1,0 +1,47 @@
+# Source-only template. Installation/start/send require separate coordinator GO.
+[Unit]
+Description=DevelopED central transactional mail worker
+After=network-online.target developed-accounts.service developed-uid-boundary.service bind-boundary.service
+PartOf=developed-accounts.service
+Requires=developed-uid-boundary.service bind-boundary.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=developed-accounts
+Group=developed-accounts
+WorkingDirectory=/opt/developed-accounts/releases/c561a81
+Environment=NODE_ENV=production
+LoadCredential=mail.json:/etc/developed-accounts/mail-worker.json
+ExecStartPre=+/opt/developed-runtimes/node-v22.23.2/bin/node /opt/developed-accounts/mail-worker/central-mail-worker-guard.mjs
+ExecStart=/opt/developed-runtimes/node-v22.23.2/bin/node /opt/developed-accounts/mail-worker/central-mail-worker.mjs
+Restart=no
+TimeoutStartSec=30s
+TimeoutStopSec=100s
+KillSignal=SIGTERM
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectProc=invisible
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SocketBindDeny=any
+CapabilityBoundingSet=
+AmbientCapabilities=
+InaccessiblePaths=-/run/docker.sock -/var/run/docker.sock -/run/tailscale/tailscaled.sock -/etc/developed-accounts/accounts.env -/var/backups
+MemoryMax=128M
+TasksMax=32
+LimitNOFILE=512
+
+[Install]
+WantedBy=multi-user.target

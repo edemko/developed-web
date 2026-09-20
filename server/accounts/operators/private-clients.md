@@ -84,3 +84,39 @@ and central authorization tests. The latter explicitly reject plain/missing PKCE
 wrong user/callback, unregistered clients, missing nonce/openid and unapproved
 scopes before any provider consent/token call. No retained qualification fixture
 or user identity was mutated by the tests.
+
+## Central attachment checkpoint — 2026-09-20 15:55 UTC
+
+After the seven closed catalog rows and nine reviewed app migrations were
+applied, the coordinator authorized private attachment. Fresh preflight confirmed
+all seven rows had the exact catalog slug/launch URL, null client ID, null key
+hash and null callback, with publication/reporting/enforcement false and join
+policy closed. The central registry was empty; all eight private provider
+registrations matched their protected inputs. Registration remained closed and
+mail disabled.
+
+The immutable release `/opt/developed-accounts/releases/c561a81` supplied both
+existing attachment operators; their bytes matched the reviewed built source.
+The root Node22.23.2 process loaded `/etc/developed-accounts/accounts.env` privately
+and each operator used the required `developed_accounts` database role. All eight
+inputs were validated first. Each exact empty web seed was rechecked and attached
+using `--apply --replace`, then the KešTrek public native mapping was attached
+using `--apply`. No existing client or nonempty credential configuration was replaced.
+
+Read-only verification confirmed eight enabled central mappings (seven web, one
+native), exact app/kind/callback bindings, and all seven compatibility client IDs,
+launch URLs and server-key hashes matching the protected files. The provider still
+has exactly eight clients. The existing operators recorded seven successful
+`operator_app_configuration` and one successful `operator_native_configuration`
+audit entries. An initial audit-count query used the nonexistent name
+`accounts.audit_events`; the corrected query against implemented `accounts.audit`
+succeeded without any write or retry of attachment.
+
+All seven apps remain unpublished, unreportable, unenforced and join-closed;
+registration remains closed and mail disabled. This did not change product env
+files, browser bundles, public routes, identity users or APKs. Protected credential
+and backup paths above remain the inputs for separately coordinated app staging.
+The earlier `.verified.json` registration records intentionally retain their
+historical `centralAttached:false` value; this checkpoint and the live central
+registry record the subsequent attachment. Do not rerun registration or attachment
+as a status check.

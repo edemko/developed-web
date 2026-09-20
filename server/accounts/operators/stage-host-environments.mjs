@@ -133,7 +133,10 @@ export function compose(app, original, material, signing, now = Date.now()) {
     check(encoded(previous.ENCRYPTION_KEY, 'hex'));
     const url = new URL(previous.DATABASE_URL);
     check(url.protocol === 'postgresql:' || url.protocol === 'postgres:');
-    check(decodeURIComponent(url.username) === 'mega_music_web' && url.password && url.pathname === '/postgres');
+    // Existing Supavisor login encodes the reviewed tenant in the username;
+    // the underlying database role is mega_music_web. Preserve the full DSN.
+    check(decodeURIComponent(url.username) === 'mega_music_web.oc-prod' && url.hostname === '127.0.0.1'
+      && url.port === '5432' && url.password && url.pathname === '/postgres');
     check(env.DATABASE_URL === previous.DATABASE_URL && env.ENCRYPTION_KEY === previous.ENCRYPTION_KEY);
     env.SESSION_CLEANUP_ENABLED = 'false';
   } else {

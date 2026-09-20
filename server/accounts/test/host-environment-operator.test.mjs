@@ -27,7 +27,7 @@ function inputs(app) {
   const original = { ECOSYSTEM_AUTH_ENABLED: 'false', SUPABASE_SERVICE_ROLE_KEY: 'fixture-obsolete',
     MAILJET_API_KEY: 'fixture-mail', MAILJET_SECRET_KEY: 'fixture-mail-secret' };
   for (const name of app.publicApiEnv || []) original[name] = name.endsWith('URL') ? 'https://sam-api.developed162.bid' : 'fixture-anon';
-  if (app.slug === 'mega-music') Object.assign(original, { DATABASE_URL: 'postgres://mega_music_web:fixture%24password@127.0.0.1:5432/postgres', ENCRYPTION_KEY: randomBytes(32).toString('hex') });
+  if (app.slug === 'mega-music') Object.assign(original, { DATABASE_URL: 'postgres://mega_music_web.oc-prod:fixture%24password@127.0.0.1:5432/postgres', ENCRYPTION_KEY: randomBytes(32).toString('hex') });
   else {
     const encoding = { kestrek: 'hex', screentime: 'base64', airsoft: 'hex', vocabulum: 'base64url', otazkomat: 'base64' }[app.slug];
     material.session = { version: 1, credential: `${app.slug}-session`, kind: 'session-key', environment: app.sessionEncryptionEnv, encoding, value: randomBytes(32).toString(encoding) };
@@ -82,6 +82,18 @@ test('reject unknown variables, privileged aliases, wrong DB role and accidental
     const input = inputs(app); mutate(input);
     assert.throws(() => compose(app, serializeEnvironment(input.original), input.material, signing));
   }
+});
+
+test('Mega preserves its exact tenant-qualified pooler login and rejects replacement destinations', () => {
+  const app = apps.find(app => app.slug === 'mega-music');
+  for (const replacement of ['postgres.oc-prod', 'mega_music_web.wrong-tenant', 'mega_music_web']) {
+    const input = inputs(app);
+    input.original.DATABASE_URL = input.original.DATABASE_URL.replace('mega_music_web.oc-prod', replacement);
+    assert.throws(() => compose(app, serializeEnvironment(input.original), input.material, signing));
+  }
+  const input = inputs(app);
+  input.original.DATABASE_URL = input.original.DATABASE_URL.replace('127.0.0.1', '172.18.0.12');
+  assert.throws(() => compose(app, serializeEnvironment(input.original), input.material, signing));
 });
 
 test('reject expired, future, wrong-role, malformed and tampered JWTs', () => {

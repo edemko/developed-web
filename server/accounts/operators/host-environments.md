@@ -38,6 +38,10 @@ The network coordinator's positive/negative actual-UID password probes remain
 separate evidence; constructing a DSN is not an authentication test.
 
 Mega's exact existing `DATABASE_URL` and `ENCRYPTION_KEY` values are preserved.
+Its observed Supavisor tuple is `mega_music_web.oc-prod` at
+`127.0.0.1:5432/postgres`; the tenant-qualified login resolves the existing
+`mega_music_web` database role. This exact old tuple is validated separately
+from the four new direct database connections.
 The key protects existing saved S4 credentials, so it is never regenerated.
 KešTrek's MCP path, ChatGPT credentials, existing encryption key and email-token
 key remain unchanged; central sessions get their independent new key.

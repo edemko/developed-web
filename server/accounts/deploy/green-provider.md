@@ -1,6 +1,6 @@
 # Private green Auth staging — 2026-09-20
 
-Status: **created, not started**. Public SSO remains off. The existing
+Status: **running privately and verified**. Public SSO remains off. The existing
 `supabase-auth` provider continues serving. No ingress, public OAuth route,
 client registration, mail, account, key rotation or app activation was changed.
 All seven intended web callbacks and the separate KešTrek native callback are
@@ -15,7 +15,7 @@ included as exact redirects; including them does not register or enable a client
 | Network | `developed-auth-green`, `172.30.241.0/28`, IPv6 disabled |
 | Bridge | `br-e1eff445efe4` |
 | Green address | `172.30.241.2:9999` |
-| Private host binding | `127.0.0.1:3141:9999` (container not started) |
+| Private host binding | `127.0.0.1:3141:9999` |
 | DB-only destination | `172.30.241.3:5432`, network alias `db` |
 | Environment | `/etc/developed-accounts/green-provider.env`, root-owned0600 |
 
@@ -54,7 +54,8 @@ tuple without treating container-root as trusted host-root. This gate belongs to
 
 `green-provider-boundary.mjs` adds the separate green egress restriction in two
 owned tables, `inet developed_green_provider` and
-`bridge developed_green_provider`. This source is **not yet installed live**.
+`bridge developed_green_provider`. Both tables are now installed live through
+the enabled `green-provider-boundary.service`.
 Only green original TCP traffic to the exact DB5432 tuple is allowed. Replies to
 host-originated control requests are permitted; green original traffic to host,
 other bridges, public destinations and metadata is denied. Actual pre-DNAT
@@ -78,10 +79,13 @@ atomic own-table transaction. It never flushes a ruleset. Its configuration is
 `/opt/developed-control/green-provider/`. The boundary service owns a private
 `/run/developed-green-provider` directory and deliberately has no firewall-removal
 stop action. The runtime template installs as `developed-auth-green.service`
-only after private-start authorization, requiring both boundary services and
-checking the egress policy first. These systemd templates have not been installed.
+after private-start authorization, requiring both boundary services and checking
+the egress policy first. Both systemd units are now installed; the provider unit
+was boot-enabled only after private health/identity/parity verification passed.
+The runtime unit explicitly permits writes only to the root-owned boundary
+transaction directory for its startup check.
 
-## Verification and remaining start gate
+## Verification and remaining activation gates
 
 Passed before start:
 
@@ -103,13 +107,42 @@ route. No default route changed. The script now explicitly selects `default`
 lines, and the exact stopped container was then created. Do not rerun `--create`
 over this staged state: it deliberately refuses existing files/networks/containers.
 
-Still required: coordinator review and live installation of the egress policy,
-positive/negative probes of the actual protected addresses, explicit private
-start authorization, then root health/discovery/JWKS identity verification and
-unchanged Auth migration ledger/DB-role checks. The read-only
-`green-provider-verify.mjs` performs the provider checks without creating test
-accounts, registering clients, sending mail or printing tokens/logs. Also probe
-from actual denied host UIDs and an untrusted container network.
+The coordinator reviewed and authorized the two owned firewall tables, then
+conditionally authorized private start after actual probes. Verified live:
+
+- The persistent boundary loaded and root reload twice passed; repeated reloads
+  after probes also passed. No other firewall table was changed.
+- A temporary nonprivileged echo container at the exact green IP/private binding
+  proved root/central988/Caddy999 access and denial for UID1000,983,984,985,986,987,
+  995,996,65534 (24 checks). An untrusted Docker bridge could not reach green9999.
+- Green-source DB alias/.3:5432 succeeded. A live temporary same-bridge peer5432,
+  the old shared DB address5432, a live temporary host echo listener, public443
+  and metadata were denied. Exact labelled probe containers were removed after
+  testing; the retained qualification fixture was not touched.
+- Actual provider `/health`, OIDC discovery and JWKS all returned200. Version,
+  issuer and blue/green JWKS match, the environment differs only as listed above,
+  and blue remained running. Post-start actual-provider UID/container controls
+  and DB-only routing were rechecked.
+- A single private administrator read of at most one existing user returned200;
+  only status and count were printed. The unchanged DB DSN selects
+  `supabase_auth_admin`, verified NOSUPERUSER/NOBYPASSRLS. No active connection
+  appeared in the instant role snapshot (blue also has zero idle connections);
+  that snapshot is not claimed as observed green session identity. There were
+  no green waiting locks. Auth's76-row ledger and ordered hash remain unchanged,
+  with registration closed. No identity/client/mail mutation was performed.
+
+The first service start failed before Docker startup because `ProtectSystem`
+prevented the verifier's root-only temporary transaction file. The explicit
+`ReadWritePaths=/run/developed-green-provider` correction passed. A first provider
+check also incorrectly required a persistent idle DB connection; the verifier
+now reports the snapshot accurately and proves DB-backed operation with the
+bounded private read. No grant, key, schema or shared provider setting was
+changed to address either issue.
+
+The read-only `green-provider-verify.mjs` preserves these checks without creating
+test accounts, registering clients, sending mail or printing tokens/logs. Public
+route closure, client registration, full app data policies, all seven product
+cutovers and owner/native acceptance remain separate activation gates.
 
 If startup fails, leave blue serving and stop only `developed-auth-green`; retain
 the network gates and private evidence. Do not restore the shared database,

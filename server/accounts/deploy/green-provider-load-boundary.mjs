@@ -45,5 +45,9 @@ try {
 } catch {
   console.error('Green provider boundary failed closed; review protected configuration and exact table state.'); process.exitCode = 1;
 } finally {
-  if (temporary) { unlinkSync(temporary + '/rules.nft'); rmdirSync(temporary); }
+  if (temporary) {
+    // A failed exclusive write must not be hidden by cleanup errors.
+    try { unlinkSync(temporary + '/rules.nft'); } catch { /* preserve primary failure */ }
+    try { rmdirSync(temporary); } catch { /* retained root-only diagnostic path */ }
+  }
 }

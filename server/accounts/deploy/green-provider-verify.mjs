@@ -29,17 +29,29 @@ try {
     assert.equal(result.status, 200); return result.json();
   }));
   assert.deepEqual(keys[1], keys[0]);
+  // Existing private platform key stays in memory; this is one bounded read.
+  const adminKey = environment('supabase-kong').SUPABASE_SERVICE_KEY;
+  assert.ok(adminKey);
+  const adminRead = await fetch('http://127.0.0.1:3141/admin/users?page=1&per_page=1', {
+    headers: { Authorization: `Bearer ${adminKey}`, apikey: adminKey }, signal: AbortSignal.timeout(5000),
+  });
+  assert.equal(adminRead.status, 200);
+  const adminBody = await adminRead.json(); assert.ok(Array.isArray(adminBody.users));
+  assert.ok(adminBody.users.length <= 1);
   const metadata = run('exec', 'supabase-db', 'psql', '-X', '-U', 'supabase_admin', '-d', 'postgres', '-Atc',
     `select json_build_object('latest',(select max(version) from auth.schema_migrations),
       'connections',(select count(*) from pg_stat_activity where client_addr='172.30.241.2'),
       'unexpectedRoles',(select count(*) from pg_stat_activity where client_addr='172.30.241.2' and usename <> 'supabase_auth_admin'),
       'waitingLocks',(select count(*) from pg_stat_activity where client_addr='172.30.241.2' and wait_event_type='Lock'),
+      'roleNonprivileged',(select not rolsuper and not rolbypassrls from pg_roles where rolname='supabase_auth_admin'),
       'registration',(select registration_mode from accounts.settings where singleton=true));`);
   const status = JSON.parse(metadata);
-  assert.equal(status.latest, '20260302000000'); assert.ok(status.connections > 0);
+  assert.equal(status.latest, '20260302000000');
   assert.equal(status.unexpectedRoles, 0); assert.equal(status.waitingLocks, 0); assert.equal(status.registration, 'closed');
+  assert.equal(status.roleNonprivileged, true);
   console.log(JSON.stringify({ status: 'private-green-verified', imagePreserved: true, issuerPreserved: true,
-    signingKeysPreserved: true, envDiffNames: Object.keys(overrides), health: health.version, database: status, blueRunning: true }));
+    signingKeysPreserved: true, envDiffNames: Object.keys(overrides), health: health.version,
+    adminReadStatus: adminRead.status, returnedUserCount: adminBody.users.length, database: status, blueRunning: true }));
 } catch {
   console.error('Private green verification failed; no credential, response body, database error or provider log was printed.'); process.exitCode = 1;
 }

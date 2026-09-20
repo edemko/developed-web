@@ -59,6 +59,19 @@ test('fresh drift or failed local gateway causes no PUT', async () => {
   await assert.rejects(checkedUpdate({ ...base, verifyGateway: async () => { throw Error('fixture gateway failure'); } }), /fixture gateway failure/);
   assert.equal(puts, 0); assert.equal(attempts, 0);
 });
+test('actual API shape without account_id is accepted, conflicting account is not', async () => {
+  const config = fixture(), input = inputFor(config), desired = transform(config);
+  const original = snapshot(config, input); delete original.account_id;
+  let wrote = false;
+  const result = await checkedUpdate({ input, original, desired,
+    verifyGateway: async () => {}, markAttempt: async () => {},
+    api: async method => { if (method === 'PUT') wrote = true; return wrote ? { ...original, config: desired, version: 2 } : original; },
+  });
+  assert.equal(result.updated, true);
+  await assert.rejects(checkedUpdate({ input, original: { ...original, account_id: 'c'.repeat(32) }, desired,
+    verifyGateway: async () => { throw Error('Must not reach gateway'); }, markAttempt: async () => {}, api: async () => {},
+  }), /Unexpected Cloudflare configuration response/);
+});
 test('ambiguous PUT is never retried or automatically rolled back', async () => {
   const config = fixture(), input = inputFor(config), original = snapshot(config, input), events = [];
   await assert.rejects(checkedUpdate({ input, original, desired: transform(config), verifyGateway: async () => {}, markAttempt: async () => events.push('attempt'), api: async method => { events.push(method); if (method === 'PUT') throw Error('fixture timeout'); return original; } }), /fixture timeout/);

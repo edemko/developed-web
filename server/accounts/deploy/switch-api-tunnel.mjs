@@ -49,7 +49,10 @@ export function validateInput(input, inspect = false) {
   }
 }
 function snapshot(result, input) {
-  check(object(result) && result.account_id === input.accountId && result.tunnel_id === input.tunnelId && result.source === 'cloudflare' && Number.isSafeInteger(result.version) && result.version >= 0 && object(result.config), 'Unexpected Cloudflare configuration response');
+  // The actual configurations GET omits account_id. Account binding comes from
+  // the exact authenticated API URL and independently verified connector token.
+  // If a response includes it, still reject a conflicting account.
+  check(object(result) && (result.account_id === undefined || result.account_id === input.accountId) && result.tunnel_id === input.tunnelId && result.source === 'cloudflare' && Number.isSafeInteger(result.version) && result.version >= 0 && object(result.config), 'Unexpected Cloudflare configuration response');
   return result;
 }
 function expected(result, input) {

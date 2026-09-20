@@ -1,5 +1,24 @@
 # Exact shared API tunnel handoff
 
+Coordinator read-only inspection subsequently bound the actual running connector
+account/tunnel to the existing private management credential. Remote version1,
+four entries, config SHA256
+`01b8dd6febbcda7bbebef5165002f924e1f7b97ca116873746a79d8eee9c09a1`
+and desired SHA256
+`2f378fa47324d1dc073a284132b6b5a033c1ebcc21803418fd4e2065af1f6894`
+were verified. No remote write occurred. The real configurations response omits
+`account_id`; the operator now binds account through its fixed authenticated URL
+and independently verified connector, still rejecting any conflicting returned
+account. A regression test covers the actual shape.
+
+`prepare-api-tunnel-input.mjs` assembles the root-only input without printing or
+passing credential values in arguments. It requires the reviewed final product
+route proof to match the current Caddy bytes before writing anything. Install it
+with the matching reviewed tunnel operator in a root-owned immutable directory.
+Only the two named Cloudflare environment variables need preservation through
+sudo; the existing connector secret is read privately to bind the target, never
+used as the management credential or copied into the input.
+
 Source-only preparation. No Cloudflare management request or remote change was
 performed to prepare this operator. Use this phase only after the coordinator's
 matching product/policy/data and legacy-runtime prerequisites are satisfied.

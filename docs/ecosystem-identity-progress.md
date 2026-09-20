@@ -155,7 +155,9 @@ test results and remaining gaps; do not equate source changes with deployment.
   in that quarantine. The reviewed replacement is
   `server/accounts/deploy/deploy-marketing.sh`: it archives an explicit static
   path allowlist from `origin/main` and never resets the development checkout.
-  Re-ran this static deployment. Origin backend/config probes return 404. Public
-  probes from this VPS receive 403 (including the homepage), so public-browser
-  acceptance is not established by those probes. Shared auth/proxy configuration
-  was not changed. No central login activation is claimed.
+  The first static rerun inherited mktemp's private directory mode and briefly
+  returned 403; this was corrected with explicit public static-file permissions
+  (`D755,F644`) in rsync and restoration of the web-root mode. Final public and
+  origin homepage probes return 200, while backend/config probes return 404.
+  Shared auth/proxy configuration was not changed. No central login activation
+  or full browser acceptance is claimed.

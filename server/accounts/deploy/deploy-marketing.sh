@@ -21,5 +21,5 @@ test -f "$release_dir/index.html"
 test -f "$release_dir/styles.css"
 # webroot contains only this application's static marketing release. Account
 # services, repositories, environment files and build dependencies never belong here.
-rsync -a --delete "$release_dir/" "$webroot/"
+rsync -a --delete --chmod=D755,F644 "$release_dir/" "$webroot/"
 echo "deployed static marketing $release_sha at $(date -Is)"

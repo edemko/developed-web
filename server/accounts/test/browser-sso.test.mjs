@@ -19,7 +19,7 @@ import { Accounts } from '../dist/accounts.js';
 import { Database } from '../dist/db.js';
 import { Provider } from '../dist/provider.js';
 import { createAccountServer } from '../dist/http.js';
-import { hash } from '../dist/security.js';
+import { hash, unseal } from '../dist/security.js';
 
 const container = process.env.ACCOUNTS_TEST_CONTAINER;
 const playwrightModule = process.env.PLAYWRIGHT_MODULE;
@@ -80,7 +80,7 @@ test('isolated browser cross-site SSO, host-only cookies and central logout', {
     supportEmail: 'info@developed.sk', mailEnabled: false, dailyEmailLimit: 10000, hourlyRegistrationLimit: 1000 };
   const centralServer = createAccountServer(new Accounts(db, provider, config));
   let browser, appServer, secureServer, userId, clientId, registryConfigured = false;
-  let originalApp;
+  let originalApp, originalRegistrationMode;
   const pageErrors = [], unexpectedRequests = [], adapterErrors = [], transportTrace = [];
   try {
     // Disposable TLS key is generated in a private temp directory, loaded, then
@@ -123,9 +123,8 @@ test('isolated browser cross-site SSO, host-only cookies and central logout', {
       if not exists(select 1 from pg_policies where schemaname='mega_music' and tablename='oauth_transactions' and policyname='browser_fixture_oauth') then
         create policy browser_fixture_oauth on mega_music.oauth_transactions to mega_music_web using(true) with check(true); end if; end $$;`);
     const email = `browser-${randomUUID()}@example.invalid`, password = `Fixture ${randomBytes(18).toString('base64url')}!`;
-    const user = await provider.call('/admin/users', 'POST', { email, password, email_confirm: true, user_metadata: { name: 'Browser Fixture' } });
-    userId = user.id;
-    await admin.query("insert into accounts.security_state(user_id,language) values($1,'en') on conflict(user_id) do update set language='en'", [userId]);
+    originalRegistrationMode = (await admin.query('select registration_mode from accounts.settings')).rows[0].registration_mode;
+    await admin.query("update accounts.settings set registration_mode='open'");
     const callbackUri = `${appOrigin}/api/music/auth/callback`;
     const client = await provider.call('/admin/oauth/clients', 'POST', { client_name: `Browser qualification ${suffix}`, client_type: 'confidential',
       token_endpoint_auth_method: 'client_secret_post', redirect_uris: [callbackUri] });
@@ -137,6 +136,8 @@ test('isolated browser cross-site SSO, host-only cookies and central logout', {
       callback_url=excluded.callback_url,published=true,join_policy='free',enforce_oidc=true`,
     [clientId, hash(appSecret), `${appOrigin}/api/music/auth/start`, callbackUri]);
     registryConfigured = true;
+    await admin.query(`insert into accounts.oauth_clients(client_id,app_id,client_kind,callback_url,enabled)
+      values($1,'app_mega_music','web',$2,true)`, [clientId, callbackUri]);
     await listen(centralServer);
     const { createEcosystemAuth } = await import('../../../../mega-media-player/server/accounts/ecosystem-auth.mjs');
     const adapter = createEcosystemAuth({ enabled: true, appOrigin, centralOrigin, issuer, clientId,
@@ -227,7 +228,54 @@ test('isolated browser cross-site SSO, host-only cookies and central logout', {
       const response = await fetch('/api/music/me');
       return { status: response.status, body: await response.json() };
     });
-    let firstLoginPassed = false, directLoginPassed = false;
+    let registrationPassed = false, firstLoginPassed = false, directLoginPassed = false;
+    await t.test('browser registration requires explicit single-use email confirmation before login', async () => {
+      await page.goto(`${centralOrigin}/register?lang=en`);
+      await page.getByLabel('Name', { exact: true }).fill('Browser Fixture');
+      await page.getByLabel('Email', { exact: true }).fill(email);
+      await page.getByLabel('Password', { exact: true }).fill(password);
+      const registered = page.waitForResponse(response => new URL(response.url()).pathname === '/api/account/register' && response.request().method() === 'POST');
+      await page.getByRole('button', { name: 'Create account', exact: true }).click();
+      assert.equal((await registered).status(), 200);
+      await page.getByRole('status').filter({ hasText: /email|inbox/i }).first().waitFor();
+      const user = (await admin.query('select id,email_confirmed_at from auth.users where email=$1', [email])).rows[0];
+      assert.ok(user); userId = user.id; assert.equal(user.email_confirmed_at, null);
+
+      await page.goto(`${centralOrigin}/login?lang=en`);
+      await page.getByLabel('Email', { exact: true }).fill(email);
+      await page.getByLabel('Password', { exact: true }).fill(password);
+      const rejected = page.waitForResponse(response => new URL(response.url()).pathname === '/api/account/login' && response.request().method() === 'POST');
+      await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+      assert.equal((await rejected).status(), 401);
+
+      // The fixture has mail disabled. Read only its encrypted outbox to simulate
+      // opening the inbox link; never print a recipient, credential or token.
+      const queued = (await admin.query('select id,payload from accounts.outbox order by created_at desc limit 1')).rows[0];
+      assert.ok(queued);
+      const mail = unseal(queued.payload, config.encryptionKey, `mail:${queued.id}`);
+      assert.ok(mail.to === email, 'outbox recipient must match the fixture'); assert.ok(!mail.text.includes(password));
+      const match = mail.text.match(/#token=([A-Za-z0-9_-]+)/); assert.ok(match);
+      const verificationToken = match[1];
+      const openConfirmation = () => page.goto(`${centralOrigin}/verify-email?lang=en#token=${verificationToken}`)
+        .catch(() => { throw new Error('Isolated confirmation navigation failed (credential URL withheld)'); });
+      await openConfirmation();
+      await page.getByRole('button', { name: 'Confirm email', exact: true }).waitFor();
+      assert.ok(new URL(page.url()).hash === '', 'UI must remove the fragment before further interaction');
+      assert.equal((await admin.query('select email_confirmed_at from auth.users where id=$1', [userId])).rows[0].email_confirmed_at, null);
+      const confirmed = page.waitForResponse(response => new URL(response.url()).pathname === '/api/account/verify-email' && response.request().method() === 'POST');
+      await page.getByRole('button', { name: 'Confirm email', exact: true }).click();
+      assert.equal((await confirmed).status(), 200);
+      await page.getByText('Email confirmed. You can now sign in.', { exact: true }).waitFor();
+      const verifiedUser = (await admin.query('select id,email_confirmed_at from auth.users where email=$1', [email])).rows[0];
+      assert.equal(verifiedUser.id, userId); assert.ok(verifiedUser.email_confirmed_at);
+
+      await openConfirmation();
+      const replay = page.waitForResponse(response => new URL(response.url()).pathname === '/api/account/verify-email' && response.request().method() === 'POST');
+      await page.getByRole('button', { name: 'Confirm email', exact: true }).click();
+      assert.equal((await replay).status(), 400);
+      registrationPassed = true;
+    });
+    if (!registrationPassed) return;
     await t.test('central login, tile redirect and exact Mega adapter create an authenticated app cookie', async () => {
       await page.goto(`${centralOrigin}/login?lang=en`);
       await page.getByLabel('Email', { exact: true }).fill(email);
@@ -282,6 +330,8 @@ test('isolated browser cross-site SSO, host-only cookies and central logout', {
     if (appServer?.listening) await close(appServer);
     if (centralServer.listening) await close(centralServer);
     if (clientId) await provider.call(`/admin/oauth/clients/${clientId}`, 'DELETE').catch(() => {});
+    if (clientId) await admin.query('delete from accounts.oauth_clients where client_id=$1', [clientId]);
+    if (originalRegistrationMode !== undefined) await admin.query('update accounts.settings set registration_mode=$1', [originalRegistrationMode]);
     if (registryConfigured && originalApp) {
       await admin.query(`update accounts.app_settings set oauth_client_id=$1,server_key_hash=$2,launch_url=$3,callback_url=$4,
         published=$5,join_policy=$6,enforce_oidc=$7,updated_at=$8 where app_id='app_mega_music'`,

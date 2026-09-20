@@ -26,6 +26,8 @@ test('browser account and report flows retain safe state and render user text in
     const requests = [];
     let authenticated = false;
     let reportAttempts = 0;
+    let registrationAttempts = 0;
+    let registrationMode = 'open';
     const user = { id: 'user-id', email: 'owner@example.test', displayName: 'Owner Name', language: 'en', role: 'SUPERADMIN', emailVerified: true };
     await page.route('**/api/account/**', async route => {
       const request = route.request();
@@ -34,7 +36,9 @@ test('browser account and report flows retain safe state and render user text in
       requests.push({ path, body, headers: request.headers() });
       let status = 200;
       let result = {};
-      if (path === '/session') result = { csrfToken: 'test-csrf', user: authenticated ? user : null, registrationMode: 'open' };
+      if (path === '/session') result = { csrfToken: 'test-csrf', user: authenticated ? user : null, registrationMode };
+      else if (path === '/register') { registrationAttempts++; if (registrationAttempts === 1) { status = 503; result = { error: { code: 'unavailable' } }; } else result = { ok: true }; }
+      else if (path === '/resend-verification') result = { ok: true };
       else if (path === '/login') { authenticated = true; result = { user }; }
       else if (path === '/apps') result = { apps: [{ id: 'music', slug: 'mega-music', name: 'Mega Music', description: 'Your music', available: true, plan: 'free', launchUrl: 'https://megamusic.developed.sk/auth/login' }] };
       else if (path === '/reports/source/mega-music') result = { app: { id: 'music', slug: 'mega-music', name: 'Mega Music' } };
@@ -49,6 +53,33 @@ test('browser account and report flows retain safe state and render user text in
     });
     await page.route('https://app.example.test/**', route => route.fulfill({ contentType: 'text/html', body: '<h1>App signed in</h1>' }));
     const base = `http://127.0.0.1:${server.address().port}`;
+    await page.goto(`${base}/register?next=${encodeURIComponent('/account/authorize?authorization_id=pending-auth&redirect_uri=https://evil.test')}`);
+    await page.getByRole('heading', { name: 'Create account', exact: true }).waitFor();
+    assert.equal(await page.getByLabel('Invitation code').count(), 0);
+    await page.getByLabel('Name', { exact: true }).fill('Registration Fixture');
+    await page.getByLabel('Email', { exact: true }).fill('new@example.test');
+    await page.getByLabel('Password', { exact: true }).fill('long-test-password-only');
+    await page.getByRole('button', { name: 'Create account', exact: true }).click();
+    await page.getByRole('alert').waitFor();
+    assert.equal(await page.getByLabel('Email', { exact: true }).inputValue(), 'new@example.test');
+    await page.getByRole('button', { name: 'Create account', exact: true }).click();
+    await page.getByRole('heading', { name: 'Check your inbox', exact: true }).waitFor();
+    assert.equal(await page.locator('input[type=password]').count(), 0);
+    assert.equal(requests.find(request => request.path === '/register').body.continuation, '/account/authorize?authorization_id=pending-auth');
+    await page.getByRole('button', { name: 'Resend confirmation', exact: true }).click();
+    await page.getByRole('status').last().waitFor();
+    assert.equal(requests.find(request => request.path === '/resend-verification').body.email, 'new@example.test');
+    registrationMode = 'invitation';
+    await page.goto(`${base}/register#invitation=private-invitation-code`);
+    await page.getByLabel('Invitation code').waitFor();
+    assert.equal(new URL(page.url()).hash, '');
+    assert.equal(await page.getByLabel('Invitation code').inputValue(), 'private-invitation-code');
+    registrationMode = 'closed';
+    await page.goto(`${base}/register`);
+    await page.getByText('Registration is currently closed. Existing accounts can still sign in.').waitFor();
+    assert.equal(await page.locator('main form').count(), 0);
+    assert.ok(await page.locator('main a').getAttribute('href'));
+    registrationMode = 'open';
     await page.goto(`${base}/verify-email#token=private-email-token`);
     await page.getByRole('heading', { name: 'Confirm email', exact: true }).waitFor();
     assert.equal(new URL(page.url()).hash, '');

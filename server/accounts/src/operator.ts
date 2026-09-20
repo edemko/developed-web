@@ -38,6 +38,11 @@ async function main() {
       await q(`insert into accounts.app_settings(app_id,slug,oauth_client_id,server_key_hash,launch_url,callback_url)
         values($1,$2,$3,$4,$5,$6) on conflict(app_id) do update set slug=$2,oauth_client_id=$3,server_key_hash=$4,
         launch_url=$5,callback_url=$6,updated_at=now()`, [app.appId, app.slug, app.clientId, app.keyHash, app.launchUrl, app.callbackUrl]);
+      await q("update accounts.oauth_clients set enabled=false where app_id=$1 and client_kind='web'", [app.appId]);
+      const [registered] = await q(`insert into accounts.oauth_clients(client_id,app_id,client_kind,callback_url)
+        values($1,$2,'web',$3) on conflict(client_id) do update set callback_url=$3,enabled=true
+        where oauth_clients.app_id=$2 and oauth_clients.client_kind='web' returning client_id`, [app.clientId, app.appId, app.callbackUrl]);
+      if (!registered) throw new Error('Client already belongs to another app or platform');
       await db.audit(q, null, null, 'operator_app_configuration', 'succeeded', { appId: app.appId, replaced: Boolean(old) });
     });
     process.stdout.write(`Configured ${app.appId}. Publication/join-policy/cutover controls were not enabled.\n`);

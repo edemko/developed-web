@@ -1,10 +1,10 @@
 // Opt-in integration against brand-new capped containers only. Never accepts a
 // remote provider/database URL or existing container. No production credentials.
 import { execFileSync, spawn } from 'node:child_process';
-import { randomBytes, generateKeyPairSync } from 'node:crypto';
+import { randomBytes, generateKeyPairSync, createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createServer } from 'node:net';
-import { SignJWT, importJWK } from 'jose';
+import { SignJWT, importJWK, jwtVerify } from 'jose';
 import assert from 'node:assert/strict';
 import { createOidcClient } from '../index.mjs';
 
@@ -144,6 +144,66 @@ try {
   const genericRefresh = await request('/token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: refresh.tokens.refresh_token } });
   report('delegated_refresh_at_generic_token_endpoint', `HTTP ${genericRefresh.status}`);
   assert.equal(genericRefresh.status, 400);
+  if (process.argv.includes('--native')) {
+    // Native protocol qualification only: no device/browser callback handling
+    // is claimed, and no confidential web secret is embedded in a public client.
+    const redirectUri = 'sk.kestrek://oauth/callback';
+    const native = await request('/admin/oauth/clients', { method: 'POST', token: admin, body: {
+      client_name: 'isolated native', client_type: 'public', token_endpoint_auth_method: 'none', redirect_uris: [redirectUri],
+    } });
+    assert.ok(native.status >= 200 && native.status < 300, 'public client registration accepted');
+    assert.ok(!native.json.client_secret, 'public client has no secret');
+    const otherNative = await request('/admin/oauth/clients', { method: 'POST', token: admin, body: {
+      client_name: 'isolated other native', client_type: 'public', token_endpoint_auth_method: 'none', redirect_uris: [redirectUri],
+    } });
+    assert.ok(otherNative.status >= 200 && otherNative.status < 300, 'second public client registration accepted');
+    const { d: _privateScalar, ...publicJwk } = privateJwk;
+    const publicKey = await importJWK({ ...publicJwk, key_ops: ['verify'] }, 'ES256');
+    async function nativeAuthorization() {
+      const verifier = randomBytes(32).toString('base64url'), nonce = randomBytes(32).toString('base64url'), state = randomBytes(32).toString('base64url');
+      const endpoint = new URL(`${issuer}/oauth/authorize`);
+      endpoint.search = new URLSearchParams({ client_id: native.json.client_id, redirect_uri: redirectUri,
+        response_type: 'code', scope: 'openid email profile', nonce, state,
+        code_challenge: createHash('sha256').update(verifier).digest('base64url'), code_challenge_method: 'S256' }).toString();
+      const response = await fetch(endpoint, { redirect: 'manual' }); assert.equal(response.status, 302);
+      const id = new URL(response.headers.get('location')).searchParams.get('authorization_id'); assert.ok(id);
+      const details = await request(`/oauth/authorizations/${id}`, { token: login.json.access_token }); assert.equal(details.status, 200);
+      const consent = details.json.redirect_url ? details : await request(`/oauth/authorizations/${id}/consent`, {
+        method: 'POST', token: login.json.access_token, body: { action: 'approve' },
+      });
+      assert.equal(consent.status, 200);
+      const callback = new URL(consent.json.redirect_url);
+      assert.equal(`${callback.protocol}//${callback.host}${callback.pathname}`, redirectUri);
+      assert.equal(callback.searchParams.get('state'), state);
+      const code = callback.searchParams.get('code'); assert.ok(code);
+      return { code, verifier, nonce };
+    }
+    async function nativeExchange(fields) {
+      const response = await fetch(`${issuer}/oauth/token`, { method: 'POST', body: new URLSearchParams({ client_id: native.json.client_id, ...fields }) });
+      return { status: response.status, body: await response.json() };
+    }
+    const flow = await nativeAuthorization();
+    const codeFields = { grant_type: 'authorization_code', redirect_uri: redirectUri, code: flow.code, code_verifier: flow.verifier };
+    assert.equal((await nativeExchange({ ...codeFields, code_verifier: 'X'.repeat(43) })).status, 400);
+    assert.equal((await nativeExchange({ ...codeFields, client_id: otherNative.json.client_id })).status, 400);
+    assert.equal((await nativeExchange({ ...codeFields, client_secret: 'forbidden-public-secret' })).status, 400);
+    assert.equal((await nativeExchange({ ...codeFields, redirect_uri: 'sk.kestrek://oauth/other' })).status, 400);
+    const issued = await nativeExchange(codeFields); assert.equal(issued.status, 200);
+    const identity = await jwtVerify(issued.body.id_token, publicKey, { issuer: externalIssuer, audience: native.json.client_id, algorithms: ['ES256'] });
+    assert.equal(identity.payload.sub, user.json.id); assert.equal(identity.payload.nonce, flow.nonce);
+    const access = await jwtVerify(issued.body.access_token, publicKey, { issuer: externalIssuer, audience: 'authenticated', algorithms: ['ES256'] });
+    assert.equal(access.payload.sub, user.json.id); assert.equal(access.payload.client_id, native.json.client_id);
+    assert.match(access.payload.session_id, /^[0-9a-f-]{36}$/);
+    assert.equal((await nativeExchange(codeFields)).status, 400);
+    assert.equal((await nativeExchange({ grant_type: 'refresh_token', refresh_token: issued.body.refresh_token, client_id: otherNative.json.client_id })).status, 400);
+    const rotated = await nativeExchange({ grant_type: 'refresh_token', refresh_token: issued.body.refresh_token });
+    assert.equal(rotated.status, 200); assert.ok(rotated.body.refresh_token);
+    assert.ok(rotated.body.refresh_token !== issued.body.refresh_token, 'public client refresh token must rotate');
+    const refreshedAccess = await jwtVerify(rotated.body.access_token, publicKey, { issuer: externalIssuer, audience: 'authenticated', algorithms: ['ES256'] });
+    assert.equal(refreshedAccess.payload.sub, user.json.id); assert.equal(refreshedAccess.payload.client_id, native.json.client_id);
+    assert.equal(refreshedAccess.payload.session_id, access.payload.session_id);
+    report('native_public_none_custom_scheme_S256_nonce_ID_access_refresh', 'PASS; rejects wrong verifier, wrong code/refresh client, supplied secret, callback mismatch and code replay; device callback installation NOT tested');
+  }
   const crossApp = new URL(`${issuer}/oauth/authorize`);
   for (const [key, value] of Object.entries({ client_id: otherClient.json.client_id, redirect_uri: 'http://127.0.0.1:39999/other-callback', response_type: 'code', scope: 'openid email', state: 'qualification-cross-app', code_challenge: new URL(first.flow.url).searchParams.get('code_challenge'), code_challenge_method: 'S256' })) crossApp.searchParams.set(key, value);
   const crossEntry = await fetch(crossApp, { redirect: 'manual' });

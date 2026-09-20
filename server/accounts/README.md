@@ -34,6 +34,18 @@ continues its existing Slovak/English routing. The support address is
 `info@developed.sk` (Zoho); Mailjet transactional messages use
 `noreply@developed.sk` with Reply-To `info@developed.sk`.
 
+Transactional messages use the version-controlled templates in
+`src/mail-templates.ts`: branded HTML plus plain text in EN/SK/CS/UK for email
+confirmation, password recovery, email changes, invitations, security notices,
+and bug-report acknowledgements. Operator report alerts contain only the app,
+reference, and an authenticated admin-page link—not the report body. Mailjet
+open/click tracking is explicitly disabled, and templates load no remote assets.
+Credential links are limited to the configured portal origin and the correct
+route/fragment. Their expiry copy shares the backend lifetime definition:
+24 hours for confirmation, 30 minutes for recovery/email changes, and 7 days for
+invitations. Existing text-only encrypted outbox entries receive an escaped HTML
+fallback during upgrades. Template tests never send mail.
+
 ## Security boundary
 
 The runtime requires the **exact** PostgreSQL role `developed_accounts`, without
@@ -196,6 +208,14 @@ It extends the existing shared `core` directory, preserves Auth UUIDs and produc
 data, and defaults registration/app publication/cutover controls to closed/off.
 It expects the actual core baseline and GoTrue auth schema to exist; test
 bootstrap fixtures are **not** a production baseline.
+
+Apply the additive `20260920114956_developed_native_clients.sql` migration next,
+before running the current service or app-configuration operator. Authorization
+now reads `accounts.oauth_clients` for both web and native clients; a single
+`app_settings.oauth_client_id` value is no longer sufficient. Existing configured
+web clients are seeded by the migration. See
+[native client staging](../../docs/ecosystem-native-clients.md) for the explicit
+public-client operator and the Android installation release gate.
 
 Before any live apply, review the exact migration, verify a restorable backup,
 inventory existing core policies/triggers and rehearse on an isolated provider

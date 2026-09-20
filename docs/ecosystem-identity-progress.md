@@ -197,3 +197,35 @@ test results and remaining gaps; do not equate source changes with deployment.
   gracefully; the old account process and Python/landing files were untouched.
   Public browser smoke passed; 330 health probes observed zero failures during
   cutover. Detailed record: `mega-media-player/docs/ecosystem-deployment.md`.
+
+## Registration, mail, and Android follow-up (2026-09-20)
+
+- Added central branded HTML/plain-text templates in EN/SK/CS/UK for verification,
+  recovery, email changes, invitations, security notifications, and bug-report
+  mail. Credential lifetimes and copy share one definition; links are constrained
+  to the canonical origin; dynamic content is escaped; tracking is disabled.
+- The isolated browser acceptance now starts with real UI registration, rejects
+  unconfirmed login, consumes the encrypted fixture outbox's single-use link,
+  and then verifies login, picker, Mega Music SSO and central logout: 5/5 passed.
+  No real mailbox, identity, product data or production route was used.
+- Added an explicit many-client registry and exact native callback handling.
+  Native operator verifies a public/no-secret provider registration before
+  attaching it. Central session checks return the authenticated client ID/kind.
+  Actual-provider native central checks and RLS: 5/5 passed; account/database
+  lifecycle: 14/14 passed. Separate native protocol qualification rejects wrong
+  PKCE, wrong clients, wrong callbacks, supplied secrets, and code replay.
+- User confirmed Android and willingness to install/test an updated APK.
+  Native source implementation is in progress; no production public client has
+  been provisioned, and installed-device acceptance has not occurred.
+- Subapp registration suspension is staged behind off-by-default switches. The
+  old forms remain in source and stale local creation requests are rejected in
+  central mode. A flag alone is not an SSO implementation or a safe cutover.
+- The owner authorized a controlled new-account email test. No real test account
+  or email has been created/sent by this follow-up yet; delivery remains a gate.
+- Odonto AI's live Vercel frontend/API were positively located. Its auth/email
+  files contain pre-existing uncommitted prerequisite work; inclusion approval
+  was requested. Do not sweep that work into a cross-repository commit.
+- Production central schema/service/provider configuration, constrained generic
+  Auth ingress, product runtime credential isolation, remaining legacy consumer
+  migrations and the coordinated deployment are still pending. Do not describe
+  isolated tests or source commits as production E2E readiness.

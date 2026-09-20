@@ -2,20 +2,8 @@ import { randomUUID } from 'node:crypto';
 import type { Config } from './config.js';
 import type { Database, Query } from './db.js';
 import { HttpError, seal, unseal } from './security.js';
-export interface Mail { to: string; subject: string; text: string }
-const copy: Record<string, { verification: string; recovery: string; email_change: string; invitation: string; instruction: string; security: string }> = {
-  en: { verification: 'Confirm your DevelopED email', recovery: 'Reset your DevelopED password', email_change: 'Confirm your new DevelopED email', invitation: 'Your invitation to DevelopED', instruction: 'Open this link to continue. If you did not request this, ignore this email. The link expires.', security: 'Your DevelopED account security settings changed. If this was not you, contact info@developed.sk immediately.' },
-  sk: { verification: 'Potvrďte svoj e-mail DevelopED', recovery: 'Obnovenie hesla DevelopED', email_change: 'Potvrďte nový e-mail DevelopED', invitation: 'Pozvánka do DevelopED', instruction: 'Pokračujte otvorením odkazu. Ak ste o túto zmenu nežiadali, správu ignorujte. Odkaz má obmedzenú platnosť.', security: 'Bezpečnostné nastavenia vášho účtu DevelopED sa zmenili. Ak ste zmenu nevykonali vy, ihneď kontaktujte info@developed.sk.' },
-  cs: { verification: 'Potvrďte svůj e-mail DevelopED', recovery: 'Obnovení hesla DevelopED', email_change: 'Potvrďte nový e-mail DevelopED', invitation: 'Pozvánka do DevelopED', instruction: 'Pokračujte otevřením odkazu. Pokud jste o tuto změnu nežádali, zprávu ignorujte. Odkaz má omezenou platnost.', security: 'Bezpečnostní nastavení vašeho účtu DevelopED se změnila. Pokud jste změnu neprovedli vy, ihned kontaktujte info@developed.sk.' },
-  uk: { verification: 'Підтвердьте електронну адресу DevelopED', recovery: 'Відновлення пароля DevelopED', email_change: 'Підтвердьте нову електронну адресу DevelopED', invitation: 'Ваше запрошення до DevelopED', instruction: 'Відкрийте посилання, щоб продовжити. Якщо ви цього не запитували, ігноруйте цей лист. Посилання має обмежений термін дії.', security: 'Налаштування безпеки вашого облікового запису DevelopED змінено. Якщо це були не ви, негайно зверніться до info@developed.sk.' },
-};
-export function credentialMail(to: string, purpose: string, link: string, lang: string): Mail {
-  const local = copy[lang] || copy.en!;
-  return { to, subject: local[purpose as keyof typeof local] || local.verification, text: `${local.instruction}\n\n${link}\n\nDevelopED · info@developed.sk` };
-}
-export function securityMail(to: string, lang: string): Mail {
-  return { to, subject: 'DevelopED — Account security', text: (copy[lang] || copy.en!).security };
-}
+import { legacyMailHtml, type Mail } from './mail-templates.js';
+export { credentialMail, credentialLifetime, securityMail, reportMail, type Mail } from './mail-templates.js';
 export async function queueMail(query: Query, config: Config, mail: Mail): Promise<void> {
   const id = randomUUID();
   await query('insert into accounts.outbox(id,payload) values($1,$2)', [id, seal(mail, config.encryptionKey, `mail:${id}`)]);
@@ -37,7 +25,8 @@ export class MailWorker {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Basic ${Buffer.from(`${this.config.mailjetKey}:${this.config.mailjetSecret}`).toString('base64')}` },
         body: JSON.stringify({ Messages: [{ From: { Email: 'noreply@developed.sk', Name: 'DevelopED' },
           ReplyTo: { Email: this.config.supportEmail, Name: 'DevelopED support' }, To: [{ Email: mail.to }],
-          Subject: mail.subject, TextPart: mail.text, CustomID: job.id }] }),
+          Subject: mail.subject, TextPart: mail.text, HTMLPart: mail.html || legacyMailHtml(mail, this.config),
+          TrackOpens: 'disabled', TrackClicks: 'disabled', CustomID: job.id }] }),
         signal: AbortSignal.timeout(15_000), redirect: 'error',
       });
       if (!response.ok) throw new Error('Mail provider rejected delivery');

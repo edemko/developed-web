@@ -22,6 +22,25 @@ export function safeHttpsUrl(value, origin) {
   } catch { return null; }
 }
 
+// Only authorization responses may open the registered native KešTrek callback.
+// Tiles, login continuations, avatars and every other link remain HTTPS-only.
+export function safeAuthorizationUrl(value, origin) {
+  const https = safeHttpsUrl(value, origin);
+  if (https) return https;
+  if (typeof value !== 'string') return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'sk.kestrek:' || url.hostname !== 'oauth' || url.pathname !== '/callback'
+      || url.port || url.username || url.password || url.hash || url.href !== value) return null;
+    const keys = [...url.searchParams.keys()];
+    if (keys.some(key => !['code', 'state', 'error'].includes(key)) || new Set(keys).size !== keys.length) return null;
+    const state = url.searchParams.get('state'), code = url.searchParams.get('code'), error = url.searchParams.get('error');
+    if (!state || state.length > 1024 || Boolean(code) === Boolean(error)) return null;
+    if ([...url.searchParams.values()].some(item => !item || item.length > 2048 || /[\u0000-\u0020\u007f]/.test(item))) return null;
+    return url.href;
+  } catch { return null; }
+}
+
 export function diagnosticHints(search, language) {
   const params = new URLSearchParams(search);
   const result = { locale: normaliseLanguage(language) };
@@ -50,7 +69,7 @@ async function start() {
   const main = document.querySelector('#main');
   const navigation = document.querySelector('#navigation');
   const footer = document.querySelector('#footer');
-  const invitationToken = new URLSearchParams(window.location.hash.slice(1)).get('invitation') || '';
+  let invitationToken = new URLSearchParams(window.location.hash.slice(1)).get('invitation') || '';
   const token = takeFragmentToken(window.location, window.history);
   let language = normaliseLanguage(new URLSearchParams(location.search).get('lang') || navigator.language);
   let session = null;
@@ -306,22 +325,37 @@ async function start() {
 
   function registerPage() {
     heading(t('register'), t('registerIntro'), true);
-    if (session.registrationMode === 'closed') { main.append(el('p', t('registrationClosed'), 'notice')); return; }
+    const continuation = safeContinuation(new URLSearchParams(location.search).get('next'), location.origin);
+    const loginUrl = `/login?next=${encodeURIComponent(continuation)}`;
+    if (session.registrationMode === 'closed') { main.append(el('p', t('registrationClosed'), 'notice'), link(t('login'), loginUrl)); return; }
     const form = el('form');
     if (session.registrationMode === 'invitation') form.append(el('p', t('invitationOnly'), 'notice'));
     const name = field(form, 'name', { required: true, autocomplete: 'name', maxLength: 100 });
     const email = field(form, 'email', { type: 'email', required: true, autocomplete: 'email', maxLength: 254 });
     const password = field(form, 'password', { type: 'password', required: true, autocomplete: 'new-password', minLength: 15, maxLength: 128 });
     form.append(el('small', t('passwordHelp')));
-    const invitation = field(form, 'invitation', { required: session.registrationMode === 'invitation', value: invitationToken, maxLength: 100 });
-    bindForm(form, t('register'), async notice => {
-      const continuation = safeContinuation(new URLSearchParams(location.search).get('next'), location.origin);
-      await api('/register', 'POST', { email: email.value.trim(), password: password.value, displayName: name.value.trim(), language, ...(invitation.value.trim() ? { invitation: invitation.value.trim() } : {}), ...(continuation.startsWith('/account/authorize?') ? { continuation } : {}) });
+    const invitation = session.registrationMode === 'invitation' || invitationToken
+      ? field(form, 'invitation', { required: session.registrationMode === 'invitation', value: invitationToken, maxLength: 100 }) : null;
+    const card = panel();
+    bindForm(form, t('register'), async () => {
+      const address = email.value.trim();
+      await api('/register', 'POST', { email: address, password: password.value, displayName: name.value.trim(), language, ...(invitation?.value.trim() ? { invitation: invitation.value.trim() } : {}), ...(continuation.startsWith('/account/authorize?') ? { continuation } : {}) });
       password.value = '';
-      feedback(notice, t('mailbox'));
+      invitationToken = '';
+      const title = el('h2', t('checkInbox'));
+      title.tabIndex = -1;
+      const notice = el('p', t('mailbox'), 'notice');
+      notice.setAttribute('role', 'status');
+      const resend = el('form');
+      bindForm(resend, t('resend'), async status => {
+        await api('/resend-verification', 'POST', { email: address });
+        feedback(status, t('mailbox'));
+      });
+      card.replaceChildren(title, notice, el('p', t('registrationNext')), resend);
+      title.focus();
     });
-    panel().append(form);
-    main.append(link(t('login'), '/login'));
+    card.append(form);
+    main.append(link(t('login'), loginUrl));
   }
 
   function emailRequestPage() {
@@ -485,7 +519,7 @@ async function start() {
     const form = el('form');
     const finish = async approve => {
       const result = await api('/authorize', 'POST', { authorizationId, approve });
-      const url = safeHttpsUrl(result.redirectUrl, location.origin);
+      const url = safeAuthorizationUrl(result.redirectUrl, location.origin);
       if (!url) throw new Error('Invalid redirect');
       location.assign(url);
     };

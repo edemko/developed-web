@@ -2,8 +2,8 @@ import { createHmac, randomUUID } from 'node:crypto';
 import type { Config } from './config.js';
 import { Database, type Query, type Row } from './db.js';
 import { Provider, type ProviderSession } from './provider.js';
-import { claims, diagnostics, email, equal, fail, hash, HttpError, language, password, passwordInput, seal, text, token, unseal, uuid, exactHttps } from './security.js';
-import { credentialMail, queueMail, securityMail } from './mail.js';
+import { claims, diagnostics, email, equal, fail, hash, HttpError, language, password, passwordInput, seal, text, token, unseal, uuid, exactHttps, oauthCallback } from './security.js';
+import { credentialMail, credentialLifetime, queueMail, securityMail, reportMail } from './mail.js';
 
 export interface Context { session: Row; user: Row | null; cookie?: string }
 export class Accounts {
@@ -163,10 +163,10 @@ export class Accounts {
     const raw = token();
     if (user) await query(`update accounts.credentials set consumed_at=now() where user_id=$1 and purpose=$2 and consumed_at is null`, [user.id, purpose]);
     await query(`insert into accounts.credentials(token_hash,purpose,user_id,email,security_version,expires_at,return_app_id)
-      values($1,$2,$3,$4,$5,now()+$6*interval '1 second',$7)`, [hash(raw), purpose, user?.id || null, address, user?.security_version || 1, purpose === 'invitation' ? 604800 : purpose === 'verification' ? 86400 : 1800, returnAppId]);
+      values($1,$2,$3,$4,$5,now()+$6*interval '1 second',$7)`, [hash(raw), purpose, user?.id || null, address, user?.security_version || 1, credentialLifetime(purpose), returnAppId]);
     const route = purpose === 'recovery' ? '/reset-password' : purpose === 'invitation' ? '/register' : '/verify-email';
     const fragment = purpose === 'invitation' ? 'invitation' : 'token';
-    await queueMail(query, this.config, credentialMail(address, purpose, `${this.config.origin}${route}#${fragment}=${raw}`, lang));
+    await queueMail(query, this.config, credentialMail(address, purpose, `${this.config.origin}${route}#${fragment}=${raw}`, lang, this.config));
   }
   async register(body: Row) {
     const address = email(body.email), secret = password(body.password), name = text(body.displayName, 100, true), lang = language(body.language);
@@ -233,9 +233,9 @@ export class Accounts {
         if (after) await after(q);
         await q('update accounts.security_state set operation_id=null,operation_started_at=null where user_id=$1 and operation_id=$2', [userId, operation]);
         await this.db.audit(q, actorId, userId, action, 'succeeded', { operation });
-        await queueMail(q, this.config, securityMail(user.email, user.language));
+        await queueMail(q, this.config, securityMail(user.email, user.language, this.config, action));
         const nextEmail = (update as Row).email;
-        if (nextEmail && nextEmail !== user.email) await queueMail(q, this.config, securityMail(nextEmail, user.language));
+        if (nextEmail && nextEmail !== user.email) await queueMail(q, this.config, securityMail(nextEmail, user.language, this.config, action));
       });
     } catch (error) {
       if (error instanceof HttpError && error.status === 400) {
@@ -271,8 +271,9 @@ export class Accounts {
     const parsed = new URL(path, this.config.origin);
     if (parsed.origin !== this.config.origin || parsed.pathname !== '/account/authorize' || parsed.hash) return null;
     const id = parsed.searchParams.get('authorization_id'); if (!id || !/^[a-zA-Z0-9]{32}$/.test(id)) return null;
-    const [app] = await this.db.query(`select a.app_id from accounts.app_settings a join auth.oauth_authorizations o on o.client_id=a.oauth_client_id
-      where o.authorization_id=$1 and o.expires_at>now() and o.status='pending' and o.redirect_uri=a.callback_url and a.published`, [id]);
+    const [app] = await this.db.query(`select a.app_id from accounts.app_settings a join accounts.oauth_clients oc on oc.app_id=a.app_id and oc.enabled
+      join auth.oauth_authorizations o on o.client_id=oc.client_id
+      where o.authorization_id=$1 and o.expires_at>now() and o.status='pending' and o.redirect_uri=oc.callback_url and a.published`, [id]);
     return app?.app_id || null;
   }
   async launchAfterLogin(ctx: Context, slug: unknown): Promise<string | undefined> {
@@ -308,9 +309,8 @@ export class Accounts {
         return { reference: `DEV-${prior!.ticket}` };
       }
       const reference = `DEV-${report.ticket}`;
-      await queueMail(q, this.config, { to: this.config.supportEmail, subject: `${reference} — ${app.name}`,
-        text: `New report for ${app.name}.\n${reference}\n${this.config.origin}/admin/reports\nSign in to read the report.` });
-      if (ctx.user) await queueMail(q, this.config, { to: ctx.user.email, subject: `${reference} — DevelopED`, text: `Report saved: ${reference}\n${app.name}\ninfo@developed.sk` });
+      await queueMail(q, this.config, reportMail(this.config.supportEmail, reference, app.name, 'en', true, this.config));
+      if (ctx.user) await queueMail(q, this.config, reportMail(ctx.user.email, reference, app.name, ctx.user.language, false, this.config));
       return { reference };
     });
   }
@@ -327,23 +327,27 @@ export class Accounts {
     });
   }
   async appForClient(client: string) {
-    const [app] = await this.db.query(`select a.*,c.name,c.status,c.deleted_at from accounts.app_settings a join core.apps c on c.id=a.app_id where a.oauth_client_id=$1`, [client]);
+    const [app] = await this.db.query(`select a.*,c.name,c.status,c.deleted_at,oc.client_id,oc.client_kind,oc.callback_url as registered_callback
+      from accounts.oauth_clients oc join accounts.app_settings a on a.app_id=oc.app_id join core.apps c on c.id=a.app_id
+      where oc.client_id=$1 and oc.enabled`, [uuid(client)]);
     if (!app) return fail(403, 'unregistered_client'); return app;
   }
   async internalCheck(serverKey: string, accessToken: unknown) {
     if (!/^[A-Za-z0-9_-]{43}$/.test(serverKey)) return fail(401, 'invalid_app_credentials');
     const [app] = await this.db.query(`select a.*,c.name,c.status,c.deleted_at from accounts.app_settings a join core.apps c on c.id=a.app_id where a.server_key_hash=$1`, [hash(serverKey)]);
-    if (!app || !app.oauth_client_id) return fail(401, 'invalid_app_credentials');
+    if (!app) return fail(401, 'invalid_app_credentials');
     const access = text(accessToken, 12000, true);
     const providerUser = await this.provider.user(access), parsed = claims(access);
-    if (parsed.sub !== providerUser.id || parsed.client_id !== app.oauth_client_id || !providerUser.email_confirmed_at) return fail(401, 'invalid_session');
+    if (parsed.sub !== providerUser.id || !parsed.client_id || !providerUser.email_confirmed_at) return fail(401, 'invalid_session');
+    const [client] = await this.db.query('select client_id,client_kind from accounts.oauth_clients where client_id=$1 and app_id=$2 and enabled', [uuid(parsed.client_id), app.app_id]);
+    if (!client) return fail(401, 'invalid_session');
     const user = await this.userById(parsed.sub);
     if (!user || user.locked || user.operation_id || user.requirePasswordChange || !user.emailVerified) return fail(403, 'account_unavailable');
     const [valid] = await this.db.query(`select id from auth.sessions where id=$1 and user_id=$2 and oauth_client_id=$3
-      and created_at>$4 and (not_after is null or not_after>now())`, [parsed.session_id, user.id, app.oauth_client_id, user.revoked_before]);
+      and created_at>$4 and (not_after is null or not_after>now())`, [parsed.session_id, user.id, client.client_id, user.revoked_before]);
     if (!valid) return fail(401, 'invalid_session');
     const plan = await this.ensureAccess(user, app);
-    return { user: this.publicUser(user), app: { id: app.app_id, plan }, securityVersion: user.security_version };
+    return { user: this.publicUser(user), app: { id: app.app_id, plan }, client: { id: client.client_id, kind: client.client_kind }, securityVersion: user.security_version };
   }
   async internalUserCheck(serverKey: string, userId: unknown) {
     if (!/^[A-Za-z0-9_-]{43}$/.test(serverKey)) return fail(401, 'invalid_app_credentials');
@@ -366,7 +370,7 @@ export class Accounts {
     if (!authorization || new Date(authorization.expires_at).getTime() <= Date.now() || authorization.status !== 'pending' || (authorization.user_id && authorization.user_id !== user.id)) return fail(400, 'invalid_authorization');
     const app = await this.appForClient(authorization.client_id);
     const scopes = authorization.scope.split(' ').filter(Boolean) as string[];
-    if (authorization.redirect_uri !== app.callback_url || authorization.code_challenge_method !== 's256' || !authorization.nonce
+    if (authorization.redirect_uri !== app.registered_callback || authorization.code_challenge_method !== 's256' || !authorization.nonce
       || !scopes.includes('openid') || scopes.some(scope => !['openid','email','profile'].includes(scope))) return fail(400, 'invalid_authorization');
     await this.ensureAccess(user, app);
     if (approve === undefined) return { app: { id: app.app_id, name: app.name }, scopes };
@@ -375,8 +379,8 @@ export class Accounts {
     const details = await this.provider.call<Row>(`/oauth/authorizations/${id}`, 'GET', undefined, access);
     const result = details.redirect_url ? details : await this.provider.call<Row>(`/oauth/authorizations/${id}/consent`, 'POST', { action: approve ? 'approve' : 'deny' }, access);
     if (typeof result.redirect_url !== 'string') return fail(502, 'invalid_provider_response');
-    const target = exactHttps(result.redirect_url, this.config.insecureLocal), registered = exactHttps(app.callback_url, this.config.insecureLocal);
-    if (target.origin !== registered.origin || target.pathname !== registered.pathname || target.hash) return fail(502, 'invalid_provider_response');
+    const target = oauthCallback(result.redirect_url, app.client_kind, this.config.insecureLocal), registered = oauthCallback(app.registered_callback, app.client_kind, this.config.insecureLocal);
+    if (target.protocol !== registered.protocol || target.host !== registered.host || target.pathname !== registered.pathname || target.hash) return fail(502, 'invalid_provider_response');
     if (!approve && details.redirect_url) {
       // Do not return an already minted code after a user chose Cancel.
       target.searchParams.delete('code'); target.searchParams.set('error', 'access_denied');

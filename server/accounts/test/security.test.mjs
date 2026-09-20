@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
-import { diagnostics, equal, password, passwordInput, email, seal, unseal, exactHttps, text } from '../dist/security.js';
+import { diagnostics, equal, password, passwordInput, email, seal, unseal, exactHttps, text, oauthCallback } from '../dist/security.js';
 import { config } from '../dist/config.js';
 import { Provider } from '../dist/provider.js';
 import { validateAppConfiguration } from '../dist/operator.js';
+import { validateNativeConfiguration } from '../dist/native-operator.js';
 import { marketingPolicy } from '../dist/http.js';
 
 test('credential comparison handles Unicode without exceptions', () => {
@@ -30,6 +31,23 @@ test('input and redirect allowlists reject unsafe values', () => {
   assert.equal(email(' TEST@example.com '), 'test@example.com'); assert.throws(() => email('not-email'));
   assert.throws(() => text('\0', 100)); assert.throws(() => exactHttps('javascript:alert(1)'));
   assert.throws(() => exactHttps('https://user:pass@example.com')); assert.throws(() => exactHttps('http://example.com', true));
+});
+test('native callbacks allow only the exact registered KešTrek protocol and path', () => {
+  assert.equal(oauthCallback('sk.kestrek://oauth/callback?code=fixture&state=fixture', 'native').pathname, '/callback');
+  for (const url of ['javascript:alert(1)', 'sk.kestrek://evil/callback', 'sk.kestrek:/oauth/callback',
+    'sk.kestrek://oauth/other', 'sk.kestrek://oauth:123/callback', 'sk.kestrek://user@oauth/callback',
+    'sk.kestrek://oauth/callback#token=x', 'https://oauth/callback']) {
+    assert.throws(() => oauthCallback(url, 'native'));
+  }
+  assert.throws(() => oauthCallback('sk.kestrek://oauth/callback', 'web'));
+});
+test('native operator accepts only the intended public-client configuration', () => {
+  const input = { appId: 'app_kestrek', clientId: '11111111-1111-4111-8111-111111111111', callbackUrl: 'sk.kestrek://oauth/callback' };
+  assert.deepEqual(validateNativeConfiguration(input), input);
+  assert.throws(() => validateNativeConfiguration({ ...input, clientSecret: 'must-not-exist' }));
+  assert.throws(() => validateNativeConfiguration({ ...input, appId: 'app_mega_music' }));
+  assert.throws(() => validateNativeConfiguration({ ...input, callbackUrl: `${input.callbackUrl}?next=evil` }));
+  assert.throws(() => validateNativeConfiguration({ ...input, clientId: 'invalid' }));
 });
 test('configuration refuses insecure public hosting and malformed encryption keys', () => {
   const env = { ACCOUNTS_ORIGIN: 'https://www.developed.sk', ACCOUNTS_PROVIDER_URL: 'https://auth.example.test/auth/v1', ACCOUNTS_PROVIDER_ADMIN_KEY: 'stub-only', ACCOUNTS_DATABASE_URL: 'stub-only', ACCOUNTS_ENCRYPTION_KEY: randomBytes(32).toString('base64') };

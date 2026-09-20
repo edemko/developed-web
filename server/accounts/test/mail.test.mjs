@@ -59,7 +59,8 @@ test('Mailjet uses fixed sender/reply address, safe payload and lease-guarded su
   assert.equal(message.ReplyTo.Email, 'info@developed.sk');
   assert.deepEqual(message.To, [{ Email: 'recipient@example.invalid' }]);
   assert.equal(message.TextPart, f.mail.text); assert.equal(message.CustomID, f.job.id);
-  assert.equal(message.HTMLPart, undefined); assert.equal(message.Attachments, undefined);
+  assert.match(message.HTMLPart, /<!doctype html>/); assert.equal(message.Attachments, undefined);
+  assert.equal(message.TrackOpens, 'disabled'); assert.equal(message.TrackClicks, 'disabled');
   assert.equal(message.Cc, undefined); assert.equal(message.Bcc, undefined);
   assert.ok(!init.body.includes('test-api-secret'));
   const update = f.queries[1];

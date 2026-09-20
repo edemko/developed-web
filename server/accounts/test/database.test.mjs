@@ -143,6 +143,7 @@ test('isolated real-provider account lifecycle, report privacy, DB grants and po
       await admin.query("insert into core.apps(id,name,base_path,status) values($1,'Fixture app',$2,'ACTIVE')", [id, `/${id}`]);
       await admin.query(`insert into accounts.app_settings(app_id,slug,oauth_client_id,server_key_hash,launch_url,callback_url,join_policy,reportable,enforce_oidc)
         values($1,$2,$3,$4,'https://music.example.invalid/auth/login',$5,'free',true,true)`, [id, slug, client.client_id, hash(serverKey), callback]);
+      await admin.query("insert into accounts.oauth_clients(client_id,app_id,client_kind,callback_url) values($1,$2,'web',$3)", [client.client_id,id,callback]);
       const store = new Map(), externalIssuer = 'http://127.0.0.1:9999';
       const rp = createOidcClient({ issuer: externalIssuer, clientId: client.client_id, clientSecret: client.client_secret, redirectUri: callback,
         allowLoopbackHttp: true, fetch: (url, options) => fetch(String(url).replace(externalIssuer, provider.url), options),
@@ -167,6 +168,10 @@ test('isolated real-provider account lifecycle, report privacy, DB grants and po
       delegatedAccess = result.tokens.access_token;
       const checked = await accounts.internalCheck(serverKey, delegatedAccess);
       assert.equal(checked.user.id, userId); assert.equal(checked.app.id, id);
+      assert.deepEqual(checked.client, { id: client.client_id, kind: 'web' });
+      await admin.query('update accounts.oauth_clients set enabled=false where client_id=$1', [client.client_id]);
+      await assert.rejects(accounts.internalCheck(serverKey, delegatedAccess), error => error.code === 'invalid_session');
+      await admin.query('update accounts.oauth_clients set enabled=true where client_id=$1', [client.client_id]);
       await assert.rejects(accounts.internalCheck(token(), delegatedAccess));
       const [central] = await db.query('select provider_tokens,id from accounts.sessions where user_id=$1 and revoked_at is null order by created_at desc limit 1', [userId]);
       const raw = unseal(central.provider_tokens, config.encryptionKey, `session:${central.id}`);

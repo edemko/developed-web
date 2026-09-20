@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { diagnosticHints, initials, safeContinuation, safeHttpsUrl, takeFragmentToken } from '../public/app.js';
+import { diagnosticHints, initials, safeAuthorizationUrl, safeContinuation, safeHttpsUrl, takeFragmentToken } from '../public/app.js';
 import { languages, messages, normaliseLanguage, translate } from '../public/i18n.js';
 
 test('all account messages are translated for every supported language', () => {
@@ -33,6 +33,25 @@ test('navigation and icon URLs reject script, cleartext and credential URLs', ()
 test('only bounded safe diagnostic hints are collected', () => {
   assert.deepEqual(diagnosticHints('?version=1.2.3&screen=player&platform=Android&token=SECRET&url=https://private.test&errorId=ERR-12', 'cs'), { locale: 'cs', version: '1.2.3', platform: 'Android', screen: 'player', errorId: 'ERR-12' });
   assert.deepEqual(diagnosticHints(`?screen=https://private.test/a?secret=1&version=${'x'.repeat(81)}`, 'en'), { locale: 'en' });
+});
+
+test('only authorization results allow the exact native KešTrek callback', () => {
+  const origin = 'https://www.developed.sk';
+  for (const value of ['sk.kestrek://oauth/callback?code=opaque-code&state=opaque-state', 'sk.kestrek://oauth/callback?error=access_denied&state=opaque-state']) {
+    assert.equal(safeAuthorizationUrl(value, origin), value);
+    assert.equal(safeHttpsUrl(value, origin), null);
+  }
+  assert.equal(safeAuthorizationUrl('https://kestrek.sk/auth/callback?code=opaque&state=state', origin), 'https://kestrek.sk/auth/callback?code=opaque&state=state');
+  for (const value of [
+    'sk.kestrek://other/callback?code=a&state=b', 'sk.kestrek://oauth/other?code=a&state=b',
+    'sk.kestrek://oauth:123/callback?code=a&state=b', 'sk.kestrek://user@oauth/callback?code=a&state=b',
+    'sk.kestrek://oauth/callback?code=a&state=b#fragment', 'sk.kestrek://oauth/callback?code=a',
+    'sk.kestrek://oauth/callback?code=a&state=b&state=c', 'sk.kestrek://oauth/callback?code=a&state=b&error=denied',
+    'sk.kestrek://oauth/callback?code=a&state=b&redirect_uri=https://evil.test',
+    'sk.kestrek://oauth/callback?code=a&state=%0A', 'sk.kestrek://oauth/callback?code=a&state=',
+    'sk.kestrek:/callback?code=a&state=b', 'other-app://oauth/callback?code=a&state=b',
+    'javascript:alert(1)', null,
+  ]) assert.equal(safeAuthorizationUrl(value, origin), null, value);
 });
 
 test('email credentials are read from fragments and immediately removed from history', () => {

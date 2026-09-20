@@ -1,0 +1,15 @@
+# Transitional server-to-server access only. Public human SSO remains unavailable.
+# Import inside the existing shared www/test site before static marketing.
+# Authentication is performed by accounts: each app has its own private key.
+route {
+  @accounts_internal_only {
+    host www.developed.sk
+    method POST
+    path /api/account/internal/session/check /api/account/internal/user/check
+  }
+  reverse_proxy @accounts_internal_only 127.0.0.1:3140 {
+    header_up -Forwarded
+    header_up -X-Forwarded-For
+    header_up -X-Real-IP
+  }
+}

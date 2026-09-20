@@ -230,8 +230,20 @@ test results and remaining gaps; do not equate source changes with deployment.
   or email has been created/sent by this follow-up yet; delivery remains a gate.
 - Odonto AI's live Vercel frontend/API were positively located. The owner
   approved including reviewed pre-existing auth/email prerequisite work, with
-  new central behavior taking precedence. Review and regression testing remain
-  in progress; unrelated changes must stay outside the commit.
+  new central behavior taking precedence. Reviewed source is pushed as
+  `07dba80`; the unrelated `CLAUDE.md` edit remains uncommitted. Backend 26/26,
+  frontend redirect tests 4/4, TypeScript and disposable credential-free frontend
+  production build passed. A separate committed-source Nest production build
+  passed and packaged all five HTML templates beside the compiled email service;
+  real environment files were excluded. Fixed mismatched confirmation/reset placeholders,
+  safe HTML/links/text delivery, recovery membership rechecking and bounded
+  local rate limits. Removed unverified exact legacy-email expiry claims.
+  This prepares registration suspension but is not a full Odonto OIDC client.
+  Exact-commit GitHub Actions run `35510258772` completed both `Deploy Backend`
+  and `Deploy Frontend` successfully. Public login, retained registration,
+  password-recovery page and API returned 200 after deployment; the frontend
+  pages contain their expected content and do not redirect to central identity.
+  No central flag, production identity, mailbox or database migration was changed.
 - Production central schema/service/provider configuration, constrained generic
   Auth ingress, product runtime credential isolation, remaining legacy consumer
   migrations and the coordinated deployment are still pending. Do not describe
@@ -255,3 +267,10 @@ test results and remaining gaps; do not equate source changes with deployment.
   registration/cleanup/mail suite: 28/28; frontend production build passed.
 - No production test account or live Mailjet message was created by these
   publication steps. Production activation and mailbox delivery remain open.
+- The owner explicitly rejected the transitional invite-only production pilot:
+  keep SSO off until the full security cutover is complete. Do not enable a
+  limited pilot that leaves alternate shared-credential mutation paths open.
+- Read-only public DNS check found one SPF record including both Zoho and
+  Mailjet, plus a monitoring-only DMARC policy (`p=none`). This does not verify
+  Mailjet sender approval, DKIM alignment, or actual mailbox delivery. No DNS
+  or mail-provider settings were changed.

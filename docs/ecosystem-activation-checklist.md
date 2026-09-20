@@ -1,5 +1,42 @@
 # Central activation dependency checklist
 
+## Superseding coordinator checkpoint — 2026-09-20, 20:15 UTC
+
+Human SSO remains off and registration closed. The following supersedes older
+deployment-state statements below; it does not claim completed user acceptance.
+
+- Six VPS products now serve their isolated central-mode candidates. All five
+  exact predecessor units are stopped/disabled; both exact old containers are
+  stopped with restart disabled and retained. All seven predecessor ports are
+  closed. Six replacements are active and boot-enabled. ScreenTime's stopped
+  launcher retains its known `failed`/143 state; do not restart it to clear that.
+  See the [retirement record](../server/accounts/deploy/product-predecessor-retirement-20260920.md).
+- KešTrek's development preview is suspended. Its durable MCP state was copied
+  with matching hashes, public metadata checks passed and only its required
+  loopback self-API permission was added. The connected MCP client currently
+  requests connection, so genuine authenticated MCP acceptance is not proven.
+- All seven policies now enforce central clients, and KešTrek's exact raw-token
+  ACL migration is applied. See the [policy checkpoint](../server/accounts/operators/final-policy-cutover.md).
+- The exact shared API tunnel change is applied (version 2). Public legacy Auth
+  health is denied403; discovery/JWKS remain200. The complete 50-check public
+  gateway matrix is next, not yet passed at this checkpoint. Caddy remains at
+  product-route SHA `501bbc47de35e94a45c24b9281b1e88ac918ae75d02750fd70c8f13bb1c63946`.
+- Vocabulum's exact 26 old executable Vercel deployments are deleted, with
+  metadata and immutable-URL404 checks. Static safe handoffs and VPS data remain.
+  Odonto's canonical pair still awaits promotion after gateway acceptance.
+- KešTrek's separate non-listening notification worker is active and enabled,
+  preserving existing schedules without restarting the API. Mega's separate
+  hourly session-maintenance timer and central mail worker are still source
+  preparation; no real confirmation email has been sent.
+
+The final human-ingress candidate is staged, not approved/applied. Remaining
+steps are gateway acceptance, Odonto paired promotion, final boundary checks,
+mail/registration readiness, then controlled human acceptance. The intended
+superadmin identity and fresh Gmail-tagged test address await owner confirmation:
+the originally supplied test address already exists. No owner role was silently
+promoted, and no replacement test account was created. Android installation,
+actual email delivery/confirmation and signed-in seven-app access remain untested.
+
 ## Superseding coordinator checkpoint — 2026-09-20, 19:40 UTC
 
 Public human SSO is still off; central registration is closed and mail disabled.

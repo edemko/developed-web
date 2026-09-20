@@ -1,9 +1,24 @@
 # Final seven-app policy and KešTrek token cutover
 
-Status: **source reviewed by tests; not installed, staged or applied** by this
-task. Public human SSO remains off. Read-only live preflight passed against the
-closed seven-app configuration, eight OAuth clients, three central ledger rows
-and ten app ledger rows. No account, session, app data or mail was changed.
+Status: **all three phases applied** on 2026-09-20. Public human SSO remains
+off, registration remains closed and the outbox is empty. The earlier source
+and publication-only checkpoints below are historical, not instructions to
+repeat an operation.
+
+### Coordinator enforcement checkpoint — 2026-09-20, before 20:15 UTC
+
+After the six VPS product handoffs and predecessor retirement, the coordinator
+executed `enforce --stage/--apply`, then `kestrek-raw-token --stage/--apply`
+from the existing immutable `f1eaab5` bundle. Both completed successfully.
+Protected snapshot SHA-256 values are respectively
+`0ee9e1e39e1331947a2d88629bf57c3dda5c29999eb2e507eb9ad7a72720cda4`
+and `56e56870c64dbe0b8b87ca88195472710d01ed3679874a4c5ec41c724c91db3b`.
+Recovery evidence remains under `/var/backups/developed-final-policy-20260920`.
+An independent read confirmed all seven apps published, reportable, free and
+enforced, with 13 app-ledger rows, closed registration and no outbox rows.
+No identity, profile role or product content was changed by these phases.
+Android installation and genuine user/MCP-client acceptance remain unverified;
+policy completion does not establish those results.
 
 ## Three deliberately separate steps
 
@@ -26,8 +41,8 @@ create the existing member's legacy entitlement; they do not create browser
 sessions, device samples or new product memberships. No fabricated ingestion was
 sent. Final product ingestion/MCP behavior still requires routed verification.
 
-`enforce` and `kestrek-raw-token` remain **unapplied**. The source-only status
-at the top describes preparation, not this subsequent coordinator operation.
+At this historical publication checkpoint, `enforce` and `kestrek-raw-token`
+were unapplied. The later enforcement checkpoint above supersedes that state.
 
 ### Phase contracts
 

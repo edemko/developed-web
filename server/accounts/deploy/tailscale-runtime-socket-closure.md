@@ -93,3 +93,28 @@ a directory overlay over that existing file mask preserves denial. No host
 socket is accessed, and external host mount metadata stays unchanged.
 
 Mechanism reference: [Linux mount namespaces](https://man7.org/linux/man-pages/man7/mount_namespaces.7.html).
+
+## Verified live checkpoint — 2026-09-20 21:01 UTC
+
+Reviewed source commit `28b6e47609bb64cdd666b7cc440c2d77fe6984fe` was pushed with
+`[no deploy]`. The exact operator was installed root-owned under
+`/opt/developed-control/tailscale-socket-seal-28b6e47/`; its SHA-256 is
+`31e9400448105b58fcfe96dcc49caf16f693abda16a4940a472935f8320b3d12`.
+Read-only inspection passed; stage/apply then ran once successfully. Twelve
+nonoptional additive drop-ins are installed. Eight live namespace directory
+masks were applied, Airsoft/Vocabulum's existing masks were preserved, and
+cleanup/mail remained inactive. No API/worker restart, environment change,
+timer change, host mount change or Tailscale RPC occurred.
+
+The exclusive root0700 proof directory
+`/var/backups/developed-tailscale-socket-seal-20260920/` contains eleven root0600
+files: before/attempt, eight target completion records, and `verified.json`.
+Independent rechecks confirmed EACCES under all ten active services' exact
+UID/GID and namespaces, all twelve PID/state/restart snapshots unchanged,
+effective nonoptional rules, unchanged host mount-table hash and socket inode.
+The coordinator independently reported all eight public sites 40/40 HTTP200
+and the public scoped-data gateway 50/50 checks passing after sealing.
+
+The intentional status broker was not changed. Human central SSO was still off
+at this checkpoint; this operation proves socket closure, not user-login or
+mail acceptance. Preserve masks and proofs during later product operations.

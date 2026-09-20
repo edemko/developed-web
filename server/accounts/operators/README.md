@@ -107,16 +107,18 @@ schema/migration metadata and non-sensitive counts. Keep storage objects and
 configuration/signing/encryption material in separately protected backups.
 Never overwrite the live data directory or restore over new production writes.
 
-For the central three migrations, the intended atomic ledger is
+For the central three migrations, `apply-central-migration.mjs` uses the atomic ledger
 `accounts.deployment_migrations(version, source_sha256, applied_at)`, owned by
 postgres and unavailable to runtime roles. The original source SQL remains
-unchanged and hashed. A reviewed runner must insert its ledger row immediately
+unchanged and checked against an exact SHA-256 allowlist in the runner. It inserts its ledger row immediately
 before that exact migration's final COMMIT, inside the same transaction, and
-take a deployment advisory lock. The first migration creates the ledger after
+takes a deployment advisory lock. The first migration creates the ledger after
 creating `accounts`; later ones require their predecessor's recorded checksum.
 Existing `accounts` without a matching ledger must stop for explicit catalog
 reconciliation, never auto-adopt or replay. Changed hashes and duplicate applies
-must fail. `psql --single-transaction` around these already transaction-wrapped
+fail. The ledger has forced RLS, no policies and explicit revokes from PUBLIC,
+anon, authenticated, service_role and developed_accounts. Only the trusted
+postgres operator can apply. `psql --single-transaction` around these already transaction-wrapped
 files is insufficient: their own COMMIT ends that outer transaction.
 
 Apply only these three initially: central v1, native clients, TOTP sessions.
@@ -124,6 +126,45 @@ The shared scoped-data migration must wait for every app session/provisioning
 prerequisite. Record app migrations in their existing ledgers according to the
 app runbooks; Airsoft's new file already records its own version. Replaying a
 non-idempotent migration to repair missing history is unsafe.
+
+Default local-only validation reads the hash-pinned source and makes no Docker
+or database connection:
+
+```sh
+node server/accounts/operators/apply-central-migration.mjs \
+  --migration 20260920070607_developed_accounts_v1.sql
+```
+
+After backup/restore and the remaining preflight gates are proved, the explicit
+production apply form adds `--container supabase-db --apply`. Run one file at a
+time in the listed order, inspect the protected ledger after each successful
+operation, and stop on any failure. The runner accepts no database URL, arbitrary
+SQL/file path, unlisted migration, checksum override or automatic history repair.
+It rejects existing central objects without its ledger, repeats, changed source,
+missing/mismatched predecessors and concurrent runner work. Database error details
+are captured but never printed. If a connection is lost around COMMIT, inspect
+the exact ledger/checksum before retrying; do not infer rollback from an ambiguous
+transport error. It preserves each source's transaction and lock/statement
+timeouts, adding bounded defaults for the MFA migration that lacked them.
+
+The only alternate target accepted is a matching
+`developed-central-migration-test-<digits>-db` container with the exact test
+label. The opt-in SQL test creates its own bounded network-disabled PostgreSQL17
+container, then removes only that validated container and its anonymous volumes.
+It does not use the retained provider fixture or production data. Its minimal
+schema tests the operator's transactional behavior, not provider compatibility
+or backup restoration:
+
+```sh
+node --test server/accounts/test/central-migration-operator.test.mjs
+CENTRAL_MIGRATION_RUNNER_SQL_TEST=1 \
+  node --test server/accounts/test/central-migration-operator.test.mjs
+```
+
+The real SQL test proves ordered application and checksum recording, runtime
+ledger/factor-secret denial, unchanged closed registration, duplicate refusal,
+and rollback of the actual native-client DDL when the ledger insert fails.
+No central migration was applied live by development or these tests.
 
 ## Minimal green-provider preparation contract
 

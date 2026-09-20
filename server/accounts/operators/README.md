@@ -181,6 +181,8 @@ The real SQL test proves ordered application and checksum recording, runtime
 ledger/factor-secret denial, unchanged closed registration, duplicate refusal,
 and rollback of the actual native-client DDL when the ledger insert fails.
 No central migration was applied live by development or these tests.
+The later explicit production operator apply and isolated restore evidence are
+recorded in the [2026-09-20 database checkpoint](../../../docs/ecosystem-db-checkpoint-20260920.md).
 
 ## Minimal green-provider preparation contract
 

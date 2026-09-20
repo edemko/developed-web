@@ -2,6 +2,19 @@
 
 ## Current coordinator checkpoint — 2026-09-20, after 16:45 UTC
 
+Owner decisions received after this checkpoint:
+
+- A brief login-unavailable/re-login window during the coordinated cutover is
+  acceptable while websites stay online. This does not authorize unrelated
+  service outages or opening SSO before the security boundary is complete.
+- Delete all three inventoried empty non-owner Vocabulum accounts (Admin,
+  Teacher and Student), after fresh exact-target/reference checks and protected
+  recovery copies. This is authorization, not a deletion-completion record.
+- Give free users personal folders, words and sentences without school/admin
+  privileges. Preserve ownership and tenant isolation; do not promote their role.
+- Renew the VPS Vercel login for the account owning Vocabulum. A fresh device
+  login has been requested; access is not established merely by issuing a link.
+
 **Public SSO is still off. All seven apps remain required for launch.** The
 14:29–14:38 inventory below is retained as historical evidence, not current host
 state. In particular, its statements that central schemas, credentials, services
@@ -59,9 +72,9 @@ an unpublished picker as permission to expose a pilot login endpoint.
 
 Vocabulum's read-only inventory found all existing words/folders already owned
 by the requested owner and no sentences to transfer. No sample account has
-been deleted: two of three non-owner identities are not proven to be examples,
-so exact deletion scope awaits clarification. Personal free-tier content-writing
-policy also awaits the owner; do not grant school/admin privileges by default.
+been deleted at this checkpoint. The subsequent owner decisions above authorize
+the three-account cleanup and personal free-tier implementation; fresh checks,
+implementation and verification remain required before claiming completion.
 
 ## Historical baseline — do not use as current deployment state
 

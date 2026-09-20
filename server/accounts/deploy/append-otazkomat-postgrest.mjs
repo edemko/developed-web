@@ -41,7 +41,8 @@ export function expectedAfter(before) {
   if (!setting) { setting = { role: 'authenticator', database: 'postgres', values: [] }; next.settings.push(setting); }
   setting.values.push('pgrst.db_schemas=' + AFTER); return next;
 }
-const normalized = value => JSON.stringify({ ...value, settings: [...value.settings].map(row => ({ ...row, values: [...row.values].sort() })).sort((a, b) => (a.role + '/' + a.database).localeCompare(b.role + '/' + b.database)) });
+export const canonical = value => JSON.stringify(value, (_key, nested) => nested && typeof nested === 'object' && !Array.isArray(nested) ? Object.fromEntries(Object.keys(nested).sort().map(key => [key, nested[key]])) : nested);
+const normalized = value => canonical({ ...value, settings: [...value.settings].map(row => ({ ...row, values: [...row.values].sort() })).sort((a, b) => (a.role + '/' + a.database).localeCompare(b.role + '/' + b.database)) });
 export function sourceAfter(bytes) {
   const text = bytes.toString(); const line = 'PGRST_DB_SCHEMAS=' + BEFORE;
   check(Buffer.from(text).equals(bytes) && text.split('\n').filter(row => row.startsWith('PGRST_DB_SCHEMAS=')).length === 1 && text.split('\n').includes(line), 'Exact nine-schema source line required');
@@ -82,7 +83,7 @@ function write(name, bytes) { const fd = openSync(BACKUP + '/' + name, 'wx', 0o6
 function sync() { const fd = openSync(BACKUP, 'r'); try { fsyncSync(fd); } finally { closeSync(fd); } }
 function absent(path) { try { lstatSync(path); throw Error('Existing exposure attempt/artifact; reconcile before retry'); } catch (e) { if (e.code !== 'ENOENT') throw e; } }
 export function execute(mode) {
-  check(process.getuid() === 0 && ['--stage', '--apply'].includes(mode), 'Reviewed root exposure mode required');
+  check(process.getuid() === 0 && ['--stage', '--apply', '--reconcile'].includes(mode), 'Reviewed root exposure mode required');
   trusted(fileURLToPath(import.meta.url)); const migrationPath = fileURLToPath(new URL('./' + MIGRATION, import.meta.url)); trusted(migrationPath);
   const migration = readFileSync(migrationPath, 'utf8'); check(sha(migration) === MIGRATION_SHA, 'Reviewed migration bytes changed'); const runtime = container();
   if (mode === '--stage') {
@@ -93,21 +94,29 @@ export function execute(mode) {
     return { staged: true, mutatedDatabase: false, sourcePatched: false, migration: MIGRATION, runtime, sourceSha256: proof.sourceSha256, nextSourceSha256: proof.nextSourceSha256 };
   }
   for (const file of ['before.json', 'proof.json', 'source.env']) trusted(BACKUP + '/' + file, true);
-  absent(BACKUP + '/attempt.json');
+  absent(BACKUP + '/verified.json');
+  if (mode === '--apply') absent(BACKUP + '/attempt.json');
+  else trusted(BACKUP + '/attempt.json', true);
   const state = JSON.parse(readFileSync(BACKUP + '/before.json')), proof = JSON.parse(readFileSync(BACKUP + '/proof.json'));
   check(JSON.stringify(runtime) === JSON.stringify(proof.runtime) && sha(JSON.stringify(state)) === proof.beforeSha256 && proof.migration === MIGRATION && sha(migration) === proof.migrationSha256 && proof.previousSchemas === BEFORE && proof.nextSchemas === AFTER, 'Staged metadata/runtime/migration changed');
   const original = readFileSync(BACKUP + '/source.env'), patched = source();
   check(sha(original) === proof.sourceSha256 && sha(patched) === proof.nextSourceSha256 && patched.equals(sourceAfter(original)), 'Main must first preserve source.env and patch ONLY the schema line');
-  check(normalized(snapshot()) === normalized(state), 'Database metadata drifted before apply');
-  const sql = applySql(state, migration);
-  write('attempt.json', JSON.stringify({ startedAt: new Date().toISOString(), migration: MIGRATION, migrationSha256: proof.migrationSha256 }) + '\n'); sync();
-  query(sql);
+  if (mode === '--apply') {
+    check(normalized(snapshot()) === normalized(state), 'Database metadata drifted before apply');
+    const sql = applySql(state, migration);
+    write('attempt.json', JSON.stringify({ startedAt: new Date().toISOString(), migration: MIGRATION, migrationSha256: proof.migrationSha256 }) + '\n'); sync();
+    query(sql);
+  } else {
+    const attempt = JSON.parse(readFileSync(BACKUP + '/attempt.json'));
+    check(Object.keys(attempt).sort().join(',') === 'migration,migrationSha256,startedAt' && Number.isFinite(Date.parse(attempt.startedAt)) && attempt.migration === MIGRATION && attempt.migrationSha256 === MIGRATION_SHA, 'Existing attempt proof differs');
+    validateBefore(state);
+  }
   check(normalized(snapshot()) === normalized(expectedAfter(state)), 'Post-commit metadata verification failed; no blind replay/rollback');
   check(JSON.stringify(container()) === JSON.stringify(runtime), 'PostgREST restarted during configuration reload');
-  const result = { applied: true, role: 'authenticator', database: 'postgres', schemas: AFTER, schemaLedgerRlsEnabled: true, migration: MIGRATION, migrationSha256: proof.migrationSha256, restPid: runtime.pid, restRestarted: false, grantsChanged: false, appRowsChanged: false, propagationVerified: false };
+  const result = { applied: true, reconciled: mode === '--reconcile', reconciliationDatabaseWrites: false, role: 'authenticator', database: 'postgres', schemas: AFTER, schemaLedgerRlsEnabled: true, migration: MIGRATION, migrationSha256: proof.migrationSha256, restPid: runtime.pid, restRestarted: false, grantsChanged: false, appRowsChanged: false, propagationVerified: false };
   write('verified.json', JSON.stringify(result) + '\n'); sync(); return result;
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  try { check(process.argv.length === 3, 'Usage --stage|--apply'); console.log(JSON.stringify(execute(process.argv[2]))); }
+  try { check(process.argv.length === 3, 'Usage --stage|--apply|--reconcile'); console.log(JSON.stringify(execute(process.argv[2]))); }
   catch { console.error('Fixed PostgREST exposure operation stopped; inspect private metadata/attempt before retry. No credential or source contents printed.'); process.exitCode = 1; }
 }

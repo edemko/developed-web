@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createHmac } from 'node:crypto';
 import { request } from 'node:http';
-import { BEFORE, AFTER, MIGRATION, snapshotSql, sourceAfter, validateBefore, expectedAfter, applySql, execute } from './append-otazkomat-postgrest.mjs';
+import { BEFORE, AFTER, MIGRATION, snapshotSql, sourceAfter, validateBefore, expectedAfter, applySql, execute, canonical } from './append-otazkomat-postgrest.mjs';
 const migration = readFileSync(new URL('../../../supabase/migrations/' + MIGRATION, import.meta.url), 'utf8');
 const names = ['app_settings','group_module_assignments','group_test_access','invitations','modules','organization_activities','organization_settings','organizations','payments','question_options','questions','report_messages','reports','schema_migrations','submodules','subscription_plans','test_submissions','tests','user_answers','user_email_verifications','user_groups','user_incorrect_questions','user_marked_questions','user_module_assignments','user_organization_memberships','user_password_resets','user_sessions','user_statistics','user_subgroups','user_subscriptions','user_test_access','user_test_attempts','users'];
 const roleNames = ['anon','authenticated','kestrek_backend','screentime_backend','vocabulum_backend','odonto_backend','otazkomat_backend','odonto_identity_web'];
@@ -45,8 +45,18 @@ test('refuses existing override, public schema access, table drift or ledger tri
     const state = fixture(); mutate(state); assert.throws(() => validateBefore(state));
   }
 });
+test('semantic metadata comparison ignores nested object insertion order, not values or array order', () => {
+  const before = fixture(); before.settings = [];
+  const expected = expectedAfter(before);
+  const actual = structuredClone(expected);
+  actual.settings[0] = { role: 'authenticator', values: ['pgrst.db_schemas=' + AFTER], database: 'postgres' };
+  assert.notEqual(JSON.stringify(actual), JSON.stringify(expected));
+  assert.equal(canonical(actual), canonical(expected));
+  actual.settings[0].values.push('unexpected=true'); assert.notEqual(canonical(actual), canonical(expected));
+  assert.notEqual(canonical([1, 2]), canonical([2, 1]));
+});
 test('unprivileged operation cannot inspect/apply shared database state', { skip: process.getuid() === 0 }, () => {
-  for (const mode of ['--stage', '--apply']) assert.throws(() => execute(mode), /root exposure/);
+  for (const mode of ['--stage', '--apply', '--reconcile']) assert.throws(() => execute(mode), /root exposure/);
 });
 test('isolated PG17 atomic apply, schema isolation, unchanged rows/settings, replay rejection and advisors', { skip: process.env.POSTGREST_EXPOSURE_SQL_TEST !== '1', timeout: 120000 }, async () => {
   const directory = mkdtempSync(join(tmpdir(), 'developed-pgrst-exposure-fixture-')), socket = join(directory, 'socket'); mkdirSync(socket); chmodSync(socket, 0o777);
@@ -95,6 +105,16 @@ RESET ROLE; ALTER ROLE authenticator IN DATABASE postgres SET work_mem='4MB';`);
     assert.equal(exec('SELECT marker FROM otazkomat.questions; SELECT marker FROM otazkomat.schema_migrations;'), 'preserved-fictional-data\npreserved-ledger');
     assert.equal(exec("SELECT has_schema_privilege('kestrek_backend','otazkomat','USAGE'),has_table_privilege('otazkomat_backend','otazkomat.questions','SELECT');"), 'f|t');
     assert.notEqual(sql(applySql(before, migration)).status, 0); assert.deepEqual(JSON.parse(exec(snapshotSql)), after);
+    // Repeat the committed-state comparison with NO prior role/database row,
+    // matching production's JSONB key insertion order regression.
+    exec('ALTER ROLE authenticator IN DATABASE postgres RESET ALL; ALTER TABLE otazkomat.schema_migrations DISABLE ROW LEVEL SECURITY;');
+    const noSettingBefore = JSON.parse(exec(snapshotSql)); assert.deepEqual(noSettingBefore.settings, []);
+    exec(applySql(noSettingBefore, migration));
+    const noSettingAfter = JSON.parse(exec(snapshotSql));
+    assert.notEqual(JSON.stringify(noSettingAfter), JSON.stringify(expectedAfter(noSettingBefore)));
+    assert.equal(canonical(noSettingAfter), canonical(expectedAfter(noSettingBefore)));
+    assert.equal(await probe('otazkomat_backend'), 200); assert.equal(await probe('kestrek_backend'), 403);
+    assert.equal(docker(['inspect', '--format', '{{.Id}} {{.State.Pid}} {{.State.StartedAt}} {{.RestartCount}}', restContainer]).stdout.trim(), restBefore);
     const advisor = spawnSync('supabase', ['db', 'advisors', '--db-url', `postgresql://supabase_admin:fixture@localhost/postgres?host=${encodeURIComponent(socket)}&sslmode=disable`, '--type', 'security', '--level', 'error', '--fail-on', 'none'], { encoding: 'utf8', timeout: 30000, maxBuffer: 4 * 1024 * 1024 });
     assert.equal(advisor.status, 0, 'Disposable security advisors failed: ' + advisor.stderr.slice(0, 500));
   } finally {

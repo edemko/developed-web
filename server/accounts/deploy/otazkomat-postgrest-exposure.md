@@ -69,6 +69,22 @@ setting; the current process intentionally retains its original environment.
 The operator's `verified.json` establishes committed metadata, not asynchronous
 HTTP propagation; the gateway matrix establishes the latter.
 
+### Committed transaction reconciliation
+
+The initial production transaction committed correctly but its JavaScript
+postcheck compared object insertion order. Production had no previous
+role/database setting; JSONB returned the newly added object's keys in another
+order. The corrected comparison canonicalizes nested object keys while preserving
+array order and values. An independent catalog comparison and all 50 public
+gateway checks passed; do not replay `--apply`.
+
+The reviewed `--reconcile` mode requires the existing protected attempt, staged
+before/proof metadata, unchanged container identity, exact original source backup
+and exact patched source hashes. It performs only read-only catalog queries,
+requires the complete semantic expected-after state, and exclusively writes the
+missing `verified.json` with `reconciled: true`. It sends no SQL mutations or
+reload notifications. Existing verification or any mismatch requires stopping.
+
 ## Verification
 
 Run `node --test server/accounts/deploy/append-otazkomat-postgrest.test.mjs`.

@@ -16,11 +16,13 @@ app identities Airsoft986, Vocabulum985, Mega accounts984, ScreenTime983,
 KešTrek982 and Otázkomat981. Live JASOM web993/worker990 and My Clinic996 are
 now covered as well, with actual UID positive/negative checks and no restarts.
 No running legacy app was included or stopped by this policy installation.
-The trusted identities are central988 (reserved, not running), Caddy999 and the
-download relay987 (reserved, not running). Private green Auth is protected on
+The trusted identities are the running central988, Caddy999 and the
+running download relay987. Private green Auth is protected on
 127.0.0.1:3141 and172.30.241.2:9999; public Auth routes remain unchanged.
 Mega accounts and both JASOM identities have the reviewed DB pre/post-DNAT tuples
-127.0.0.1:5432 and172.18.0.13:5432; other new app entries are HTTPS-only for now.
+127.0.0.1:5432 and172.18.0.13:5432. Airsoft986, ScreenTime983, KešTrek982 and
+Otázkomat981 now have only the exact direct database172.18.0.12:5432 exception
+for their scoped session roles; the pooler/loopback5432 remains denied to them.
 JASOM worker alone also has explicit public HTTP80 compatibility for its existing
 direct-media validator, after all local/private destination exclusions.
 
@@ -38,9 +40,10 @@ Actual UID995 tests passed: proxy1088/status18088/bgutil4416 reachable; Kong8000
 Postgres5432, KešTrek3124, Caddy-admin2019 and webhook9000 denied; DNS and canonical
 public HTTPS200 work. Atomic reload passed. The extended disconnected namespace
 suite also proves IPv4/IPv6, pre/post-DNAT, raw1089 denial, incoming replies and
-role-specific worker exceptions. This is **not complete ecosystem isolation**:
-legacy1088 still needs the validated public-destination relay before worker
-activation; other app UIDs/containers and old Auth routes remain pending.
+role-specific worker exceptions. The validated destination-filtering relay is
+now live; see the shared-egress handoff runbook for its checks and earlier failed
+handoff recovery. This is **not complete ecosystem isolation**: legacy app
+UIDs/containers and old Auth routes remain pending.
 
 The JASOM/My Clinic extension passed nine unit tests and the disconnected real
 namespace suite, including JASOM public IPv4/IPv6 HTTP and private-DNAT denial.
@@ -63,6 +66,15 @@ startup dependencies installed, without a service restart. Ten unit tests and
 the disconnected namespace suite passed, including allowed helper upstreams and
 denied DNS/public/DB/control routes. Pre-change files are retained under the
 `before-helpers` names.
+
+Data-denial-filter UID978 now has incoming replies only and no network egress;
+see `public-data-boundary.md`. The four direct-DB exceptions above were separately
+preflighted and atomically reloaded with no service restart. Actual UID986/983/982/
+981 socket checks all reached172.18.0.12:5432 while loopback5432, old Auth9999,
+green3141 and Caddy2019 remained denied. This proves networking, not DB login or
+grants; unique scoped credentials are a separate deployment gate. No HBA change
+or DB restart was made. Previous exact policy is retained root-private at
+`/var/backups/developed-data-boundary-initial-20260920/uid-network-boundary.before-app-db.json`.
 
 ## What the rules enforce
 

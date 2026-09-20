@@ -1,10 +1,55 @@
 # KešTrek MCP state handoff without pausing finance/data requests
 
-Source-only preparation, 2026-09-20. No live pause, INPUT fence, UID-policy update,
-state copy or candidate restart was performed by this preparation. The owner has
-approved the coordinated deployment and separately approved the completed
-development-preview suspension. Follow this reviewed sequence before the six
-product routes switch; human central SSO remains unrouted throughout.
+Checkpoint, 2026-09-20: the narrow self-MCP UID-policy amendment and temporary
+INPUT fence are installed and verified. The brief OAuth pause, final persistent
+state copy and atomic six-product/static route switch have completed successfully.
+The owner approved the coordinated deployment and the completed development-
+preview suspension. Human central SSO remains unrouted throughout this sequence.
+
+Reviewed source commits `1c70dd1` and `a0900b5` were pushed with `[no deploy]`.
+The current immutable operator bundle is
+`/opt/developed-control/kestrek-handoff-a0900b5`. Read-only inspection verified
+identity/encryption parity and equal persistent-store SHA
+`e3c95ca63a9a07dda70356a8edbfa9fb38a622adca4ef032ffc2eb80a44dfd65`.
+Old PID1282853 and Caddy PID862 remained unchanged during this operation; only
+the unrouted private candidate was stopped/started for the final copy, changing
+PID3539845 to PID239785. The new candidate and Caddy reported active with zero
+automatic restarts. The self-policy now permits UID982 HTTP200
+on3164 and denies old3124, sibling3167, control3141, filter3143 and IPv6; UID985
+is also denied3164. The existing loader was not modified. Proof/backup directories:
+
+- `/var/backups/developed-kestrek-self-mcp-20260920` (applied and verified).
+- `/var/backups/developed-kestrek-handoff-fence-20260920` (applied and verified).
+- `/var/backups/developed-product-routes-20260920` (paused then applied).
+- `/var/backups/developed-kestrek-mcp-handoff-20260920` (final copy verified).
+
+Original Caddy was `9b25d5d170f901c8be78cecab23fcf64a672b4a41c52f0cce15df8af69dca33c`;
+temporary paused source was
+`e81b2894da15c044576afa0723bbe50a694bfc6ca5772063131da46b04335d4d`. Live final source is
+`501bbc47de35e94a45c24b9281b1e88ac918ae75d02750fd70c8f13bb1c63946`.
+Canonical KešTrek home/API, OAuth-server metadata and protected-resource metadata
+return200. Before routing away from the old API, Caddy UID999 was verified to
+reach old3124/API200. Public central login/security/apps remain404. The live
+temporary INPUT fence was verified structurally; both-family
+non-loopback rejection was independently tested in a disconnected namespace.
+
+The coordinator separately verified full immutable static trees before staging:
+Ke140 files, tree SHA `9053cf1671e9d11a0f2fb3372dfd425eec40d66a55cb5bf6094c8d393ca7d40b`;
+Ota6 files, tree SHA `39eaa31204d9220c8e503745ed49297f5898e291d093af72f9816148be4e2f1a`.
+This agent independently reproduced both complete tree hashes immediately before
+the actual route switch. The coordinator confirmed all seven published/free
+policies and actual owner checks before approving the switch. Do not replay any
+completed one-shot stage or apply. Old-runtime retirement remains the separate
+coordinator-owned phase; this operator did not stop or disable any old unit.
+
+Post-switch canonical HTTP matrix passed31/31: all six homepages retain their
+expected200 (Airsoft root307); Mega and Otázkomat config report central mode;
+ScreenTime, KešTrek, Airsoft and Vocabulum registration routes redirect centrally;
+Vocabulum advertises the developed provider; tested legacy signup/login/refresh
+routes reject with their expected403/409. Protected credentialless reads remain
+401, and both KešTrek MCP metadata endpoints return200. Public human central
+login/security/apps remain404 pending the rest of the security closure. KešTrek
+notification cron remains false; scheduler ownership is a separate handoff.
 
 ## Why these phases are required
 

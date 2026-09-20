@@ -1,5 +1,25 @@
 # Private frontend qualification — 2026-09-20
 
+## Immutable staging checkpoint (not public routing)
+
+Reviewed operator `57c6a6a` passed three tests, including current read-only
+artifact/hash and retained-asset checks, then ran once from root-owned immutable
+`/opt/developed-operators/product-frontends-57c6a6a`. It created:
+
+- `/opt/developed-static/releases/kestrek-central-09236ab`: 140 files,
+  combined tree SHA256
+  `9053cf1671e9d11a0f2fb3372dfd425eec40d66a55cb5bf6094c8d393ca7d40b`.
+- `/opt/developed-static/releases/otazkomat-central-7393f6b`: 6 files,
+  combined tree SHA256
+  `39eaa31204d9220c8e503745ed49297f5898e291d093af72f9816148be4e2f1a`.
+
+Each contains the exact qualified new artifact below plus non-conflicting old
+public assets for in-flight pages. Old HTML/config/worker entrypoints were not
+retained over the new ones. All output directories/files are root-owned and
+not runtime-writable; every copied byte was hash-verified, and both original
+serving trees remained unchanged. No serving-root or proxy change occurred.
+The combined hashes intentionally differ from the qualified build-only hashes.
+
 No live configuration, service, route, public assets or Android source changed.
 The configuration contract is in `ecosystem-app-config-contracts.json`.
 

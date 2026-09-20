@@ -7,6 +7,30 @@ and ten app ledger rows. No account, session, app data or mail was changed.
 
 ## Three deliberately separate steps
 
+### Coordinator publication checkpoint — 2026-09-20
+
+The coordinator subsequently reviewed `f1eaab5` and installed its five-file
+root-owned/read-only bundle at `/opt/developed-operators/final-policy-f1eaab5`.
+Only `publish --stage` and `publish --apply` were executed, successfully. The
+protected snapshot SHA256 is
+`3ff1d804f0ad676df95f39db5a7c7c61eba24afda66a9b7c47d29a1596cb5fd2`.
+The exact ledger record was verified after commit. Independent fresh reads
+confirmed seven published/reportable/free apps, all still unenforced,
+registration closed and zero outbox rows. Public `/login` remained404.
+
+Actual runtime-UID HTTPS owner checks passed for the one distinct existing
+ScreenTime device owner (UID983 caller) and KešTrek's configured integration owner
+(UID982 caller). These used each running process's private app key without
+printing keys, tokens, user responses or email. Normal central checks can lazily
+create the existing member's legacy entitlement; they do not create browser
+sessions, device samples or new product memberships. No fabricated ingestion was
+sent. Final product ingestion/MCP behavior still requires routed verification.
+
+`enforce` and `kestrek-raw-token` remain **unapplied**. The source-only status
+at the top describes preparation, not this subsequent coordinator operation.
+
+### Phase contracts
+
 | Phase | Only intended change | Required external checkpoint |
 | --- | --- | --- |
 | `publish` | Seven `published=true`, `reportable=true`, `join_policy='free'` | Human login/consent remains publicly unavailable; authenticated internal checks work over canonical HTTPS. |

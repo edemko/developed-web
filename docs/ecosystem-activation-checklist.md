@@ -1,5 +1,38 @@
 # Central activation dependency checklist
 
+## Superseding coordinator checkpoint — 2026-09-20, 21:44 UTC
+
+Central human login is live. The owner approved **invitation-only initial
+testing**, not open registration. A fresh anonymous session check still reports
+`registrationMode=closed`; the owner's MFA completion and authenticated admission
+and invitation actions remain pending. All seven apps remain enabled.
+
+- Vocabulum and Airsoft now serve their qualified footer builds on ports3171
+  and3172, respectively. The exact two-route change preserved the central portal
+  and gateway; current Caddy SHA-256 is
+  `aa28db0fdd4c64a5c398e5c7e045ef59e19fae2e53e3e28dc437742ba072fdcc`.
+  See the [applied route record](../server/accounts/deploy/footer-route-handoff.md)
+  and [boot/drain record](../server/accounts/deploy/footer-candidate-handoff.md).
+- Public Chromium checks passed both apps' localized footer/report links,
+  no-referrer handling and suspended-registration redirects. Independent public
+  checks passed all eight website roots with HTTP200. These anonymous checks do
+  not establish authenticated app access.
+- Both new footer services are active and boot-enabled with unchanged PIDs
+  723605/767388 and zero restarts. Their exact predecessor retirement has its
+  own checkpoint; do not rerun the earlier route or start operators.
+- Next owner action: sign in at `https://www.developed.sk/login`, finish MFA,
+  then use `/admin/apps` to save invitation-only registration and send the
+  invitation to the privately recorded test mailbox. Keep passwords, invitation
+  credentials, cookies and authenticator codes in the user's browser/inbox.
+
+Actual invitation delivery, new registration, confirmation, signed-in picker and
+all-seven automatic app login still require human acceptance. Android installation
+and genuine MCP acceptance also remain unproven. Do not decrypt queued email
+credentials or mint an owner session to substitute for these tests. Legal pages
+remain unpublished drafts. General deployment notes omit personal mailbox values;
+this documentation change does not remove earlier Git history or alter the
+identity-pinned, already-applied bootstrap source/proofs.
+
 ## Superseding coordinator checkpoint — 2026-09-20, 21:11 UTC
 
 Human SSO is now **on**, registration remains **closed**, and the separate
@@ -20,7 +53,7 @@ deployment statements below; it does not claim completed human/device acceptance
   restrictions, without service restarts. Coordinator public checks also passed
   eight targets across forty rounds. See the
   [socket boundary](../server/accounts/deploy/tailscale-runtime-socket-closure.md).
-- The user-confirmed existing owner `erik.demko162@gmail.com` is now central
+- The user-confirmed existing owner is now central
   `SUPERADMIN`: the exact UUID bootstrap changed one profile role and added one
   audit entry, preserving passwords, MFA, sessions and product roles. First login
   still requires MFA. See the
@@ -31,8 +64,12 @@ deployment statements below; it does not claim completed human/device acceptance
   backend and frontend health passed independently; all four immutable/automatic
   deployment URLs retain protected302 responses. Both temporary promotion
   variables were removed, leaving only the disabled staging variable.
-- The user selected the actual new-account test mailbox **skillhackmt2@gmail.com**,
-  not a Gmail-tagged address; its prior scoped check found no existing identity.
+- The user selected a controlled new-account test mailbox, recorded privately;
+  its prior scoped check found no existing identity.
+  The user subsequently approved **invitation-only admission for the initial
+  test**, not unrestricted public registration. Actual registration remains
+  closed pending owner MFA and authenticated policy/invitation actions; this
+  choice does not unpublish any of the seven apps or reopen legacy login paths.
   No test account, confirmation message or owner MFA enrollment had been reported
   at this checkpoint.
 - The reviewed human ingress was applied once from
@@ -58,7 +95,7 @@ deployment statements below; it does not claim completed human/device acceptance
   been reported. Authenticated seven-app SSO and new-registration email
   confirmation are not yet proven.
 
-Next: owner TOTP, controlled public-registration admission and real mailbox delivery
+Next: owner TOTP, authenticated invitation-only admission and real mailbox delivery
 and confirmation, signed-in picker/seven-app flows, genuine MCP access and physical
 Android install/browser-return acceptance remain to be performed. Preserve the
 existing legal-draft publication restrictions; this checkpoint publishes no legal

@@ -3,9 +3,9 @@
 Status: production bootstrap applied once after coordinator approval; owner MFA
 and human-login acceptance remain pending. Do not replay the bootstrap.
 
-The user explicitly confirmed the existing central owner email
-`erik.demko162@gmail.com`, Auth/core UUID
-`4c3e497a-511d-49dc-85fe-60f3cc37c3ae`. Read-only inspection found the confirmed
+The user explicitly confirmed the existing central owner identity. Its exact
+email and Auth/core UUID are pinned by the one-shot operator and protected
+deployment evidence, not repeated here. Read-only inspection found the confirmed
 identity's core role `USER` and no existing central `SUPERADMIN`.
 
 `bootstrap-central-superadmin.mjs` accepts no target arguments. The only intended

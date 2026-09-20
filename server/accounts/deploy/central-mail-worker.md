@@ -156,8 +156,8 @@ path denials and actual Tailscale socket EACCES.
 Central API PID3197193/NRestarts0 remains unchanged with its own mail flagfalse;
 Caddy PID862 is unchanged. No new account, queued message or actual delivery had
 been produced at this start checkpoint. Starting on an empty queue is not inbox
-delivery proof. The approved new-account test recipient is
-`skillhackmt2@gmail.com`; registration remains separately closed until its next
+delivery proof. The approved new-account test recipient is recorded privately;
+registration remains separately closed until its next
 approved admission step. Successful owner MFA may normally queue the owner's
 security notification, and this worker processes all eligible queued messages,
 not an address allowlist. Never inspect/decrypt an outbox credential to substitute

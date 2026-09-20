@@ -7,6 +7,10 @@ to deploy: follow the user's current authorized scope.
 - Separate the trusted deployment/operator account from non-login runtime UIDs.
   Runtime UIDs must not receive sudo/Docker groups, control sockets, writable
   executables, sibling credentials or unrestricted Tailscale control access.
+- Tailscale runtime masks must cover the directory and fail closed if missing
+  at startup. Optional/file-only masks do not establish durable denial. Follow
+  `tailscale-runtime-socket-closure.md`; never bind into a shared live mount
+  namespace or restart APIs as an unreviewed isolation shortcut.
 - Use root-owned immutable releases/runtimes outside home; only each app's
   explicit state/cache/log locations may be writable. Keep normal Git/build
   work under the developer identity. Do not run package-install scripts as root.

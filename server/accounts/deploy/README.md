@@ -14,6 +14,9 @@ required resource to the affected app and document why.
 
 ## Runbooks and tests
 
+- `tailscale-runtime-socket-closure.md`: no-restart directory masks and
+  nonoptional future-start drop-ins; source preparation is not installation.
+
 - `central-runtime-guards.md`: installed durable central-environment selection
   and additive startup guards for all six host apps. Future instances must not
   select retained legacy credentials.

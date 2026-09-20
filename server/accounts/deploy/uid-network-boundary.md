@@ -1,0 +1,197 @@
+# Dedicated host-UID network boundary — staged source only
+
+This complements `runtime-isolation.md` and `ecosystem-app@.service`. It does
+**not** install users, start services, publish GoTrue or apply host firewall rules.
+The chosen next topology moves the ecosystem Node processes, including Airsoft
+and Vocabulum, to separate host systemd UIDs outside `/home`. No container-app
+forwarding isolation is claimed by this artifact. Other products, Python workers,
+JASOM and My Clinic remain outside this change until separately authorized.
+
+## What the rules enforce
+
+`uid-network-boundary.mjs` prints only the `inet developed_uid_boundary` table.
+It never executes nftables. Two OUTPUT chains inspect packets after conntrack
+but **before destination NAT** (priority -150), and again **after NAT** (50).
+Existing host and Docker chains remain intact; an accept here cannot override
+a drop in another base chain.
+
+For each listed product UID:
+
+- Replies on connections initiated toward the app are allowed, using
+  `ct direction reply ct state established`. There is deliberately no general
+  established/related exemption. An already-open app-initiated forbidden
+  connection loses access when the policy is installed.
+- TCP5432 is allowed only to that app's explicit DB tuples, including both the
+  published loopback address and actual translated pooler/DB address when DNAT
+  is involved. This permits networking, not database authorization: unique
+  least-privilege DB credentials are still mandatory.
+- TCP/UDP53 is allowed only to the explicitly inventoried DNS resolver addresses.
+- Only `mega-music` can have an explicit TCP8787 import-service exception.
+- Other host-local destinations, loopback, RFC1918, carrier-grade/Tailscale,
+  link-local/metadata and reserved IPv4 ranges are denied. IPv6 is limited to
+  global unicast with transition/documentation ranges excluded; ULA, link-local,
+  multicast, IPv4-mapped and standard NAT64 ranges are not public egress.
+  Configured additional internal networks are denied before public egress.
+- Remaining public TCP443 is allowed. HTTP80, QUIC/UDP443 and arbitrary other
+  ports are not. The host's own public IP443 is **not** an exception; canonical
+  HTTPS resolves through the public Cloudflare ingress. Do not point these
+  canonical names at loopback/private addresses in `/etc/hosts`.
+
+All host UIDs except root, the dedicated central UID and Caddy are denied access
+to `127.0.0.1:3141`, `[::1]:3141`, and every configured extra control endpoint
+(for example green GoTrue's exact private bridge IP9999). Keep old and new private
+control addresses recorded until their listeners are actually retired. Product
+UIDs additionally cannot initiate any unlisted internal connection, including
+old Kong8000/8443, GoTrue9999, Studio, Meta, Edge Functions, Caddy admin2019,
+deployment hooks, or sibling app listeners.
+
+This is not HTTP authorization. Public issuer routes still require the reviewed
+OAuth allowlist. Public REST/Storage/Realtime still require
+`public-data-boundary.mjs`, ordinary JWT verification and scoped DB grants/RLS.
+Storage's S3/vector protocols have alternate authentication channels and must
+remain blocked at public ingress unless separately reviewed.
+
+## Configuration contract
+
+Use a root-owned configuration outside any app release. Values below are
+**namespace-test examples, not allocated production UIDs or addresses**:
+
+```json
+{
+  "version": 1,
+  "centralUid": 61001,
+  "caddyUid": 61002,
+  "extraControlEndpoints": [
+    { "address": "172.30.40.2", "port": 9999 }
+  ],
+  "blockedNetworks": ["172.30.40.0/24"],
+  "apps": [
+    {
+      "name": "mega-music",
+      "uid": 61003,
+      "database": [
+        { "address": "127.0.0.1", "port": 5432 },
+        { "address": "172.30.40.3", "port": 5432 }
+      ],
+      "dns": [{ "address": "127.0.0.53", "port": 53 }],
+      "musicImport": { "address": "127.0.0.1", "port": 8787 }
+    },
+    {
+      "name": "vocabulum",
+      "uid": 61004,
+      "database": [],
+      "dns": [{ "address": "127.0.0.53", "port": 53 }]
+    }
+  ]
+}
+```
+
+Each actual app gets its own entry, even if two happen to use identical DB/DNS
+addresses. Empty `database` is valid for HTTPS-only data clients. Add `::1` or
+other IPv6 exceptions only when actually required. No hostnames, subnets in
+endpoint exceptions, implicit fallback ports, secrets, role JWTs or passwords
+are accepted. Unknown properties fail validation. Numeric UIDs must be distinct;
+root, UID1000 (`openclaw` on this host), and nobody65534 are rejected as app or
+central/Caddy identities. UID values must come from the final host account
+inventory, never UID guesses or the example above.
+
+`blockedNetworks` is required, even when empty after review. Include all Docker,
+VPN and private-control routed ranges, especially globally numbered internal
+networks that are not RFC1918/ULA. Public egress is not a guarantee against a
+private service deliberately exposed through a public relay. Audit all ingress
+aliases, tunnels and routes separately.
+
+## Offline verification
+
+Node22+, nftables, iproute2, util-linux and passwordless sudo are needed only for
+the optional namespace test. Pure unit tests need no privilege:
+
+```sh
+node --test server/accounts/deploy/uid-network-boundary.test.mjs
+node server/accounts/deploy/uid-network-namespace-test.mjs --run
+```
+
+The second command uses `sudo unshare --net`, verifies its namespace differs
+from the host and PID1, then creates only private veth interfaces and nft tables
+inside that disconnected namespace. A second disposable namespace supplies
+simulated public IPv4/IPv6 HTTPS endpoints; **no Internet packets are sent**.
+Fixture subprocesses drop groups/GID/UID to numeric test identities without
+creating host accounts. Test listeners exist only inside the new namespaces.
+
+The fixture checks nft syntax, both IP families, trusted control UIDs, denied
+unlisted UIDs, exact per-app DB/DNS/import access, permitted incoming responses,
+blocked sibling requests, an already-established forbidden connection, public
+HTTPS versus HTTP, host-public-IP denial, and successful/denied DNAT paths.
+It also proves replacing this table does not remove an unrelated fixture table.
+Namespaces and interfaces disappear when fixture processes exit; the test never
+flushes, replaces or lists the host ruleset. A failed test is not permission to
+test on the host instead.
+
+## Reviewed installation sequence — not performed by this change
+
+1. Inventory current numeric UIDs, supplementary groups, routes, addresses,
+   resolver configuration, all published/private DB tuples and actual Docker
+   DNAT targets. Confirm the chosen Node runtime and immutable root-owned
+   release directories live outside home. No app UID may hold sudo/docker,
+   capabilities, writable deployment code, Docker sockets or shared secrets.
+   `DynamicUser=` is not suitable for these fixed numeric rules.
+2. Reserve dedicated UIDs and stage green systemd units without starting public
+   traffic. Moving live Airsoft/Vocabulum containers requires their own tested
+   side-by-side host releases. Until their container predecessors and other
+   privileged legacy runtimes are drained/retired, this host OUTPUT policy alone
+   is not a completed isolation boundary.
+3. Generate rules from the reviewed root-controlled JSON into a reviewed
+   root-owned file outside web roots. The generator itself requires no root:
+
+   ```sh
+   node server/accounts/deploy/uid-network-boundary.mjs reviewed-uid-config.json
+   ```
+
+   Initial output uses `create table`, so an existing table causes a fail-closed
+   error rather than appending duplicate rules. For a reviewed update only,
+   `--replace` emits `delete table inet developed_uid_boundary` and its replacement
+   in one nft transaction. It fails if that exact table is absent. Never use
+   `flush ruleset`, change Docker's firewall backend, or delete another table.
+4. With an explicit production change window/authorization, root first runs
+   `nft --check --file /etc/nftables.d/developed-uid-boundary.nft`, then applies that
+   exact reviewed file with `nft --file`. Preserve the previous exact table file
+   for an atomic scoped rollback. Persist only this dedicated table through the
+   host's reviewed boot mechanism; do not enable a distro nftables unit whose
+   bundled startup/shutdown actions flush the entire ruleset.
+5. Rules must be active before any app unit or private3141 provider is reachable.
+   Order the dedicated firewall loader before those units and fail their startup
+   if installation fails. Reboots, restart, resolver changes, Docker IP changes,
+   IPv6 enablement and pooler recreation all need regression tests. A changed DB
+   target must fail closed until both pre/post NAT tuples are reviewed.
+6. Start the scoped green host processes and verify positive and negative probes
+   from **their actual UIDs**, then switch only their proxy routes gracefully.
+   Existing old services remain serving during staging; don't claim zero
+   downtime until real readiness, drain and route-switch checks pass. The
+   namespace proof establishes mechanics, not production route correctness.
+7. Roll back an app to a security-compatible release while retaining the UID
+   boundary. If firewall correction is required, atomically replace only this
+   table with its previous known-good version. Removing isolation or reopening
+   a legacy administrator path is a security rollback requiring explicit review.
+
+## Limits that remain outside this rule generator
+
+- No defense against root, CAP_NET_ADMIN, a Docker-member operator, compromised
+  Caddy/central, or a process already holding a privileged connected socket.
+  Keep privileged operators separate from Internet-facing app runtimes.
+- Socket UID filtering is for host-originated IPv4/IPv6 traffic. It does not
+  constrain container forwarding, Unix sockets, inherited file descriptors,
+  filesystem writes, or allowed application-protocol actions. Enforce the
+  systemd restrictions and file permissions in the companion runbook as well.
+- Do not give app UIDs network namespaces, raw sockets, alternate tunnels,
+  proxy relays or descriptor-passing control APIs. No new firewall exemptions
+  for unrelated applications/workers are implicitly authorized here.
+- Public HTTPS egress remains intentionally broad for app integrations. Local
+  control plane services must not be reachable through an alternate public
+  domain or cloud tunnel with weaker authorization.
+
+Mechanism references: [nftables manual](https://netfilter.org/projects/nftables/manpage.html),
+[hook priorities](https://wiki.nftables.org/wiki-nftables/index.php/Netfilter_hooks),
+[connection-tracking direction](https://wiki.iptables.org/wiki-nftables/index.php/Matching_connection_tracking_stateful_metainformation),
+[route lookup expressions](https://wiki.netfilter.org/wiki-nftables/index.php/Routing_information).
+The namespace test was exercised with nftables1.0.9; target-host verification
+remains required for its actual rules, routes and services.

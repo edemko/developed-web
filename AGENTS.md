@@ -1,5 +1,14 @@
 # DevelopED Website
 
+## Account service and VPS operations
+
+This repository also contains the central account service, not just the static
+marketing site described below. Before account/auth work read
+`server/accounts/README.md`; before deployment or Linux isolation work read
+`server/accounts/deploy/README.md` and the scoped `AGENTS.md` there. The no-build
+instructions below apply to marketing pages only. Never publish this whole
+repository as a web root or copy credentials into documentation.
+
 Landing page for DevelopED — custom business applications built with AI and modern technologies.
 
 ## Tech Stack

@@ -10,13 +10,25 @@ opaque, host-only, HttpOnly, Secure, SameSite=Lax. Responses are no-store.
 ## Browser endpoints
 
 - GET `/session`: `{ csrfToken, user: null | { id, email, displayName, avatarUrl,
-  language, role, emailVerified, requirePasswordChange }, registrationMode,
+  language, role, emailVerified, requirePasswordChange, hasMfa }, mfa: null | { mode: 'enroll'|'challenge' }, registrationMode,
   supportEmail }`. Anonymous session bootstrap is allowed.
-- POST `/login` `{ email, password, appSlug? }`: `{ user, redirectUrl? }`. UI navigates to `/apps` unless
+- POST `/login` `{ email, password, appSlug? }`: `{ user, mfa, redirectUrl? }`. Pending MFA returns
+  `user: null`; complete the restricted MFA flow before opening any authenticated page.
+  UI navigates to `/apps` unless
   a validated local authorization continuation was explicitly supplied.
 - POST `/logout`: central **all apps and devices** logout, `{ ok: true }`.
   Product-local logout remains local. No custom browser-family/code binding.
-- POST `/reauthenticate` `{ password }`: `{ ok: true }`, five-minute freshness.
+- POST `/reauthenticate` `{ password, code?, factorId? }`: `{ ok: true }`, five-minute freshness.
+  Enrolled users require password plus six-digit TOTP; no password-only step-up.
+- GET `/mfa`: `{ mode, enabled, required, factors: [{ id, type: 'totp' }], enrollmentId }`.
+  Accepts a restricted MFA cookie or fully authenticated cookie; never returns an existing secret.
+- POST `/mfa/enroll` `{ password? }`: `{ factorId, secret, qrCode }`. Optional enrollment
+  requires the current password; mandatory superadmin setup uses the fresh restricted
+  password-login cookie. QR/manual secret are shown once, never stored in browser storage.
+- POST `/mfa/verify` `{ factorId, code, appSlug? }`: `{ user, redirectUrl? }`.
+  Verifies only the current user's eligible factor and rotates cookie/CSRF after success.
+  Incomplete sessions expire after ten minutes and cannot read protected profile/admin/app
+  data or approve consent. There is no factor-removal or MFA-bypass browser endpoint.
 - POST `/register` `{ email, password, displayName, language, invitation?, continuation? }`:
   `{ accepted: true }`, generic mailbox message; creates no signed-in session.
 - POST `/resend-verification` or `/forgot-password` `{ email }`:
@@ -29,9 +41,10 @@ opaque, host-only, HttpOnly, Secure, SameSite=Lax. Responses are no-store.
   across email verification or accept a caller-provided external return URL.
 - POST `/reset-password` `{ token, password }`: `{ ok: true }`, login again.
 - PATCH `/profile` `{ displayName, language }`: `{ user }`.
-- POST `/profile/password` `{ currentPassword, password }`: `{ ok: true }`, login again.
-- POST `/profile/email` `{ email, currentPassword }`: `{ accepted: true }`;
+- POST `/profile/password` `{ currentPassword, password, code?, factorId? }`: `{ ok: true }`, login again.
+- POST `/profile/email` `{ email, currentPassword, code?, factorId? }`: `{ accepted: true }`;
   current address retained until new-address confirmation.
+  Both identity mutations require a current TOTP code when MFA is enrolled.
 - GET `/apps`: `{ apps: [{ id, slug, name, description, icon, launchUrl,
   available, plan }] }`. Launch URLs are operator-registered HTTPS app login
   entry points, never arbitrary user return URLs. No provider credentials in URLs.
@@ -51,7 +64,8 @@ opaque, host-only, HttpOnly, Secure, SameSite=Lax. Responses are no-store.
 ## Superadmin endpoints
 
 Role is read from protected core profile, never metadata. Sensitive account and
-policy actions require recent reauthentication. GET/list routes require role.
+policy actions require recent password-plus-TOTP reauthentication. All admin routes,
+including GET/list, require a verified factor and actual central provider-session AAL2.
 
 - GET `/admin/users?q=&limit=&offset=`: `{ users: [{ id, email, displayName,
   role, locked, createdAt }] }`.

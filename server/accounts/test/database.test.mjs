@@ -10,6 +10,7 @@ import { Database } from '../dist/db.js';
 import { Provider } from '../dist/provider.js';
 import { createAccountServer } from '../dist/http.js';
 import { hash, token, unseal, seal } from '../dist/security.js';
+import { fixtureTotp } from './mfa-fixture.mjs';
 
 const container = process.env.ACCOUNTS_TEST_CONTAINER;
 test('isolated real-provider account lifecycle, report privacy, DB grants and policy gates', { skip: !container, timeout: 120000 }, async t => {
@@ -53,14 +54,21 @@ test('isolated real-provider account lifecycle, report privacy, DB grants and po
   const accounts = new Accounts(db, provider, config), server = createAccountServer(accounts);
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const origin = `http://127.0.0.1:${server.address().port}`; config.origin = origin;
-  let cookie = '', csrf = '';
+  let cookie = '', csrf = '', mfaSecret = '', mfaFactorId = '';
   const request = async (path, method = 'GET', data, overrides = {}) => {
+    if (mfaSecret && ['/reauthenticate', '/profile/password', '/profile/email'].includes(path)) data = { ...data, factorId: mfaFactorId, code: fixtureTotp(mfaSecret) };
     const response = await fetch(`${origin}/api/account${path}`, { method, headers: {
       Cookie: cookie, Origin: origin, 'Content-Type': 'application/json', 'X-CSRF-Token': csrf, ...overrides,
     }, body: data === undefined ? undefined : JSON.stringify(data) });
     const setCookie = response.headers.get('set-cookie'); if (setCookie) cookie = setCookie.split(';')[0];
     const result = await response.json();
     if (result.csrfToken) csrf = result.csrfToken;
+    // This lifecycle fixture follows the real MFA challenge after its initial
+    // enrollment below. MFA rejection/partial access has its own focused suite.
+    if (path === '/login' && result.mfa?.mode === 'challenge' && mfaSecret) {
+      await request('/session');
+      return request('/mfa/verify', 'POST', { factorId: mfaFactorId, code: fixtureTotp(mfaSecret) });
+    }
     return { status: response.status, data: result, headers: response.headers };
   };
   const address = `central-${randomUUID()}@example.invalid`, secret = '  cafe\u0301 account password  ';
@@ -126,6 +134,11 @@ test('isolated real-provider account lifecycle, report privacy, DB grants and po
     });
     await t.test('verified superadmin actions require recent reauth, report notes stay private', async () => {
       await admin.query("update core.profiles set role='SUPERADMIN' where id=$1", [userId]);
+      assert.equal((await request('/admin/users')).status, 401, 'role promotion does not bypass required MFA');
+      const enrollment = await request('/mfa/enroll', 'POST', {});
+      assert.equal(enrollment.status, 200); mfaSecret = enrollment.data.secret; mfaFactorId = enrollment.data.factorId;
+      assert.equal((await request('/mfa/verify', 'POST', { factorId: mfaFactorId, code: fixtureTotp(mfaSecret) })).status, 200);
+      await request('/session');
       assert.equal((await request('/admin/users')).status, 200);
       await admin.query("update accounts.sessions set authenticated_at=now()-interval '10 minutes' where user_id=$1", [userId]);
       assert.equal((await request('/admin/registration', 'PATCH', { mode: 'invitation' })).status, 428);

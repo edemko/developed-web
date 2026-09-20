@@ -1,5 +1,5 @@
 import { HttpError } from './security.js';
-export interface ProviderUser { id: string; email: string; email_confirmed_at?: string; factors?: { status: string }[] }
+export interface ProviderUser { id: string; email: string; email_confirmed_at?: string; factors?: { id: string; status: string; factor_type: string }[] }
 export interface ProviderSession { access_token: string; refresh_token: string; expires_in: number; user: ProviderUser }
 export class Provider {
   constructor(readonly url: string, private key: string, private request: typeof fetch = fetch) {}
@@ -28,6 +28,13 @@ export class Provider {
   login(email: string, password: string) { return this.call<ProviderSession>('/token?grant_type=password', 'POST', { email, password }); }
   refresh(refresh_token: string) { return this.call<ProviderSession>('/token?grant_type=refresh_token', 'POST', { refresh_token }); }
   user(accessToken: string) { return this.call<ProviderUser>('/user', 'GET', undefined, accessToken); }
+  enrollTotp(accessToken: string, name: string) {
+    return this.call<{ id: string; type: string; totp: { secret: string; qr_code: string } }>('/factors', 'POST', { factor_type: 'totp', friendly_name: name, issuer: 'DevelopED' }, accessToken);
+  }
+  async verifyTotp(accessToken: string, factorId: string, code: string) {
+    const challenge = await this.call<{ id: string }>(`/factors/${encodeURIComponent(factorId)}/challenge`, 'POST', {}, accessToken);
+    return this.call<ProviderSession>(`/factors/${encodeURIComponent(factorId)}/verify`, 'POST', { challenge_id: challenge.id, code }, accessToken);
+  }
   create(email: string, password: string, displayName: string) {
     return this.call<ProviderUser>('/admin/users', 'POST', { email, password, email_confirm: false, user_metadata: { name: displayName } });
   }

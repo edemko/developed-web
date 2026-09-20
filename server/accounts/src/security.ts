@@ -65,7 +65,7 @@ export function unseal<T>(value: string, key: Buffer, context: string): T {
   decipher.setAAD(Buffer.from(context)); decipher.setAuthTag(data.subarray(12, 28));
   return JSON.parse(Buffer.concat([decipher.update(data.subarray(28)), decipher.final()]).toString('utf8')) as T;
 }
-export function claims(accessToken: string): { sub: string; session_id: string; client_id?: string; exp: number } {
+export function claims(accessToken: string): { sub: string; session_id: string; client_id?: string; exp: number; aal?: string } {
   // Not a verifier. Only use AFTER provider /user has authenticated this token.
   try {
     const payload = JSON.parse(Buffer.from(accessToken.split('.')[1]!, 'base64url').toString('utf8'));

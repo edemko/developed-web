@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { Accounts, type Context } from './accounts.js';
 import { diagnostics, email, equal, fail, hash, HttpError, language, password, text, uuid } from './security.js';
 import type { Row } from './db.js';
+import { Mfa } from './mfa.js';
 
 const assets = new Map<string, [string, string]>([
   ['app.js', ['app.js', 'text/javascript']], ['i18n.js', ['i18n.js', 'text/javascript']],
@@ -42,6 +43,7 @@ export function marketingPolicy(html: string) {
 }
 export function createAccountServer(accounts: Accounts) {
   const publicRoot = fileURLToPath(new URL('../public/', import.meta.url));
+  const mfa = new Mfa(accounts);
   return createServer(async (req, res) => {
     res.setHeader('Cache-Control', 'private, no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff'); res.setHeader('Referrer-Policy', 'no-referrer');
@@ -98,21 +100,31 @@ export function createAccountServer(accounts: Accounts) {
       }
       if (method === 'GET' && path === '/session') {
         const [settings] = await accounts.db.query('select registration_mode from accounts.settings where singleton');
-        return json(res, { csrfToken: accounts.csrf(ctx.session), user: accounts.publicUser(ctx.user), registrationMode: settings!.registration_mode, supportEmail: accounts.config.supportEmail });
+        return json(res, { csrfToken: accounts.csrf(ctx.session), user: accounts.publicUser(ctx.user), mfa: ctx.mfa || null, registrationMode: settings!.registration_mode, supportEmail: accounts.config.supportEmail });
+      }
+      if (path === '/mfa' && method === 'GET') return json(res, await mfa.status(ctx));
+      if (path === '/mfa/enroll' && method === 'POST') {
+        const result = await mfa.enroll(ctx, data.password); setContext(result.context);
+        return json(res, result.enrollment);
+      }
+      if (path === '/mfa/verify' && method === 'POST') {
+        setContext(await mfa.verify(ctx, data.factorId, data.code));
+        const redirectUrl = await accounts.launchAfterLogin(ctx, data.appSlug);
+        return json(res, { user: accounts.publicUser(ctx.user), ...(redirectUrl ? { redirectUrl } : {}) });
       }
       if (method === 'POST' && ['/login', '/register', '/resend-verification', '/forgot-password', '/reset-password', '/verify-email', '/reauthenticate'].includes(path)) {
         await accounts.db.limit(`sensitive:${address}`, 200, 3600);
         if (path === '/login') {
           setContext(await accounts.login(ctx, data));
-          const redirectUrl = await accounts.launchAfterLogin(ctx, data.appSlug);
-          return json(res, { user: accounts.publicUser(ctx.user), ...(redirectUrl ? { redirectUrl } : {}) });
+          const redirectUrl = ctx.user ? await accounts.launchAfterLogin(ctx, data.appSlug) : undefined;
+          return json(res, { user: accounts.publicUser(ctx.user), mfa: ctx.mfa || null, ...(redirectUrl ? { redirectUrl } : {}) });
         }
         if (path === '/register') { await accounts.register(data); return json(res, { accepted: true }); }
         if (path === '/resend-verification' || path === '/forgot-password') { await accounts.sendCredential(data.email, path === '/forgot-password'); return json(res, { accepted: true }); }
         if (path === '/verify-email' || path === '/reset-password') return json(res, await accounts.consumeCredential(data.token, path === '/reset-password' ? data.password : undefined));
         const user = accounts.requireUser(ctx, true);
         await accounts.db.limit(`reauth:${user.id}`, 10, 900);
-        const auth = await accounts.checkPassword(user, data.password);
+        const auth = await accounts.checkPassword(user, data.password, data.code, data.factorId);
         setContext(await accounts.newSession(ctx, auth, user)); return json(res, { ok: true });
       }
       if (path === '/logout' && method === 'POST') {
@@ -147,7 +159,7 @@ export function createAccountServer(accounts: Accounts) {
         await accounts.db.limit(`identity:${user.id}`, 10, 3600);
         const nextPassword = path.endsWith('password') ? password(data.password) : null;
         const nextEmail = path.endsWith('email') ? email(data.email) : null;
-        const auth = await accounts.checkPassword(user, data.currentPassword);
+        const auth = await accounts.checkPassword(user, data.currentPassword, data.code, data.factorId);
         await accounts.provider.logout(auth.access_token, 'local');
         if (nextPassword) {
           await accounts.mutateIdentity(user.id, user.id, 'password_change', { password: nextPassword }, async q => {

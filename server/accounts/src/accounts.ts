@@ -5,7 +5,7 @@ import { Provider, type ProviderSession } from './provider.js';
 import { claims, diagnostics, email, equal, fail, hash, HttpError, language, password, passwordInput, seal, text, token, unseal, uuid, exactHttps, oauthCallback } from './security.js';
 import { credentialMail, credentialLifetime, queueMail, securityMail, reportMail } from './mail.js';
 
-export interface Context { session: Row; user: Row | null; cookie?: string }
+export interface Context { session: Row; user: Row | null; cookie?: string; candidate?: Row; mfa?: { mode: 'enroll' | 'challenge' } }
 export class Accounts {
   constructor(readonly db: Database, readonly provider: Provider, readonly config: Config) {}
   csrf(session: Row) { return createHmac('sha256', this.config.encryptionKey).update(`csrf:${session.id}`).digest('base64url'); }
@@ -31,29 +31,35 @@ export class Accounts {
         await this.db.query('update accounts.sessions set revoked_at=now() where id=$1', [session.id]);
         return this.bootstrap();
       }
-      const [providerSession] = await this.db.query(`select id from auth.sessions where id=$1 and user_id=$2
+      const [providerSession] = await this.db.query(`select id,aal from auth.sessions where id=$1 and user_id=$2
         and created_at>$3 and (not_after is null or not_after>now())`, [session.provider_session_id, user.id, user.revoked_before]);
       if (!providerSession) {
         await this.db.query('update accounts.sessions set revoked_at=now() where id=$1', [session.id]);
         return this.bootstrap();
       }
+      session.aal = providerSession.aal;
     }
     await this.db.query(`update accounts.sessions set last_seen_at=now() where id=$1 and last_seen_at<now()-interval '5 minutes'`, [session.id]);
-    return { session, user };
+    return this.context(session, user);
+  }
+  context(session: Row, user: Row | null, cookie?: string): Context {
+    const required = user && (session.mfa_pending || (user.role === 'SUPERADMIN' && !user.hasMfa) || ((user.hasMfa || user.role === 'SUPERADMIN') && session.aal !== 'aal2'));
+    return required ? { session, user: null, candidate: user!, mfa: { mode: user!.hasMfa || session.mfa_pending === 'challenge' ? 'challenge' : 'enroll' }, cookie } : { session, user, cookie };
   }
   async userById(id: string): Promise<Row | null> {
     const [row] = await this.db.query(`select p.id,u.email,p.display_name as "displayName",p.photo_url as "avatarUrl",p.role,
       u.email_confirmed_at is not null as "emailVerified",p.created_at as "createdAt",
       coalesce(s.language,'en') as language,coalesce(s.locked,false) as locked,
       coalesce(s.require_password_change,false) as "requirePasswordChange",coalesce(s.security_version,1) as security_version,
-      coalesce(s.revoked_before,'-infinity'::timestamptz) as revoked_before,s.operation_id
+      coalesce(s.revoked_before,'-infinity'::timestamptz) as revoked_before,s.operation_id,
+      exists(select 1 from auth.mfa_factors f where f.user_id=p.id and f.status='verified') as "hasMfa"
       from core.profiles p join auth.users u on u.id=p.id left join accounts.security_state s on s.user_id=p.id where p.id=$1`, [id]);
     return row || null;
   }
   publicUser(user: Row | null) {
     if (!user) return null;
-    const { id, email, displayName, avatarUrl, language, role, emailVerified, requirePasswordChange } = user;
-    return { id, email, displayName, avatarUrl, language, role, emailVerified, requirePasswordChange };
+    const { id, email, displayName, avatarUrl, language, role, emailVerified, requirePasswordChange, hasMfa } = user;
+    return { id, email, displayName, avatarUrl, language, role, emailVerified, requirePasswordChange, hasMfa };
   }
   requireUser(ctx: Context, allowPasswordChange = false): Row {
     if (!ctx.user) return fail(401, 'authentication_required');
@@ -63,36 +69,55 @@ export class Accounts {
   requireAdmin(ctx: Context, fresh = false) {
     const user = this.requireUser(ctx);
     if (user.role !== 'SUPERADMIN') return fail(403, 'forbidden');
+    if (!user.hasMfa || ctx.session.aal !== 'aal2') return fail(403, 'mfa_required');
     if (fresh && (!ctx.session.authenticated_at || Date.now() - new Date(ctx.session.authenticated_at).getTime() > 300_000)) return fail(428, 'reauthentication_required');
     return user;
   }
-  async checkPassword(user: Row, input: unknown): Promise<ProviderSession> {
+  async checkPassword(user: Row, input: unknown, code?: unknown, factorId?: unknown): Promise<ProviderSession> {
     const current = passwordInput(input);
     let result: ProviderSession;
     try { result = await this.provider.login(user.email, current); }
     catch (error) { if (error instanceof HttpError && error.status === 400) return fail(401, 'invalid_credentials'); throw error; }
     if (result.user.id !== user.id) return fail(401, 'invalid_credentials');
-    // Password-only step-up must never bypass an already enrolled factor.
-    if (result.user.factors?.some(f => f.status === 'verified')) {
-      await this.provider.logout(result.access_token, 'local'); return fail(403, 'mfa_required');
+    // Fresh password + a verified factor, never password-only downgrade.
+    const factors = result.user.factors?.filter(f => f.status === 'verified') || [];
+    if (factors.length || user.hasMfa || user.role === 'SUPERADMIN') {
+      try {
+        const selected = factors.find(f => f.factor_type === 'totp' && (!factorId || f.id === factorId));
+        if (!selected || typeof code !== 'string' || !/^\d{6}$/.test(code)) return fail(403, 'mfa_required');
+        const upgraded = await this.provider.verifyTotp(result.access_token, selected.id, code);
+        const parsed = claims(upgraded.access_token);
+        if (upgraded.user.id !== user.id || parsed.sub !== user.id || parsed.session_id !== claims(result.access_token).session_id || parsed.aal !== 'aal2' || parsed.client_id) return fail(401, 'invalid_session');
+        return upgraded;
+      } catch (error) {
+        await this.provider.logout(result.access_token, 'local').catch(() => {});
+        if (error instanceof HttpError && error.status === 400) return fail(400, 'invalid_mfa_code');
+        throw error;
+      }
     }
     return result;
   }
-  async newSession(ctx: Context, auth: ProviderSession, user: Row): Promise<Context> {
+  async newSession(ctx: Context, auth: ProviderSession, user: Row, options: { enroll?: boolean; fence?: string } = {}): Promise<Context> {
     const parsed = claims(auth.access_token), raw = token(), id = randomUUID();
     if (parsed.sub !== user.id || parsed.client_id) return fail(401, 'invalid_session');
+    const pending = options.enroll ? 'enroll' : parsed.aal !== 'aal2' && (user.hasMfa || auth.user.factors?.some(f => f.status === 'verified') || user.role === 'SUPERADMIN') ? user.hasMfa || auth.user.factors?.some(f => f.status === 'verified') ? 'challenge' : 'enroll' : null;
     const [created] = await this.db.tx(async q => {
+      if (options.fence) {
+        const [owned] = await q('select id from accounts.sessions where id=$1 and refresh_id=$2 and revoked_at is null and expires_at>now() for update', [ctx.session.id, options.fence]);
+        if (!owned) return fail(401, 'invalid_session');
+      }
       await q('insert into accounts.security_state(user_id) values($1) on conflict do nothing', [user.id]);
       const [state] = await q('select * from accounts.security_state where user_id=$1 for update', [user.id]);
       if (state!.locked || state!.operation_id) return fail(403, 'account_unavailable');
       const [valid] = await q('select id from auth.sessions where id=$1 and user_id=$2 and created_at>$3', [parsed.session_id, user.id, state!.revoked_before]);
       if (!valid) return fail(401, 'invalid_session');
       await q('update accounts.sessions set revoked_at=now() where id=$1', [ctx.session.id]);
-      return q(`insert into accounts.sessions(id,token_hash,csrf_hash,user_id,provider_session_id,provider_tokens,security_version,authenticated_at,expires_at)
-        values($1,$2,$3,$4,$5,$6,$7,now(),now()+interval '7 days') returning *`,
-      [id, hash(raw), hash(this.csrf({ id })), user.id, parsed.session_id, seal(auth, this.config.encryptionKey, `session:${id}`), state!.security_version]);
+      return q(`insert into accounts.sessions(id,token_hash,csrf_hash,user_id,provider_session_id,provider_tokens,security_version,authenticated_at,expires_at,mfa_pending)
+        values($1,$2,$3,$4,$5,$6,$7,case when $8::text is null then now() else null end,now()+$9*interval '1 second',$8) returning *`,
+      [id, hash(raw), hash(this.csrf({ id })), user.id, parsed.session_id, seal(auth, this.config.encryptionKey, `session:${id}`), state!.security_version, pending, pending ? 600 : 604800]);
     });
-    return { session: created!, user, cookie: this.cookie(raw) };
+    created!.aal = parsed.aal || 'aal1';
+    return this.context(created!, user, this.cookie(raw, pending ? 600 : 604800));
   }
   async login(ctx: Context, body: Row): Promise<Context> {
     const address = email(body.email), current = passwordInput(body.password);
@@ -104,11 +129,8 @@ export class Accounts {
     if (!user || !auth.user.email_confirmed_at || user.locked || user.operation_id) {
       await this.provider.logout(auth.access_token, 'local').catch(() => {}); return fail(403, 'account_unavailable');
     }
-    if (auth.user.factors?.some(f => f.status === 'verified')) {
-      await this.provider.logout(auth.access_token, 'local'); return fail(403, 'mfa_required');
-    }
     const next = await this.newSession(ctx, auth, user);
-    await this.db.audit(this.db.query, user.id, user.id, 'login', 'succeeded'); return next;
+    await this.db.audit(this.db.query, user.id, user.id, 'login', next.mfa ? 'pending' : 'succeeded'); return next;
   }
   async providerToken(ctx: Context): Promise<string> {
     this.requireUser(ctx);

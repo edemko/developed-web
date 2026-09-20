@@ -342,6 +342,22 @@ credential tokens, invitations and rate-limit buckets are different from account
 expiry. Review a narrowly scoped retention/cleanup job separately; do not add a
 blanket account-delete cron.
 
+## Central authenticator policy
+
+Central TOTP is mandatory for SUPERADMIN and opt-in from `/security` for ordinary
+users. Password-only admin/enrolled-user login creates a restricted ten-minute
+cookie, not access to apps, profile, admin data or consent. Successful verification
+promotes the actual provider session to AAL2 and rotates the opaque central cookie
+and CSRF value. Identity changes and sensitive admin actions require fresh
+password-plus-TOTP confirmation. There is no public factor-removal/bypass route.
+
+Apply `20260920125511_developed_totp_sessions.sql` with the reviewed central
+migrations before using this build. The runtime can read factor ID/type/status,
+never factor secrets. Factor setup QR/manual key is returned once to the current
+fresh cookie, held only in page memory and never logged. See
+[MFA implementation and qualification](../../docs/ecosystem-mfa.md) for provider
+assurance boundaries, recovery, tests and activation requirements.
+
 ## Emergency operator recovery
 
 The preferred route is an authenticated central superadmin action, with audit
@@ -390,7 +406,8 @@ the identity service production-ready.
 ## Release gates still requiring explicit verification
 
 No public launch is claimed by the local tests or these templates. Release needs
-completed product cutovers, staged signed-in root verification, central MFA policy/UI,
+completed product cutovers, staged signed-in root verification, actual owner TOTP
+enrollment and tested operator recovery (MFA code/UI is isolated-tested, not activated),
 closed public provider bypasses on **every** ingress, removal/restriction of
 legacy app admin keys, controlled Mailjet delivery, restore proof, monitoring,
 and review of account/privacy/support retention disclosures. Unrelated shared

@@ -104,6 +104,10 @@ async function start() {
     node.textContent = message;
   };
   const errorMessage = error => {
+    if (error?.code === 'invalid_mfa_code') return t('mfaInvalid');
+    if (error?.code === 'mfa_operation_pending') return t('mfaPending');
+    if (error?.code === 'mfa_enrollment_pending') return t('mfaResume');
+    if (error?.code === 'mfa_required') return t('mfaIntro');
     if (error?.status === 401) return t('sessionExpired');
     if (error?.status === 403) return t('denied');
     return t('error');
@@ -286,12 +290,15 @@ async function start() {
     try { return await api(path, method, body); }
     catch (error) {
       if (error.code !== 'reauthentication_required') throw error;
-      const password = await confirmDialog(t('reauth'), t('reauthIntro'), form => {
+      const factors = session.user?.hasMfa ? (await api('/mfa')).factors : [];
+      const credentials = await confirmDialog(t('reauth'), t('reauthIntro'), form => {
         const input = field(form, 'password', { type: 'password', required: true, autocomplete: 'current-password', maxLength: 128 });
-        return () => input.value;
+        const code = session.user?.hasMfa ? mfaCode(form) : null;
+        const factor = factorPicker(form, factors);
+        return () => ({ password: input.value, ...(code ? { code: code.value, factorId: factor?.value || factors[0]?.id } : {}) });
       });
-      if (!password) throw error;
-      await api('/reauthenticate', 'POST', { password });
+      if (!credentials) throw error;
+      await api('/reauthenticate', 'POST', credentials);
       await bootstrap();
       return api(path, method, body);
     }
@@ -306,6 +313,7 @@ async function start() {
       const appSlug = new URLSearchParams(location.search).get('app');
       const result = await api('/login', 'POST', { email: email.value.trim(), password: password.value, ...(appSlug && /^[a-z0-9-]{1,64}$/.test(appSlug) ? { appSlug } : {}) });
       password.value = '';
+      if (result.mfa) { await bootstrap(); await mfaPage(); return; }
       if (result.user?.requirePasswordChange) { location.assign('/profile'); return; }
       if (result.redirectUrl) {
         const redirect = safeHttpsUrl(result.redirectUrl, location.origin);
@@ -437,8 +445,9 @@ async function start() {
     main.append(apps.length ? grid : el('p', t('noApps'), 'empty'));
   }
 
-  function profilePage() {
+  async function profilePage() {
     heading(t('profile'));
+    const factors = session.user.hasMfa ? (await api('/mfa')).factors : [];
     if (session.user.requirePasswordChange) main.append(el('p', t('requiredPassword'), 'notice'));
     const columns = el('div', undefined, 'two-column');
     main.append(columns);
@@ -457,17 +466,22 @@ async function start() {
     emailForm.append(el('p', session.user.email), el('span', t(session.user.emailVerified ? 'verified' : 'unverified'), 'badge'), el('p', t('emailHelp'), 'muted'));
     const email = field(emailForm, 'email', { type: 'email', required: true, autocomplete: 'email', maxLength: 254 });
     const emailPassword = field(emailForm, 'currentPassword', { type: 'password', required: true, autocomplete: 'current-password', maxLength: 128 });
+    const emailCode = session.user.hasMfa ? mfaCode(emailForm) : null;
+    const emailFactor = factorPicker(emailForm, factors);
     bindForm(emailForm, t('changeEmail'), async notice => {
-      await api('/profile/email', 'POST', { email: email.value.trim(), currentPassword: emailPassword.value });
+      await api('/profile/email', 'POST', { email: email.value.trim(), currentPassword: emailPassword.value, ...(emailCode ? { code: emailCode.value, factorId: emailFactor?.value || factors[0]?.id } : {}) });
       emailPassword.value = '';
+      if (emailCode) emailCode.value = '';
       feedback(notice, t('pendingEmail'));
     });
     panel(t('changeEmail'), columns).append(emailForm);
     const passwordForm = el('form');
     const current = field(passwordForm, 'currentPassword', { type: 'password', required: true, autocomplete: 'current-password', maxLength: 128 });
+    const passwordCode = session.user.hasMfa ? mfaCode(passwordForm) : null;
+    const passwordFactor = factorPicker(passwordForm, factors);
     const password = newPasswordFields(passwordForm);
     bindForm(passwordForm, t('changePassword'), async notice => {
-      await api('/profile/password', 'POST', { currentPassword: current.value, password: password.value });
+      await api('/profile/password', 'POST', { currentPassword: current.value, password: password.value, ...(passwordCode ? { code: passwordCode.value, factorId: passwordFactor?.value || factors[0]?.id } : {}) });
       passwordForm.reset();
       feedback(notice, t('passwordChanged'));
       passwordForm.querySelector('button[type=submit]').hidden = true;
@@ -479,11 +493,84 @@ async function start() {
   async function securityPage() {
     heading(t('security'), t('securityIntro'));
     main.append(el('p', t('deviceNote'), 'muted'));
+    await mfaSection(panel(t('mfaTitle')));
     const { sessions } = await api('/security');
     const section = panel(t('sessions'));
     const table = tableShell(['created', 'expires', 'state']);
     for (const item of sessions) table.body.append(row([date(item.createdAt), date(item.expiresAt), item.current ? t('current') : '—']));
     section.append(sessions.length ? table.container : el('p', t('noSessions'), 'empty'), button(t('logout'), logout, 'danger'));
+  }
+
+  function mfaCode(form) {
+    const input = field(form, 'mfaCode', { required: true, autocomplete: 'one-time-code', minLength: 6, maxLength: 6 });
+    input.inputMode = 'numeric'; input.pattern = '[0-9]{6}';
+    return input;
+  }
+  function factorPicker(form, factors = []) {
+    return factors.length > 1 ? select(form, 'mfaFactor', factors.map((factor, index) => [factor.id, `${t('mfaFactor')} ${index + 1}`]), factors[0].id) : null;
+  }
+
+  async function mfaPage() {
+    heading(t('mfaTitle'), t('mfaIntro'), true);
+    await mfaSection(panel());
+    main.append(mfaCancel());
+  }
+
+  function mfaCancel() {
+    return button(t('cancel'), async () => {
+      try { await api('/logout', 'POST', {}); main.replaceChildren(); location.assign('/login'); }
+      catch (error) { const notice = el('div'); feedback(notice, errorMessage(error), 'error'); main.prepend(notice); }
+    }, 'secondary');
+  }
+
+  async function mfaSection(section) {
+    const state = await api('/mfa');
+    if (state.required) section.append(el('p', t('mfaAdmin'), 'notice'));
+    section.append(el('p', t('mfaRecovery'), 'muted'));
+    if (state.enabled && !state.mode) { section.append(el('p', t('mfaEnabled'), 'notice')); return; }
+    const verifyForm = factorId => {
+      const form = el('form');
+      const factors = state.factors || [];
+      const factor = !factorId ? factorPicker(form, factors) : null;
+      const code = mfaCode(form);
+      bindForm(form, t('confirm'), async () => {
+        const appSlug = new URLSearchParams(location.search).get('app');
+        const result = await api('/mfa/verify', 'POST', { factorId: factorId || factor?.value || factors[0]?.id, code: code.value, ...(appSlug && /^[a-z0-9-]{1,64}$/.test(appSlug) ? { appSlug } : {}) });
+        code.value = ''; section.replaceChildren(el('p', t('working')));
+        if (result.user?.requirePasswordChange) { location.assign('/profile'); return; }
+        if (result.redirectUrl) {
+          const target = safeHttpsUrl(result.redirectUrl, location.origin);
+          if (!target) throw new Error('Invalid redirect');
+          location.assign(target); return;
+        }
+        location.assign(safeContinuation(new URLSearchParams(location.search).get('next'), location.origin));
+      });
+      section.append(form);
+    };
+    if (state.mode === 'challenge') {
+      if (!state.factors?.length) { section.append(el('p', t('mfaUnsupported'), 'notice')); return; }
+      verifyForm(); return;
+    }
+    if (state.enrollmentId) { section.append(el('p', t('mfaResume'), 'notice')); verifyForm(state.enrollmentId); return; }
+    const form = el('form');
+    const password = !state.mode ? field(form, 'currentPassword', { type: 'password', required: true, autocomplete: 'current-password', maxLength: 128 }) : null;
+    bindForm(form, t('mfaSetup'), async () => {
+      const result = await api('/mfa/enroll', 'POST', password ? { password: password.value } : {});
+      if (password) password.value = '';
+      await bootstrap();
+      if (password) {
+        heading(t('mfaTitle'), t('mfaIntro'), true);
+        main.append(section, mfaCancel());
+      }
+      section.replaceChildren(el('p', t('mfaScan')));
+      // Display the provider SVG as an isolated image, never as page markup.
+      if (typeof result.qrCode === 'string' && /^data:image\/svg\+xml;base64,[A-Za-z0-9+/]+=*$/.test(result.qrCode)) {
+        const image = el('img', undefined, 'mfa-qr'); image.src = result.qrCode; image.alt = t('mfaScan'); image.width = 240; image.height = 240; section.append(image);
+      }
+      section.append(el('p', t('mfaSecret')), el('code', result.secret), el('p', t('mfaSecretWarning'), 'notice'));
+      verifyForm(result.factorId);
+    });
+    section.append(form);
   }
 
   function tableShell(headers) {
@@ -705,6 +792,7 @@ async function start() {
     const version = ++pageVersion;
     const path = location.pathname.replace(/\/$/, '') || '/apps';
     const protectedPage = ['/apps', '/profile', '/security', '/account/authorize'].includes(path) || path.startsWith('/admin/');
+    if (session.mfa && (protectedPage || path === '/login')) { await mfaPage(); return; }
     if (protectedPage && !session.user) {
       location.replace(`/login?next=${encodeURIComponent(safeContinuation(path + location.search, location.origin))}`);
       return;

@@ -1,0 +1,15 @@
+# INTEGRATION TEMPLATE ONLY, not a standalone site or active configuration.
+# Place in the canonical Supabase site's ordered route BEFORE its general Kong
+# proxy. Private GoTrue must separately have the reviewed OAuth-only routes.
+# Protect internal Kong/raw REST/Storage from product runtimes too; this public
+# filter cannot prevent a direct internal upstream bypass.
+@public_data path /rest/v1 /rest/v1/* /storage/v1 /storage/v1/* /realtime/v1 /realtime/v1/*
+handle @public_data {
+  forward_auth 127.0.0.1:3143 {
+    uri /check
+    # Explicit overwrite, never accept browser-supplied forwarding metadata.
+    header_up X-Forwarded-Method {method}
+    header_up X-Forwarded-Uri {uri}
+  }
+  reverse_proxy 127.0.0.1:8000
+}

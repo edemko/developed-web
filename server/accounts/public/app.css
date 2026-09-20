@@ -69,6 +69,7 @@ details > summary { cursor: pointer; line-height: 1.5; }
 .empty { text-align: center; padding-block: 2.5rem; color: var(--muted); }
 dialog { color: #edf0ff; background: #152039; border: 1px solid #5f70a0; border-radius: 1rem; padding: 1.5rem; width: min(450px, calc(100% - 2rem)); }
 dialog::backdrop { background: #050b17cc; }
+.mfa-qr { display: block; background: #fff; padding: .5rem; margin-block: 1rem; max-width: 100%; height: auto; }
 footer { border-top: 1px solid var(--line); padding-block: 1.5rem; display: flex; flex-wrap: wrap; gap: 1.5rem; font-size: .85rem; }
 @media(max-width: 640px) { .site-header, main, footer { width: calc(100% - 2rem); } .site-header { min-height: 80px; } main { padding-block: 2rem; } .panel { padding: 1.1rem; } .two-column { grid-template-columns: 1fr; } nav { gap: .5rem; } .app-grid { grid-template-columns: 1fr; } .app-tile { min-height: 190px; } }
 @media(prefers-reduced-motion: no-preference) { button, a { transition: background .15s, border-color .15s; } }

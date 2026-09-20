@@ -1,0 +1,48 @@
+# TEMPLATE ONLY: read runtime-isolation.md. Does not restrict network destinations.
+# The instance, UID, immutable release and root-owned start launcher must be staged.
+[Unit]
+Description=DevelopED isolated application %i
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=developed-%i
+Group=developed-%i
+WorkingDirectory=/opt/developed-apps/%i/current
+Environment=NODE_ENV=production
+EnvironmentFile=/etc/developed-apps/%i.env
+ExecStart=/opt/developed-apps/%i/start
+StateDirectory=developed-%i
+StateDirectoryMode=0700
+CacheDirectory=developed-%i
+CacheDirectoryMode=0700
+UMask=0077
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=60s
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectProc=invisible
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+AmbientCapabilities=
+InaccessiblePaths=-/run/docker.sock -/var/run/docker.sock
+MemoryMax=768M
+TasksMax=128
+LimitNOFILE=8192
+
+[Install]
+WantedBy=multi-user.target

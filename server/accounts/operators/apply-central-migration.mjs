@@ -25,7 +25,18 @@ export function prepareMigration(file, bytes) {
     || boundaries[1][1].toLowerCase() !== 'commit' || /^\s*\\/m.test(source)
     || source.slice(boundaries[1].index + boundaries[1][0].length).trim()) throw rejected();
   const beginEnd = boundaries[0].index + boundaries[0][0].length;
-  const body = source.slice(beginEnd, boundaries[1].index);
+  const originalBody = source.slice(beginEnd, boundaries[1].index);
+  // The first reviewed source uses 5s. Reassert the operator's stricter bound
+  // after its exact known settings, before the guard or any schema operation.
+  // Do not rewrite arbitrary SQL or silently accept new timeout statements.
+  const timeoutPrefix = [
+    "\nset local lock_timeout = '5s';\nset local statement_timeout = '30s';\n",
+    "\nset local lock_timeout='500ms';\nset local statement_timeout='5s';\n",
+    '',
+  ][index];
+  if (!originalBody.startsWith(timeoutPrefix)) throw rejected();
+  const body = originalBody.slice(timeoutPrefix.length);
+  if (/\b(?:lock_timeout|statement_timeout|set_config|reset\s+all)\b/i.test(body)) throw rejected();
   const predecessorCheck = index === 0
     ? `IF to_regnamespace('accounts') IS NOT NULL OR EXISTS(SELECT 1 FROM pg_roles WHERE rolname='developed_accounts') THEN
          RAISE EXCEPTION 'Unrecorded central objects require operator reconciliation'; END IF;`
@@ -47,9 +58,9 @@ ALTER TABLE accounts.deployment_migrations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE accounts.deployment_migrations FORCE ROW LEVEL SECURITY;
 REVOKE ALL ON accounts.deployment_migrations FROM PUBLIC,anon,authenticated,service_role,developed_accounts;
 ` : '';
-  const sql = `${source.slice(0, beginEnd)}
+  const sql = `${source.slice(0, beginEnd)}${timeoutPrefix}
 SET LOCAL lock_timeout='500ms';
-SET LOCAL statement_timeout='30s';
+SET LOCAL statement_timeout='${index === 1 ? '5s' : '30s'}';
 DO $central_operator_guard$ BEGIN
   IF current_user<>'postgres' OR session_user<>'postgres' OR current_database()<>'postgres' THEN RAISE EXCEPTION 'Trusted postgres operator required'; END IF;
   IF NOT pg_try_advisory_xact_lock(194812, 20260920) THEN RAISE EXCEPTION 'Another central migration is active'; END IF;

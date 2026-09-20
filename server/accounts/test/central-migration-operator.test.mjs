@@ -37,6 +37,21 @@ test('dry-run does not invoke Docker and ambiguous or unapproved target argument
     ['--migration', migrations[0].file, '--migration', migrations[1].file]]) await assert.rejects(run(args));
 });
 
+test('operator lock bound wins after known source settings and before any database operation', async () => {
+  for (const [index, migration] of migrations.entries()) {
+    const bytes = await source(migration);
+    const { sql } = prepareMigration(migration.file, bytes);
+    const guard = sql.indexOf('DO $central_operator_guard$');
+    const lockSettings = [...sql.matchAll(/set local lock_timeout\s*=\s*'([^']+)'/gi)];
+    assert.equal(lockSettings.at(-1)[1], '500ms');
+    assert.ok(lockSettings.every(match => match.index < guard));
+    assert.match(sql.slice(0, guard), new RegExp(`SET LOCAL statement_timeout='${index === 1 ? '5s' : '30s'}';`));
+    assert.doesNotMatch(sql.slice(guard), /\b(?:lock_timeout|statement_timeout|set_config|reset\s+all)\b/i);
+    assert.throws(() => prepareMigration(migration.file,
+      Buffer.from(bytes.toString().replace(/commit;/i, "set local lock_timeout='30s';\ncommit;"))));
+  }
+});
+
 test('CLI sanitizes failure output without SQL or operator inputs', () => {
   assert.throws(() => execFileSync(process.execPath,
     [script, '--migration', 'untrusted-secret-input', '--apply'], { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }), error => {
@@ -65,7 +80,12 @@ test('isolated PostgreSQL proves atomic schema/ledger commit, rollback and order
     '--label', 'developed.central.migration.test=true', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', 'postgres:17-alpine']);
   created = true;
   for (let attempt = 0;; attempt++) {
-    try { sql('SELECT 1'); break; }
+    try {
+      // The image briefly starts a socket-only initialization server, which
+      // shuts down again. Wait for the final TCP listener before using sockets.
+      docker(['exec', container, 'pg_isready', '-h', '127.0.0.1', '-U', 'postgres', '-d', 'postgres']);
+      sql('SELECT 1'); break;
+    }
     catch { if (attempt > 50) throw new Error('Disposable database unavailable'); await new Promise(resolve => setTimeout(resolve, 100)); }
   }
   // Minimal credential-free shape, not a provider or production restore fixture.

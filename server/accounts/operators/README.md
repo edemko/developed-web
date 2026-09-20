@@ -146,6 +146,10 @@ are captured but never printed. If a connection is lost around COMMIT, inspect
 the exact ledger/checksum before retrying; do not infer rollback from an ambiguous
 transport error. It preserves each source's transaction and lock/statement
 timeouts, adding bounded defaults for the MFA migration that lacked them.
+The operator reasserts its 500ms lock limit **after** the exact known source
+timeout prefix, so v1's original 5s value cannot override it. It retains the
+native migration's 5s statement limit and uses 30s for v1/MFA. Unexpected timeout
+statements are rejected; the original migration files and ledger hashes do not change.
 
 The only alternate target accepted is a matching
 `developed-central-migration-test-<digits>-db` container with the exact test

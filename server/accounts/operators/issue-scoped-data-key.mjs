@@ -52,7 +52,16 @@ export function validateSigningConfig(config) {
 }
 
 export function validateRequest({ role, expiresAt }, now = Date.now()) {
-  if (!roles.includes(role) || typeof expiresAt !== 'string'
+  return boundedRequest({ role, expiresAt }, roles, now);
+}
+
+// Separate operator API: this role must never enter the five-data-role CLI.
+export function validateIdentityStoreRequest(request, now = Date.now()) {
+  return boundedRequest(request, ['odonto_identity_web'], now);
+}
+
+function boundedRequest({ role, expiresAt }, allowed, now) {
+  if (!allowed.includes(role) || typeof expiresAt !== 'string'
     || !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/.test(expiresAt)) throw invalid();
   const expiryMs = Date.parse(expiresAt), issuedAt = Math.floor(now / 1000);
   if (!Number.isFinite(expiryMs) || new Date(expiryMs).toISOString() !== expiresAt.replace('Z', '.000Z')) throw invalid();
@@ -62,8 +71,15 @@ export function validateRequest({ role, expiresAt }, now = Date.now()) {
 }
 
 export function signScopedKey(config, request, now = Date.now()) {
+  return signBoundedKey(config, validateRequest(request, now));
+}
+
+export function signIdentityStoreKey(config, request, now = Date.now()) {
+  return { ...signBoundedKey(config, validateIdentityStoreRequest(request, now)), purpose: 'identity-store' };
+}
+
+function signBoundedKey(config, { role, exp, issuedAt }) {
   validateSigningConfig(config);
-  const { role, exp, issuedAt } = validateRequest(request, now);
   const claims = { iss: issuer, aud: audience, role, iat: issuedAt, nbf: issuedAt - 30, exp, jti: randomUUID() };
   const encode = value => Buffer.from(JSON.stringify(value)).toString('base64url');
   const input = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode(claims)}`;

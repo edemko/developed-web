@@ -16,7 +16,10 @@ it has no apply interface and does not extend the central migration allowlist.
 `kestrek_backend`, `screentime_backend`, `vocabulum_backend`, `odonto_backend`,
 `otazkomat_backend`. It rejects administrator, browser and identity-store roles.
 Odonto's separate `odonto_identity_web` session key is deliberately outside this
-allowlist and requires its own reviewed operator workflow.
+allowlist. The separate [runtime credential bootstrap](runtime-credentials.md)
+now provides its explicitly named identity-store signer, durable dual copies,
+four private role-password operations and independent session/BFF keys. That
+source workflow enables no production action merely by being committed.
 
 The existing production configuration was inspected without printing keys on
 2026-09-20: GoTrue has ES256 and HS256 signing material; PostgREST has the matching

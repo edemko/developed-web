@@ -1,6 +1,6 @@
 # Central activation dependency checklist
 
-## Current coordinator checkpoint — 2026-09-20, after 16:21 UTC
+## Current coordinator checkpoint — 2026-09-20, after 16:45 UTC
 
 **Public SSO is still off. All seven apps remain required for launch.** The
 14:29–14:38 inventory below is retained as historical evidence, not current host
@@ -26,16 +26,27 @@ and network boundaries are absent are superseded by these completed checkpoints:
   record](ecosystem-frontend-artifacts-20260920.md). A release-signed KešTrek
   Android APK exists privately, but installation/browser-return acceptance is
   not yet established.
-- Six host central-mode environment artifacts are being staged using the
-  [reviewed offline operator](../server/accounts/operators/host-environments.md).
-  Credential issuance or artifact staging alone does not mean that these
-  configurations are installed in serving applications.
+- Six host central-mode environment artifacts are staged and selected by exact
+  private-instance overrides. All six unrouted candidates are now running
+  central mode: 29 bounded HTTP checks, six actual-UID isolation checks and five
+  scoped database checks passed. Original env files and public PIDs/routes were
+  preserved. See the [private activation checkpoint](../server/accounts/operators/private-host-activation.md).
+  Public monitoring had one Otázkomat transport failure among 312 requests,
+  followed by 20 successful public/local checks; do not claim zero interruption.
+- Odonto's exact private CI bundle was verified and uploaded as an encrypted
+  repository secret. Run `35523564853` staged both projects' configuration and
+  produced READY frontend candidate `dpl_3Ly2znk42wShJDB921nsCyphUP2F` at source
+  `03a26c23252f12cf86d580843c5bb2806cd1d37b`, but its wrapper then failed before
+  producing a backend candidate. The deployment gate was disabled and its
+  revision allowlist cleared. Read-only inventory confirmed the frontend build;
+  post-build canonical alias binding and failure diagnosis remain pending.
+  Do not retry, promote, delete or claim end-to-end acceptance from that result.
 - Mailjet sender/SPF/DKIM read-only checks and localized template/browser tests
   passed. No registration confirmation email has been sent to the approved
   test mailbox, and live mailbox delivery is not yet proven.
 
-Remaining launch gates include the six private central-mode runtime checks,
-Odonto's protected least-privilege Vercel candidates and safe paired handoff,
+Remaining launch gates include Odonto's complete protected least-privilege
+Vercel candidates and safe paired handoff,
 Vocabulum's remote Vercel access/alias closure, coordinated old-runtime and
 provider/data-ingress closure, owner MFA/recovery acceptance, Android acceptance,
 and real registration/email/picker/seven-app end-to-end tests. Do not interpret

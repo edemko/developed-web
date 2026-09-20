@@ -27,3 +27,8 @@ test('dropped UID verifies its readable namespace against root-pinned IDs withou
  for(const [actual,proof]of[['net:[100]',{host:'net:[100]',isolated:'net:[200]'}],['net:[200]',{host:'net:[200]',isolated:'net:[200]'}],['net:[200]',{host:'invalid',isolated:'net:[200]'}]])assert.throws(()=>assertNamespaceProof(actual,proof));
  const source=readFileSync(new URL('./footer-bind-check.mjs',import.meta.url),'utf8'),child=source.split("if(mode==='--probe')")[1].split("assert.equal(process.getuid(),0)")[0];assert.doesNotMatch(child,/\/proc\/1/);assert.match(child,/assertNamespaceProof/);
 });
+test('existing Voc PID verification cannot start/restart and readiness precedes namespace inspection',()=>{
+ const source=readFileSync(new URL('./apply-footer-candidates.mjs',import.meta.url),'utf8'),verify=source.split('async function verifyStartVoc(){')[1].split('\nif(process.argv[1]')[0];
+ assert.match(verify,/pid=723605/);assert.match(verify,/verifyInstalled\(app,unit\)/);assert.match(verify,/initialFailureCause:'unproven'/);assert.doesNotMatch(verify,/system\(\['(?:start|restart|daemon-reload|enable)'/);
+ const qualify=source.split('async function qualifyStarted(')[1].split('\nasync function start(')[0];assert.ok(qualify.indexOf("phaseLabel='candidate-http-readiness'")<qualify.indexOf("phaseLabel='candidate-process-identity'"));assert.ok(qualify.indexOf("phaseLabel='candidate-process-identity'")<qualify.indexOf("phaseLabel='candidate-namespace-socket-isolation'"));
+});

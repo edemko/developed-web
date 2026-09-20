@@ -7,6 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { apps,bindPath,networkPath,directory,sha,extendBindPolicy } from './prepare-footer-candidates.mjs';
 const node='/opt/developed-runtimes/node-v22.23.2/bin/node';
 const build='/home/openclaw/ecosystem-footer-build-iZcGAh';
+let phaseLabel='preflight';
 export const pins={
  vocabulum:{old:'305dd90d192a994aa0567af03ef8dbc15923946e',payload:'d37f24c6013f7aa7739b1e2b72e309781396d5244979783907ba84dc4b09c463',dependencies:'093b1105788080d95eb864dffa30036b0aab53f038fae3a6fa2d38fb2bf3f487'},
  airsoft:{old:'9f6737af7a2f618514cb80a1bda1bdd33ddb8346',payload:'f100ad5c076f9695605b1ea2d17ca696c18736c2f5151ddc54b2de6423345abb',dependencies:'2a038e466c99903732e9d4cdbd0a84ecd811dec3bbf12da434b9c96ff2dc9330'},
@@ -101,22 +102,34 @@ function bind(){const before=checkpoint(),p=proof();for(const a of apps){assert.
  run(node,[wrapper,'--apply']);assert.equal(sha(readFileSync(bindPath)),p.bindProposedSha256);
  run('/usr/bin/unshare',['--net',node,checker,'--namespace','after']);verifyCheckpoint(before);receipt('bind-installed',{sha256:p.bindProposedSha256,oldOwnerBindsPreserved:true,newOwnerBindsPassed:true,unrelatedUidNewPortDenials:true,probeNetwork:'disconnected'});
 }
-async function start(app){const before=checkpoint(),{value,unit}=prepare(app);assert.ok(existsSync(`${directory}/bind-installed.json`));assert.equal(sha(readFileSync(bindPath)),value.bindProposedSha256);noListener(app.port);
- assert.equal(system(['show',unit.name,'-p','MainPID','--value']).trim(),'0');assert.equal(system(['show',unit.name,'-p','ActiveState','--value']).trim(),'inactive');
+function verifyInstalled(app,unit){phaseLabel='installed-artifact-verification';
  const release=`/opt/developed-apps/${app.slug}/releases/${app.revision}`,record=JSON.parse(readFileSync(`${directory}/${app.slug}-installed.json`)),text=readFileSync(release+'/release-manifest.json');assert.equal(sha(text),record.manifestSha256);const installed=JSON.parse(text);
  assert.deepEqual(inventory(release+'/node_modules'),installed.dependencies);assert.deepEqual(inventory(release,'',true).filter(([p])=>!p.startsWith('node_modules/')&&p!=='release-manifest.json'),installed.payload);
  assert.equal(readlinkSync(release+'/.next/cache'),installed.cache.target);assert.equal(sha(readFileSync('/etc/systemd/system/'+unit.name)),unit.sha256);
  assert.equal(sha(readFileSync('/opt/developed-control/central-runtime-v1/assert-central-runtime.mjs')),installed.guardSha256);
- receipt(`${app.slug}-start-attempt`,{before,revision:app.revision});system(['start',unit.name]);const pid=Number(system(['show',unit.name,'-p','MainPID','--value']).trim());assert.ok(pid>0);
+}
+async function qualifyStarted(app,unit,pid,before,extra={}){phaseLabel='candidate-http-readiness';
+ let ready=false;for(let i=0;i<40;i++){try{const r=await fetch(`http://127.0.0.1:${app.port}/${app.slug==='airsoft'?'sk/login':'login'}`,{redirect:'manual',signal:AbortSignal.timeout(2000)});const body=await r.text();if(r.status===200&&body.includes(`/report-bug/${app.slug}?platform=web`)){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,250));}assert.ok(ready,'Unrouted candidate readiness failed');
+ phaseLabel='candidate-process-identity';assert.equal(system(['show',unit.name,'-p','MainPID','--value']).trim(),String(pid));assert.equal(system(['is-active',unit.name]).trim(),'active');
  const status=readFileSync(`/proc/${pid}/status`,'utf8');assert.match(status,new RegExp(`^Uid:\\s+${app.uid}\\s+${app.uid}\\s+${app.uid}\\s+${app.uid}$`,'m'));assert.match(status,new RegExp(`^Gid:\\s+${app.gid}\\s+${app.gid}\\s+${app.gid}\\s+${app.gid}$`,'m'));
  const probe=new URL('./footer-candidate-probe.mjs',import.meta.url).pathname;trusted(probe);
+ phaseLabel='candidate-namespace-socket-isolation';
  run('/usr/bin/nsenter',['--target',String(pid),'--mount','--','/usr/bin/setpriv',`--reuid=${app.uid}`,`--regid=${app.gid}`,'--clear-groups',node,probe,app.slug]);
- let ready=false;for(let i=0;i<40;i++){try{const r=await fetch(`http://127.0.0.1:${app.port}/${app.slug==='airsoft'?'sk/login':'login'}`,{redirect:'manual',signal:AbortSignal.timeout(2000)});const body=await r.text();if(r.status===200&&body.includes(`/report-bug/${app.slug}?platform=web`)){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,250));}assert.ok(ready,'Unrouted candidate readiness failed');
+ phaseLabel='candidate-listener';
  const listeners=run('/usr/bin/ss',['-H','-ltnp']).split('\n').filter(line=>line.includes(`pid=${pid},`));
  assert.equal(listeners.length,1,'Candidate must own exactly one TCP listener');assert.ok(listeners[0].includes(`127.0.0.1:${app.port} `),'Candidate listener identity mismatch');
- verifyCheckpoint(before);assert.equal(system(['show',unit.name,'-p','NRestarts','--value']).trim(),'0');receipt(`${app.slug}-started`,{pid,uid:app.uid,gid:app.gid,port:app.port,publicRouteChanged:false});
+ phaseLabel='unchanged-serving-checkpoint';verifyCheckpoint(before);assert.equal(system(['show',unit.name,'-p','NRestarts','--value']).trim(),'0');phaseLabel='completion-receipt';receipt(`${app.slug}-started`,{...extra,revision:app.revision,pid,uid:app.uid,gid:app.gid,port:app.port,publicRouteChanged:false});
+}
+async function start(app){const before=checkpoint(),{value,unit}=prepare(app);assert.ok(existsSync(`${directory}/bind-installed.json`));assert.equal(sha(readFileSync(bindPath)),value.bindProposedSha256);noListener(app.port);
+ assert.equal(system(['show',unit.name,'-p','MainPID','--value']).trim(),'0');assert.equal(system(['show',unit.name,'-p','ActiveState','--value']).trim(),'inactive');verifyInstalled(app,unit);
+ phaseLabel='candidate-start';receipt(`${app.slug}-start-attempt`,{before,revision:app.revision});system(['start',unit.name]);const pid=Number(system(['show',unit.name,'-p','MainPID','--value']).trim());assert.ok(pid>0);await qualifyStarted(app,unit,pid,before);
+}
+async function verifyStartVoc(){const app=apps.find(a=>a.slug==='vocabulum'),{value,unit}=prepare(app),pid=723605;
+ assert.ok(!existsSync(`${directory}/vocabulum-started.json`));assert.ok(!existsSync(`${directory}/airsoft-start-attempt.json`));assert.ok(existsSync(`${directory}/bind-installed.json`));assert.equal(sha(readFileSync(bindPath)),value.bindProposedSha256);
+ const attempt=JSON.parse(readFileSync(`${directory}/vocabulum-start-attempt.json`));assert.equal(attempt.revision,app.revision);verifyCheckpoint(attempt.before);assert.equal(system(['show',unit.name,'-p','MainPID','--value']).trim(),String(pid));verifyInstalled(app,unit);
+ await qualifyStarted(app,unit,pid,attempt.before,{reconciledExistingPid:true,initialFailureCause:'unproven'});
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){try{assert.equal(process.getuid(),0);trusted(new URL(import.meta.url).pathname);const [mode,slug]=process.argv.slice(2),app=apps.find(a=>a.slug===slug);
- assert.ok(['--bind','--reconcile-voc-static'].includes(mode)&&process.argv.length===3||['--install','--start'].includes(mode)&&app&&process.argv.length===4);
- if(mode==='--reconcile-voc-static')reconcileVocStatic();else if(mode==='--bind')bind();else if(mode==='--install')install(app);else await start(app);console.log('Exact footer candidate phase completed; public routes unchanged.');
-}catch{console.error('Footer phase stopped; inspect exact protected attempt/partial state, reconcile read-only, do not retry automatically.');process.exitCode=1;}}
+ assert.ok(['--bind','--reconcile-voc-static','--verify-start-voc'].includes(mode)&&process.argv.length===3||['--install','--start'].includes(mode)&&app&&process.argv.length===4);
+ if(mode==='--verify-start-voc')await verifyStartVoc();else if(mode==='--reconcile-voc-static')reconcileVocStatic();else if(mode==='--bind')bind();else if(mode==='--install')install(app);else await start(app);console.log('Exact footer candidate phase completed; public routes unchanged.');
+}catch{console.error(`Footer phase stopped at ${phaseLabel}; inspect protected evidence, reconcile read-only, no automatic retry.`);process.exitCode=1;}}

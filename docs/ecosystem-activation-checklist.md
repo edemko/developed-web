@@ -1,5 +1,54 @@
 # Central activation dependency checklist
 
+## Current coordinator checkpoint — 2026-09-20, after 16:21 UTC
+
+**Public SSO is still off. All seven apps remain required for launch.** The
+14:29–14:38 inventory below is retained as historical evidence, not current host
+state. In particular, its statements that central schemas, credentials, services
+and network boundaries are absent are superseded by these completed checkpoints:
+
+- Central and additive app migrations are installed with registration,
+  publication and enforcement closed; see the [central database
+  checkpoint](ecosystem-db-checkpoint-20260920.md) and [app SQL
+  checkpoint](ecosystem-app-sql-checkpoint-20260920.md). KešTrek's final raw-token
+  cutover migration remains unapplied.
+- Central accounts, private green Auth, the private data filter, and dedicated
+  app runtime candidates are running. UID network and actual bind boundaries
+  are installed. Old serving app processes and alternate ingress remain a
+  separate closure gate; see the [ingress inventory](ecosystem-ingress-inventory-20260920.md).
+- Seven confidential web clients and one public KešTrek Android client are
+  registered and attached. Seventeen restricted runtime credentials are issued,
+  backed up and verified, including actual-UID database login/denial checks.
+  See the [credential checkpoint](ecosystem-runtime-credentials-checkpoint-20260920.md).
+  Finite JWTs require rotation by December 4 and expire December 18, 16:00 UTC.
+- Central-enabled ScreenTime and KešTrek browser artifacts and Otázkomat browser
+  behavior have been qualified privately; see the [frontend artifact
+  record](ecosystem-frontend-artifacts-20260920.md). A release-signed KešTrek
+  Android APK exists privately, but installation/browser-return acceptance is
+  not yet established.
+- Six host central-mode environment artifacts are being staged using the
+  [reviewed offline operator](../server/accounts/operators/host-environments.md).
+  Credential issuance or artifact staging alone does not mean that these
+  configurations are installed in serving applications.
+- Mailjet sender/SPF/DKIM read-only checks and localized template/browser tests
+  passed. No registration confirmation email has been sent to the approved
+  test mailbox, and live mailbox delivery is not yet proven.
+
+Remaining launch gates include the six private central-mode runtime checks,
+Odonto's protected least-privilege Vercel candidates and safe paired handoff,
+Vocabulum's remote Vercel access/alias closure, coordinated old-runtime and
+provider/data-ingress closure, owner MFA/recovery acceptance, Android acceptance,
+and real registration/email/picker/seven-app end-to-end tests. Do not interpret
+an unpublished picker as permission to expose a pilot login endpoint.
+
+Vocabulum's read-only inventory found all existing words/folders already owned
+by the requested owner and no sentences to transfer. No sample account has
+been deleted: two of three non-owner identities are not proven to be examples,
+so exact deletion scope awaits clarification. Personal free-tier content-writing
+policy also awaits the owner; do not grant school/admin privileges by default.
+
+## Historical baseline — do not use as current deployment state
+
 Read-only recheck: 2026-09-20, approximately 14:29–14:38 UTC, source `d4a7267`.
 This is a staging handoff, not an activation record. The owner requires SSO to
 remain off until the complete security cutover; no production pilot is allowed.

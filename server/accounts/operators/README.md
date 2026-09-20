@@ -118,7 +118,8 @@ Existing `accounts` without a matching ledger must stop for explicit catalog
 reconciliation, never auto-adopt or replay. Changed hashes and duplicate applies
 fail. The ledger has forced RLS, no policies and explicit revokes from PUBLIC,
 anon, authenticated, service_role and developed_accounts. Only the trusted
-postgres operator can apply. `psql --single-transaction` around these already transaction-wrapped
+container-local `supabase_admin` operator session can apply, normally acting as
+`postgres`. The runner verifies provider/core ownership before DDL. `psql --single-transaction` around these already transaction-wrapped
 files is insufficient: their own COMMIT ends that outer transaction.
 
 Apply only these three initially: central v1, native clients, TOTP sessions.
@@ -150,6 +151,17 @@ The operator reasserts its 500ms lock limit **after** the exact known source
 timeout prefix, so v1's original 5s value cannot override it. It retains the
 native migration's 5s statement limit and uses 30s for v1/MFA. Unexpected timeout
 statements are rejected; the original migration files and ledger hashes do not change.
+
+The production `postgres` role is not a superuser or Auth table owner. Exact
+source-hash-checked boundaries use existing `supabase_auth_admin` only for Auth
+column grants and policies. Existing `supabase_admin` handles only the Auth
+schema USAGE grant and the exact account gate function ownership/replacement.
+All ordinary account DDL and ledger work runs as `postgres`; the gate function
+ends owned by `developed_accounts`, with its empty search path and public revoke
+preserved. Its exact EXECUTE grant/revoke statements run as that function owner;
+otherwise PostgreSQL can warn and leave PUBLIC execution intact. No role memberships or extra privileges are added to operator/runtime
+roles to make this work. Rehearse against the actual restored ownership graph;
+a fixture where `postgres` is the bootstrap superuser misses these failures.
 
 The only alternate target accepted is a matching
 `developed-central-migration-test-<digits>-db` container with the exact test

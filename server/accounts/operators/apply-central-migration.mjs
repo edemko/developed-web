@@ -12,6 +12,12 @@ export const migrations = Object.freeze([
 ]);
 const rejected = () => new Error('Central migration operation rejected');
 
+function replaceExactOnce(source, expected, replacement) {
+  const index = source.indexOf(expected);
+  if (index < 0 || source.indexOf(expected, index + expected.length) >= 0) throw rejected();
+  return source.slice(0, index) + replacement + source.slice(index + expected.length);
+}
+
 export function prepareMigration(file, bytes) {
   const index = migrations.findIndex(item => item.file === file), migration = migrations[index];
   if (!migration || !Buffer.isBuffer(bytes)
@@ -35,8 +41,43 @@ export function prepareMigration(file, bytes) {
     '',
   ][index];
   if (!originalBody.startsWith(timeoutPrefix)) throw rejected();
-  const body = originalBody.slice(timeoutPrefix.length);
+  let body = originalBody.slice(timeoutPrefix.length);
   if (/\b(?:lock_timeout|statement_timeout|set_config|reset\s+all)\b/i.test(body)) throw rejected();
+  // Production postgres is not the owner of provider tables or auth schema.
+  // The trusted session can assume existing owners; never add memberships or
+  // elevate postgres. Only exact hash-pinned provider grants/policies switch.
+  if (index === 0) {
+    body = replaceExactOnce(body, 'grant usage on schema core,auth to developed_accounts;',
+      'grant usage on schema core to developed_accounts;\nSET LOCAL ROLE supabase_admin;\ngrant usage on schema auth to developed_accounts;\nSET LOCAL ROLE postgres;');
+    const start = 'grant select(id,email,email_confirmed_at,created_at) on auth.users to developed_accounts;';
+    const end = '  on auth.oauth_authorizations to developed_accounts;';
+    body = replaceExactOnce(body, start, `SET LOCAL ROLE supabase_auth_admin;\n${start}`);
+    body = replaceExactOnce(body, end, `${end}\nSET LOCAL ROLE postgres;`);
+  } else if (index === 2) {
+    const start = 'grant select(aal) on auth.sessions to developed_accounts;';
+    const end = 'create policy developed_accounts_factor_read on auth.mfa_factors for select to developed_accounts using(true);';
+    body = replaceExactOnce(body, start, `SET LOCAL ROLE supabase_auth_admin;\n${start}`);
+    body = replaceExactOnce(body, end, `${end}\nSET LOCAL ROLE postgres;`);
+  }
+  const functionOwner = 'alter function accounts.app_request_allowed(text) owner to developed_accounts;';
+  if (index === 0) {
+    body = replaceExactOnce(body, functionOwner,
+      `SET LOCAL ROLE supabase_admin;\n${functionOwner}\nSET LOCAL ROLE postgres;`);
+  } else if (index === 1) {
+    // The existing SECURITY DEFINER function is owned by the runtime role,
+    // which deliberately has no schema CREATE grant. Replace only this exact
+    // function as operator, immediately retaining its least-privileged owner.
+    const start = 'create or replace function accounts.app_request_allowed(expected_app text) returns boolean';
+    body = replaceExactOnce(body, start, `SET LOCAL ROLE supabase_admin;\n${start}`);
+    body = replaceExactOnce(body, functionOwner, `${functionOwner}\nSET LOCAL ROLE postgres;`);
+  }
+  if (index < 2) {
+    for (const statement of [
+      'revoke all on function accounts.app_request_allowed(text) from public,anon;',
+      'grant execute on function accounts.app_request_allowed(text) to authenticated;',
+    ]) body = replaceExactOnce(body, statement,
+      `SET LOCAL ROLE developed_accounts;\n${statement}\nSET LOCAL ROLE postgres;`);
+  }
   const predecessorCheck = index === 0
     ? `IF to_regnamespace('accounts') IS NOT NULL OR EXISTS(SELECT 1 FROM pg_roles WHERE rolname='developed_accounts') THEN
          RAISE EXCEPTION 'Unrecorded central objects require operator reconciliation'; END IF;`
@@ -61,8 +102,21 @@ REVOKE ALL ON accounts.deployment_migrations FROM PUBLIC,anon,authenticated,serv
   const sql = `${source.slice(0, beginEnd)}${timeoutPrefix}
 SET LOCAL lock_timeout='500ms';
 SET LOCAL statement_timeout='${index === 1 ? '5s' : '30s'}';
+SET LOCAL ROLE postgres;
 DO $central_operator_guard$ BEGIN
-  IF current_user<>'postgres' OR session_user<>'postgres' OR current_database()<>'postgres' THEN RAISE EXCEPTION 'Trusted postgres operator required'; END IF;
+  IF current_user<>'postgres' OR session_user<>'supabase_admin' OR current_database()<>'postgres'
+    OR NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname=session_user AND rolsuper)
+    THEN RAISE EXCEPTION 'Trusted Supabase operator required'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM pg_namespace WHERE nspname='auth' AND pg_get_userbyid(nspowner)='supabase_admin')
+    OR (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+      WHERE n.nspname='auth' AND c.relname IN ('users','sessions','oauth_authorizations','mfa_factors')
+        AND c.relkind='r' AND pg_get_userbyid(c.relowner)='supabase_auth_admin')<>4
+    THEN RAISE EXCEPTION 'Unexpected provider ownership'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM pg_namespace WHERE nspname='core' AND pg_get_userbyid(nspowner)='postgres')
+    OR (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+      WHERE n.nspname='core' AND c.relname IN ('profiles','apps','app_access')
+        AND c.relkind='r' AND pg_get_userbyid(c.relowner)='postgres')<>3
+    THEN RAISE EXCEPTION 'Unexpected core ownership'; END IF;
   IF NOT pg_try_advisory_xact_lock(194812, 20260920) THEN RAISE EXCEPTION 'Another central migration is active'; END IF;
   ${predecessorCheck}
 END $central_operator_guard$;
@@ -105,7 +159,7 @@ export async function run(args) {
   }
   // Do not inherit psqlrc or place SQL/credentials in arguments. All provider
   // diagnostics are captured and deliberately omitted from terminal output.
-  docker(['exec', '-i', container, 'psql', '-X', '-U', 'postgres', '-d', 'postgres',
+  docker(['exec', '-i', container, 'psql', '-X', '-U', 'supabase_admin', '-d', 'postgres',
     '-v', 'ON_ERROR_STOP=1', '-q'], prepared.sql);
   return `Applied ${prepared.version}; source checksum and schema committed atomically. SSO policy remains unchanged.`;
 }

@@ -52,6 +52,27 @@ test('operator lock bound wins after known source settings and before any databa
   }
 });
 
+test('provider ownership switches are bounded and ordinary DDL and ledger stay postgres', async () => {
+  for (const [index, migration] of migrations.entries()) {
+    const {sql} = prepareMigration(migration.file, await source(migration));
+    assert.match(sql, /session_user<>'supabase_admin'/);
+    assert.match(sql, /Unexpected provider ownership/);
+    const roles = [...sql.matchAll(/^SET LOCAL ROLE (\w+);$/gm)].map(match => match[1]);
+    assert.deepEqual(roles, index === 0
+      ? ['postgres','supabase_admin','postgres','supabase_auth_admin','postgres','supabase_admin','postgres','developed_accounts','postgres','developed_accounts','postgres']
+      : index === 2 ? ['postgres','supabase_auth_admin','postgres'] : ['postgres','supabase_admin','postgres','developed_accounts','postgres','developed_accounts','postgres']);
+    for (const match of sql.matchAll(/SET LOCAL ROLE (supabase_admin|supabase_auth_admin);\n([\s\S]*?)SET LOCAL ROLE postgres;/g)) {
+      if (index === 1) {
+        assert.match(match[2], /^create or replace function accounts.app_request_allowed/);
+        assert.match(match[2], /alter function accounts.app_request_allowed\(text\) owner to developed_accounts;\n$/);
+      } else if (match[1] === 'supabase_admin') {
+        assert.ok(['grant usage on schema auth to developed_accounts;\n',
+          'alter function accounts.app_request_allowed(text) owner to developed_accounts;\n'].includes(match[2]));
+      } else assert.doesNotMatch(match[2], /\b(?:create (?:table|function|schema|role)|alter|insert|update|delete)\b/i);
+    }
+  }
+});
+
 test('CLI sanitizes failure output without SQL or operator inputs', () => {
   assert.throws(() => execFileSync(process.execPath,
     [script, '--migration', 'untrusted-secret-input', '--apply'], { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }), error => {
@@ -68,7 +89,7 @@ test('isolated PostgreSQL proves atomic schema/ledger commit, rollback and order
   const docker = (args, input) => execFileSync('docker', args, {
     input, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], timeout: 30000,
   }).trim();
-  const sql = value => docker(['exec', '-i', container, 'psql', '-X', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-Atq'], value);
+  const sql = value => docker(['exec', '-i', container, 'psql', '-X', '-U', 'supabase_admin', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-Atq'], value);
   let created = false;
   t.after(() => {
     if (!created) return;
@@ -77,7 +98,8 @@ test('isolated PostgreSQL proves atomic schema/ledger commit, rollback and order
   });
   docker(['run', '--pull=never', '-d', '--name', container, '--network', 'none',
     '--memory', '192m', '--cpus', '0.5', '--pids-limit', '100',
-    '--label', 'developed.central.migration.test=true', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', 'postgres:17-alpine']);
+    '--label', 'developed.central.migration.test=true', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust',
+    '-e', 'POSTGRES_USER=supabase_admin', '-e', 'POSTGRES_DB=postgres', 'postgres:17-alpine']);
   created = true;
   for (let attempt = 0;; attempt++) {
     try {
@@ -90,6 +112,9 @@ test('isolated PostgreSQL proves atomic schema/ledger commit, rollback and order
   }
   // Minimal credential-free shape, not a provider or production restore fixture.
   sql(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;
+    CREATE ROLE postgres LOGIN CREATEROLE CREATEDB BYPASSRLS;
+    GRANT CREATE ON DATABASE postgres TO postgres;
+    CREATE ROLE supabase_auth_admin NOLOGIN;
     CREATE SCHEMA auth; CREATE SCHEMA core;
     CREATE TABLE auth.users(id uuid PRIMARY KEY,email text,email_confirmed_at timestamptz,created_at timestamptz);
     CREATE TABLE auth.sessions(id uuid PRIMARY KEY,user_id uuid,created_at timestamptz,not_after timestamptz,oauth_client_id uuid,aal text);
@@ -99,7 +124,17 @@ test('isolated PostgreSQL proves atomic schema/ledger commit, rollback and order
     CREATE TABLE core.apps(id text PRIMARY KEY,status text,deleted_at timestamptz);
     CREATE TABLE core.app_access(id text PRIMARY KEY,user_id uuid,app_id text,role text);
     CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS 'SELECT NULL::uuid';
-    CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql AS 'SELECT ''{}''::jsonb';`);
+    CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql AS 'SELECT ''{}''::jsonb';
+    ALTER SCHEMA auth OWNER TO supabase_admin;
+    GRANT USAGE ON SCHEMA auth TO supabase_auth_admin,postgres;
+    ALTER TABLE auth.users OWNER TO supabase_auth_admin;
+    ALTER TABLE auth.sessions OWNER TO supabase_auth_admin;
+    ALTER TABLE auth.oauth_authorizations OWNER TO supabase_auth_admin;
+    ALTER TABLE auth.mfa_factors OWNER TO supabase_auth_admin;
+    ALTER SCHEMA core OWNER TO postgres;
+    ALTER TABLE core.profiles OWNER TO postgres;
+    ALTER TABLE core.apps OWNER TO postgres;
+    ALTER TABLE core.app_access OWNER TO postgres;`);
   const apply = item => run(['--migration', item.file, '--container', container, '--apply']);
   await assert.rejects(apply(migrations[1]));
   assert.equal(sql("SELECT to_regnamespace('accounts') IS NULL"), 't');
@@ -119,6 +154,13 @@ test('isolated PostgreSQL proves atomic schema/ledger commit, rollback and order
   assert.equal(sql("SELECT count(*) FROM information_schema.columns WHERE table_schema='accounts' AND table_name='sessions' AND column_name IN ('mfa_pending','mfa_enrollment_id')"), '2');
   assert.equal(sql("SELECT registration_mode FROM accounts.settings"), 'closed');
   assert.equal(sql("SELECT has_column_privilege('developed_accounts','auth.mfa_factors','secret','SELECT')"), 'f');
+  assert.equal(sql("SELECT has_schema_privilege('developed_accounts','auth','USAGE')"), 't');
+  assert.equal(sql("SELECT bool_and(pg_get_userbyid(relowner)='postgres') FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='accounts' AND c.relkind='r'"), 't');
+  assert.equal(sql("SELECT pg_get_userbyid(proowner) FROM pg_proc WHERE oid='accounts.app_request_allowed(text)'::regprocedure"), 'developed_accounts');
+  assert.equal(sql("SELECT rolsuper FROM pg_roles WHERE rolname='postgres'"), 'f');
+  assert.equal(sql("SELECT has_function_privilege('authenticated','accounts.app_request_allowed(text)','EXECUTE') AND NOT has_function_privilege('anon','accounts.app_request_allowed(text)','EXECUTE')"), 't');
+  assert.equal(sql("SELECT NOT EXISTS(SELECT FROM pg_proc p,LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl WHERE p.oid='accounts.app_request_allowed(text)'::regprocedure AND acl.grantee=0 AND acl.privilege_type='EXECUTE')"), 't');
+  assert.equal(sql("BEGIN; SET LOCAL ROLE authenticated; SELECT accounts.app_request_allowed('unknown-app'); ROLLBACK;"), 'f');
   await assert.rejects(apply(migrations[2]));
   sql(`DELETE FROM accounts.deployment_migrations WHERE version='${migrations[2].version}';
     UPDATE accounts.deployment_migrations SET source_sha256=repeat('0',64) WHERE version='${migrations[0].version}';`);

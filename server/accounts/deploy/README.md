@@ -14,6 +14,10 @@ required resource to the affected app and document why.
 
 ## Runbooks and tests
 
+- `central-runtime-guards.md`: installed durable central-environment selection
+  and additive startup guards for all six host apps. Future instances must not
+  select retained legacy credentials.
+
 - `runtime-isolation.md`: observed topology, immutable releases, credential
   boundaries, side-by-side cutover and rollback obligations.
 - `ecosystem-app@.service`: host Node application template, not a full deployment.

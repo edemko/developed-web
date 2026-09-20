@@ -230,6 +230,12 @@ a stable central environment and guard templates/new instances against legacy
 rollback. Do not generalize these private overrides or change the templates as
 part of this checkpoint.
 
+This remaining selection issue was subsequently addressed by the coordinator's
+separate reviewed `f29d5b3` operation: template/standalone production drop-ins now
+select the same central artifacts for future instances and add a central-mode
+startup guard. See [durable selection](../deploy/central-runtime-guards.md).
+No existing process restarted and no legacy source env changed in that operation.
+
 ## Verified private checkpoint — 2026-09-20
 
 Reviewed runbook commit `8e6bc6e` preceded all host writes. The immutable

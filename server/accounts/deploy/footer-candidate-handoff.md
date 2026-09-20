@@ -110,3 +110,76 @@ read-only inventory; recheck immediately before any installation/start.
 A bind-update response or route reload with ambiguous status requires read-only
 reconciliation, not an automatic retry or broad rollback. Neither staging nor
 this footer change authorizes new users, registration, mail or data mutations.
+
+## Observed protected preparation
+
+Preparation commit `6c9b00f` was pushed with `[no deploy]` and installed under
+`/opt/developed-operators/footer-candidates-6c9b00f`. Its one approved `--stage`
+completed. All five proposed/recovery files are root:root0600, nlink1, in the
+root0700 backup directory; both full generated units pass systemd syntax checks.
+No live unit, environment, bind map, packet rule or Caddy file was changed.
+The before/proposed bind hashes are `dce4e0c6…` / `aebabfc8…`; packet config
+`fd2d25e6…` and Caddy `501bbc47…` were unchanged. These shortened hashes are
+labels only; the protected proof and operators use complete hashes.
+
+## Next operator — source only, separate review required
+
+`apply-footer-candidates.mjs` proposes distinct one-shot `--install <slug>`,
+`--bind`, and `--start <slug>` phases. It must not be run until reviewed and
+explicitly approved. It has no Caddy, enable, old-unit stop/restart or data-delete
+phase. Protected attempt receipts precede writes; partial failure stops without
+retry/automatic rollback. New root modules include the independent
+`footer-candidate-probe.mjs`, `footer-bind-check.mjs` and reviewed preparation module.
+
+Complete runtime payload manifests now include all `.next` files except mutable
+cache, plus public/i18n/package/config files; dependency manifests cover every
+existing immutable dependency file and internal symlink. Exact pinned inventories:
+
+| App | Payload files/hash | Dependency entries/hash |
+| --- | --- | --- |
+| Vocabulum | 528 / `d37f24c6013f7aa7739b1e2b72e309781396d5244979783907ba84dc4b09c463` | 45554 / `093b1105788080d95eb864dffa30036b0aab53f038fae3a6fa2d38fb2bf3f487` |
+| Airsoft | 370 / `f100ad5c076f9695605b1ea2d17ca696c18736c2f5151ddc54b2de6423345abb` | 29688 / `2a038e466c99903732e9d4cdbd0a84ecd811dec3bbf12da434b9c96ff2dc9330` |
+
+The installer checks the exact manifests before creating release paths, compares
+every copied byte, hardlinks only unchanged root-owned dependency files, rejects
+escaping dependency symlinks, and emits an installed manifest with an explicit
+separate-cache exception. Startup rechecks those files, unit bytes and guard hash.
+The current prestart guard was independently inspected: it checks slug→UID,
+central mode and absence of legacy/service-role/mail credentials, not any old
+unit/release/port; the installer also rejects unexpected old-port/unit pins.
+
+Proposed start qualification checks the actual UID/GID and the candidate mount
+namespace: protected-file denials, writable own cache, rejected3199 bind and
+rejected connections to8000/3141/5432/2019/9000. It then checks the unrouted login
+page/footer, exactly one PID-owned IPv4-loopback listener, zero restarts, unchanged
+old serving PIDs, and unchanged Caddy/packet policy. These are pending operational
+checks, not claims that a new candidate is running.
+
+### Socket hardening and exact bind acceptance (pending execution)
+
+The original staged proof and unit files remain immutable evidence. Installation
+derives a new unit by appending nonoptional `InaccessiblePaths=/run/tailscale`
+and `After=tailscaled.service`, with no Wants/Requires daemon dependency. The
+separate `*-hardened.service` and `*-hardened-unit.json` receipt record original
+and derived hashes; neither staging nor the old proof is overwritten. Existing
+masks/guards/hardening remain additive. Actual candidate mount-namespace probing
+requires `/run/tailscale` to be a root:root mode000 directory and an actual Unix
+connect attempt to fail EACCES/EPERM; ENOENT or a Docker read-access test is not
+accepted as Tailscale denial. No LocalAPI payload is sent.
+
+Before and after the bind-map replacement, `footer-bind-check.mjs` creates only
+new disconnected network namespaces, checks they differ from the host, brings
+up only their own loopback, then drops to each retained protected UID/GID. The
+host's cgroup bind policy still applies. Every original owner's fixed IPv4
+loopback port must bind successfully in that empty namespace, avoiding collisions
+with live host listeners. Before replacement all protected UIDs must be denied
+3171/3172; afterward only UID985 may bind3171 and UID9863172. All other protected
+UIDs are denied both, and IPv6 binds of the new ports remain denied for everyone.
+Each transient listener closes immediately. This complements actual serving-PID
+preservation and subsequent new candidate PID/listener checks; it neither changes
+host packet rules nor opens a new host listener during the permission test.
+
+All mount/network-namespace fixtures, transient jobs, installs, binds and starts
+must wait for the socket coordinator's quiet-window release. Ten source tests
+pass, including additive unit derivation, mode000 socket-directory requirements
+and the pre/post bind matrix; live permission checks are not yet claimed.

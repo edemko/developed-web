@@ -1,5 +1,9 @@
 # Closed app SQL staging operator — 2026-09-20
 
+Subsequent reviewed production application is now recorded in the
+[live closed app SQL checkpoint](ecosystem-app-sql-checkpoint-20260920.md).
+The remainder of this document records the preceding source/restore qualification.
+
 The separate [app operator](../server/accounts/operators/apply-app-migration.mjs)
 has passed disconnected rehearsals against fresh copies of the verified
 [physical checkpoint](ecosystem-db-checkpoint-20260920.md). This is source and

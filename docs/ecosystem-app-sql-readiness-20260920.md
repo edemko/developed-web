@@ -4,6 +4,8 @@ This is the pre-operator inventory. Subsequent owner-aware closed staging and
 physical-backup rehearsal are recorded in the
 [app SQL operator qualification](ecosystem-app-sql-operator-20260920.md).
 That qualification does not itself apply production app SQL.
+The subsequent authorized apply and live verification are recorded in the
+[closed app SQL checkpoint](ecosystem-app-sql-checkpoint-20260920.md).
 
 The three central foundation migrations are applied, as recorded in the
 [database checkpoint](ecosystem-db-checkpoint-20260920.md). The remaining app SQL

@@ -1,7 +1,7 @@
-# Separate central mail worker — staged, inactive
+# Separate central mail worker — active after reviewed start
 
-The reviewed worker is installed but disabled/inactive. A separate read-only
-database-role verification succeeded; no worker tick or mail send was invoked.
+The production start checkpoint at the end supersedes the original staging state
+below. The reviewed worker is now active/enabled after explicit coordinator GO.
 The existing central API continues
 on loopback3140 with its current process and `ACCOUNTS_MAIL_ENABLED=false`.
 Starting the new worker is an explicit mail-delivery activation and needs the
@@ -142,3 +142,27 @@ Final unit evidence: central API active/enabled, PID3197193, NRestarts0 unchange
 mail worker inactive/disabled, PID0, NRestarts0. Actual worker namespace/protected
 file-denial/listener checks and delivery checks remain pending an explicit
 start/send authorization. No delivery success is claimed by this staging.
+
+## Production start checkpoint — 2026-09-20
+
+After all-seven security closure, Odonto paired promotion and canonical human
+ingress activation, the coordinator verified the pending outbox was empty
+(total0), passed the existing startup guard and explicitly started/enabled
+`developed-accounts-mail-worker.service`. The worker's read-only runtime-role gate
+passed and its fixed readiness line was observed. PID700440 runs as UID988/GID982,
+with NoNewPrivileges and effective capabilities0, no socket listeners, protected
+path denials and actual Tailscale socket EACCES.
+
+Central API PID3197193/NRestarts0 remains unchanged with its own mail flagfalse;
+Caddy PID862 is unchanged. No new account, queued message or actual delivery had
+been produced at this start checkpoint. Starting on an empty queue is not inbox
+delivery proof. The approved new-account test recipient is
+`skillhackmt2@gmail.com`; registration remains separately closed until its next
+approved admission step. Successful owner MFA may normally queue the owner's
+security notification, and this worker processes all eligible queued messages,
+not an address allowlist. Never inspect/decrypt an outbox credential to substitute
+for real receipt and owner-controlled confirmation of the email.
+
+At 21:12 UTC the coordinator's follow-up four aggregate outbox counters were
+still `0/0/0/0`; no delivery or new-account confirmation is claimed. The owner
+has been asked to perform MFA manually, but completion is not yet recorded.

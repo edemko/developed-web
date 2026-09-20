@@ -1,6 +1,7 @@
 # Fixed first central owner bootstrap
 
-Status: prepared and isolated-tested; no production staging or promotion yet.
+Status: production bootstrap applied once after coordinator approval; owner MFA
+and human-login acceptance remain pending. Do not replay the bootstrap.
 
 The user explicitly confirmed the existing central owner email
 `erik.demko162@gmail.com`, Auth/core UUID
@@ -65,3 +66,25 @@ The disposable PostgreSQL fixture is network-none with synthetic rows only. It
 checks one role change/one audit, unchanged profile and synthetic password,
 replay rejection, and fail-closed trigger drift. Existing MFA tests establish
 restricted first login and AAL2 enforcement without any real login or factor.
+
+## Production checkpoint — 2026-09-20
+
+Reviewed source commit `1966d5d` was pushed with `[no deploy]`. The exact operator
+was installed root-owned, mode0444 at
+`/opt/developed-control/central-superadmin-1966d5d/bootstrap-central-superadmin.mjs`,
+SHA-256 `bccd1ce80feb587c44499b1df9d87b8e713f1263cea26f1364e558351fb26528`.
+The pinned Node22 runtime completed `--stage`; the coordinator subsequently
+executed `--apply` exactly once after the socket-boundary closure passed.
+
+The transaction and semantic postcheck succeeded: one exact owner profile changed
+from `USER` to `SUPERADMIN`, and one audit entry was added. Passwords, MFA factors,
+sessions, product-local roles, mail, registration and human ingress were unchanged.
+All other profile fields were preserved. Mandatory MFA still applies to the first
+owner login; promotion is not evidence of enrollment or authenticated access.
+
+Protected evidence is in root-0700
+`/var/backups/developed-central-superadmin-20260920/`, with root-0600
+`before.json`, `proof.json`, `attempt.json` and `verified.json`. Do not print the
+private owner snapshot or rerun the one-shot apply. Isolated SQL plus existing
+MFA tests passed13/13 before installation. No test account or confirmation email
+was created by this operation.

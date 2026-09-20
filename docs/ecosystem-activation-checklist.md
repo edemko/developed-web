@@ -1,5 +1,70 @@
 # Central activation dependency checklist
 
+## Superseding coordinator checkpoint — 2026-09-20, 21:11 UTC
+
+Human SSO is now **on**, registration remains **closed**, and the separate
+central mail worker is **active/enabled**. This checkpoint supersedes conflicting older
+deployment statements below; it does not claim completed human/device acceptance.
+
+- The six VPS central-mode serving routes and exact predecessor retirement remain
+  complete. All seven app policies enforce central clients, KešTrek's raw-token
+  ACL cutover is applied, and the API tunnel uses the restricted gateway.
+- The full public gateway matrix passed **50/50**, including five scoped own-data
+  HEAD200 checks, twenty cross-app403 checks, old service-role denial and protected
+  Studio. It passed again after socket closure. Otázkomat's missing exposed schema
+  was corrected with no grants or application-row changes and no REST restart;
+  the committed transaction was reconciled read-only, never replayed. See the
+  [gateway checkpoint](../server/accounts/deploy/gateway-acceptance-20260920.md).
+- Tailscale control-socket isolation is verified across eight changed live
+  namespaces, two preserved directory masks and twelve durable future-start
+  restrictions, without service restarts. Coordinator public checks also passed
+  eight targets across forty rounds. See the
+  [socket boundary](../server/accounts/deploy/tailscale-runtime-socket-closure.md).
+- The user-confirmed existing owner `erik.demko162@gmail.com` is now central
+  `SUPERADMIN`: the exact UUID bootstrap changed one profile role and added one
+  audit entry, preserving passwords, MFA, sessions and product roles. First login
+  still requires MFA. See the
+  [bootstrap checkpoint](../server/accounts/operators/central-superadmin-bootstrap.md).
+- Vocabulum's 26 old executable Vercel deployments remain retired. Odonto's
+  backend-then-frontend promotion completed successfully in run `35537483300`
+  at 21:03:42 UTC, source `b13c148f89209387101a19651cddc67ca332c9a3`. Canonical
+  backend and frontend health passed independently; all four immutable/automatic
+  deployment URLs retain protected302 responses. Both temporary promotion
+  variables were removed, leaving only the disabled staging variable.
+- The user selected the actual new-account test mailbox **skillhackmt2@gmail.com**,
+  not a Gmail-tagged address; its prior scoped check found no existing identity.
+  No test account, confirmation message or owner MFA enrollment had been reported
+  at this checkpoint.
+- The reviewed human ingress was applied once from
+  `/opt/developed-operators/human-portal-3f417bc`; its root proof is
+  `/var/backups/developed-human-portal-20260920/applied.json`. Caddy SHA is now
+  `3f49a9a881a51683a787d103d191911bb9bb842c058116fb2d846b04751b8a9c`.
+  Anonymous Chromium verified marketing200, login200 with its central form,
+  closed-registration200 without credential fields, and profile/security/apps
+  redirecting to login. Portal responses are private/no-store; local/session
+  storage stayed empty, with no login/signup or mutation request attempted.
+  The test hostname's login remains404.
+- All seven actual product registration entry points reached the central closed
+  registration page in Chromium, with no visible legacy credential fields and
+  no mutation requests. Airsoft uses `/sk/signup`; the initial `/en/signup`
+  probe used an unsupported locale and was corrected without any source change.
+- The separate central mail worker started with empty outbox and passed its
+  actual runtime-role gate, socket/secret denials and no-listener checks. Its
+  PID is 700440, UID988/GID982; central API PID3197193 and Caddy PID862 are unchanged.
+  API-owned mail remains disabled. See the
+  [mail-worker checkpoint](../server/accounts/deploy/central-mail-worker.md).
+  At 21:12 UTC the coordinator's four aggregate outbox counters remained
+  `0/0/0/0`. The owner was asked to complete MFA manually; completion has not
+  been reported. Authenticated seven-app SSO and new-registration email
+  confirmation are not yet proven.
+
+Next: owner TOTP, controlled public-registration admission and real mailbox delivery
+and confirmation, signed-in picker/seven-app flows, genuine MCP access and physical
+Android install/browser-return acceptance remain to be performed. Preserve the
+existing legal-draft publication restrictions; this checkpoint publishes no legal
+claims or placeholders. Footer routing is a separate following change; do not
+reuse a pre-human Caddy configuration for it.
+
 ## Superseding coordinator checkpoint — 2026-09-20, 20:15 UTC
 
 Human SSO remains off and registration closed. The following supersedes older

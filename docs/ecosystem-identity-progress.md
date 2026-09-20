@@ -1,8 +1,9 @@
 # Ecosystem identity implementation progress
 
 Started 2026-09-20 at the owner's request. Central SSO remains inactive: no live
-account mutations, migrations, secret changes or session revocation. Source was
-pushed at the owner's subsequent request; see the publication note below.
+central-identity migration, account mutation, secret change or session revocation.
+Source was pushed, and Mega's account/web-player release was deployed separately
+with existing login retained; see the publication/production notes below.
 
 ## Work streams
 
@@ -52,7 +53,7 @@ pushed at the owner's subsequent request; see the publication note below.
 - Screen Time staged cookie/BFF parent operations and restrictive data policies,
   separate device-owner lock checks, preserved device credentials. Verification
   results are recorded below; its production integration remains disabled.
-- Staged systemd/Caddy templates and recovery/cutover documentation; no deployment.
+- Central systemd/Caddy templates and recovery/cutover documentation remain staged.
 
 ## Verified so far (2026-09-20)
 
@@ -79,7 +80,8 @@ pushed at the owner's subsequent request; see the publication note below.
   while unknown administrative/gateway failures and outages remain 503. Offline
   regression coverage preserves that distinction; codes follow the
   [provider error-code contract](https://supabase.com/docs/guides/auth/debugging/error-codes).
-- Mega Music: 59 tests passed, one live integration test skipped; Caddy validated.
+- Mega Music: 59 tests passed, two opt-in tests skipped in the default suite;
+  separate migration rehearsal passed. Caddy and public login-page smoke passed.
 - KešTrek: 679 backend and 120 browser tests passed; TypeScript checks passed.
   Product migration/grant checks passed in a separate disposable database.
 - Screen Time: 25 offline tests, TypeScript and isolated Chromium BFF smoke
@@ -134,8 +136,8 @@ test results and remaining gaps; do not equate source changes with deployment.
 ## Commit/push and publication follow-up (2026-09-20)
 
 - Pushed `92360bd` (portal), `39273a8` (KešTrek), and `6cace5f` (Screen Time)
-  to their `origin/main`. Mega Music awaits the owner's decision about earlier
-  uncommitted web-player prerequisites interleaved with its SSO integration.
+  to their `origin/main`. The owner subsequently approved including Mega Music's
+  prerequisite web-player work and requested production deployment with no downtime.
 - Clean `npm ci --ignore-scripts` and real packaged OIDC imports passed in three
   standalone disposable directories. Each product archive contains only the
   reviewed helper source, package manifest and README, not a sibling symlink.
@@ -161,3 +163,37 @@ test results and remaining gaps; do not equate source changes with deployment.
   origin homepage probes return 200, while backend/config probes return 404.
   Shared auth/proxy configuration was not changed. No central login activation
   or full browser acceptance is claimed.
+
+### No-downtime production request: checked constraints
+
+- Mega's current deployment receiver swaps a shared release path and restarts
+  both account and Python services. Its live release currently resolves to the
+  dirty development checkout; packaging only committed HEAD would roll back the
+  excluded newer Python/playlist and landing-page work. The approved SSO/player
+  commit uses `[no deploy]`, a workflow guard that retains CI tests but skips the
+  old SSH/package/restart deployment steps. A separate health-checked release and
+  graceful proxy switch must precede production activation.
+- Read-only recheck confirms GoTrue 2.189.0 still has OAuth disabled, and generic
+  public Auth routes still serve native KešTrek and other platform applications.
+  A same-key/database sidecar avoids a process restart but does not isolate its
+  delegated tokens from legacy password/factor APIs. Secure closure requires
+  coordinated migration of the affected consumers and private control-plane
+  access separation. Scope approval was requested; no shared services restarted.
+- KešTrek's marked raw-token cutover must not be applied while its current native
+  client is supported. Before Screen Time restrictive policies are applied, seed
+  its `accounts.app_settings` row with `enforce_oidc=false`; a missing row denies
+  access, not legacy-compatible access. Neither migration was applied live.
+- All four public entry pages returned HTTP 200 during these checks. This is
+  a point-in-time availability observation, not proof of completed SSO or an
+  absolute future uptime guarantee. Registration/publication remain inactive.
+- The owner approved expanding scope to affected auth integrations. Read-only
+  inventory also identified Otázkomat and managed school identities in Vocabulum;
+  see the shared-cutover inventory. Native KešTrek needs an updated installed
+  binary, so the owner's actual Android/iOS/web usage was requested before
+  choosing distribution/signing work. Existing clients have not been blocked.
+- Mega `d3f7721` is now pushed and deployed as an immutable accounts-only green
+  release on `3138`; central mode remains false. Backed up relevant schemas and
+  applied only the missing web-player prerequisite migration. Caddy was reloaded
+  gracefully; the old account process and Python/landing files were untouched.
+  Public browser smoke passed; 330 health probes observed zero failures during
+  cutover. Detailed record: `mega-media-player/docs/ecosystem-deployment.md`.

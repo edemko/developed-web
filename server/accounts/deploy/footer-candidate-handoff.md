@@ -1,13 +1,15 @@
-# Vocabulum/Airsoft footer follow-up — builds ready, no live handoff
+# Vocabulum/Airsoft footer follow-up — candidates qualified, routes unchanged
 
-This is a UI-only follow-up to the central-auth runtime cutover. The public
-units, central environment files, bind/packet policies and Caddy remain unchanged.
-Do not switch these routes until the coordinator finishes the separately staged
-gateway/Odonto/human-portal work; a premature Caddy change invalidates its guards.
+This is a UI-only follow-up to the central-auth runtime cutover. Both new
+unrouted candidates are qualified; the exact own-UID bind additions are applied.
+The old serving units, central environment files and packet policy are unchanged.
+The coordinator separately opened the human portal before final candidate
+qualification; this operator did not change Caddy. Route changes require their
+own reviewed handoff and approval. The final observed checkpoint is below.
 
 ## Pinned source and local qualification
 
-| App | Exact source | Future own-UID candidate | Current serving PID/port |
+| App | Exact source | Qualified own-UID candidate | Current serving PID/port |
 | --- | --- | --- | --- |
 | Vocabulum | `5833953287ee51be6b35225e87b88dfef69d2d97` | UID985/GID979, 127.0.0.1:3171 | PID4056033 / 3161 |
 | Airsoft | `1fcb452cf8bcb11505ad5250ac4d1ab55e06b57f` | UID986/GID980, 127.0.0.1:3172 | PID3542385 / 3162 |
@@ -122,7 +124,7 @@ The before/proposed bind hashes are `dce4e0c6…` / `aebabfc8…`; packet config
 `fd2d25e6…` and Caddy `501bbc47…` were unchanged. These shortened hashes are
 labels only; the protected proof and operators use complete hashes.
 
-## Next operator — source only, separate review required
+## Candidate operator — separate approval per phase
 
 `apply-footer-candidates.mjs` proposes distinct one-shot `--install <slug>`,
 `--bind`, and `--start <slug>` phases. It must not be run until reviewed and
@@ -148,14 +150,14 @@ The current prestart guard was independently inspected: it checks slug→UID,
 central mode and absence of legacy/service-role/mail credentials, not any old
 unit/release/port; the installer also rejects unexpected old-port/unit pins.
 
-Proposed start qualification checks the actual UID/GID and the candidate mount
+Start qualification checks the actual UID/GID and the candidate mount
 namespace: protected-file denials, writable own cache, rejected3199 bind and
 rejected connections to8000/3141/5432/2019/9000. It then checks the unrouted login
 page/footer, exactly one PID-owned IPv4-loopback listener, zero restarts, unchanged
-old serving PIDs, and unchanged Caddy/packet policy. These are pending operational
-checks, not claims that a new candidate is running.
+old serving PIDs, and unchanged Caddy/packet policy. The current implementation
+waits for HTTP readiness before checking process identity and mount isolation.
 
-### Socket hardening and exact bind acceptance (pending execution)
+### Socket hardening and exact bind acceptance
 
 The original staged proof and unit files remain immutable evidence. Installation
 derives a new unit by appending nonoptional `InaccessiblePaths=/run/tailscale`
@@ -180,6 +182,74 @@ preservation and subsequent new candidate PID/listener checks; it neither change
 host packet rules nor opens a new host listener during the permission test.
 
 All mount/network-namespace fixtures, transient jobs, installs, binds and starts
-must wait for the socket coordinator's quiet-window release. Ten source tests
-pass, including additive unit derivation, mode000 socket-directory requirements
-and the pre/post bind matrix; live permission checks are not yet claimed.
+waited for the socket coordinator's quiet-window release. Ten source tests pass,
+including additive unit derivation, mode000 socket-directory requirements and
+the pre/post bind matrix.
+
+## Observed unrouted qualification — 2026-09-20
+
+The reviewed phases completed with exclusive protected receipts under
+`/var/backups/developed-footer-candidates-20260920`. The initial Vocabulum install
+stopped after writing the complete artifact because the unit reported `static`,
+not `disabled`. An explicitly reviewed receipt-only reconciliation verified the
+complete installation; the install was not replayed or its staged bytes amended.
+Airsoft installation then completed normally. These units have no `[Install]`
+section: `static` is a valid unenabled candidate, not evidence of boot selection.
+After a successful future route handoff, boot selection requires an exact trusted
+`multi-user.target.wants` symlink; do not claim `systemctl enable` worked.
+
+The first disconnected bind fixture stopped before any bind attempt receipt or
+map change because its dropped UID could not read the host namespace identity.
+Commit `cf43d5b` moved that identity read into the root parent, which pins distinct
+host/isolated identities; the child checks only its own readable namespace.
+The corrected standalone before-fixture passed, followed by the one-shot bind
+phase and both permission matrices. Current bind-config SHA256 is
+`aebabfc82c832115be917cb530f82e1bc089666818d5c5241125d9052db9c4b9`.
+No host sysctl or packet-rule change was made.
+
+The initial Vocabulum start created PID723605 but stopped without a completion
+receipt or a recorded failure phase. Its cause remains **unproven**. Commit
+`fc0e68f` added fixed nonsecret failure labels, readiness-first qualification,
+and a receipt-only `--verify-start-voc` mode pinned to that exact existing PID.
+The immutable bundle `/opt/developed-operators/footer-apply-fc0e68f` passed that
+verification once without starting/restarting or changing any unit. The subsequent
+normal Airsoft start completed once with the same qualification checks.
+
+| Candidate | PID | UID/GID | Only TCP listener | Restarts / boot state |
+| --- | --- | --- | --- | --- |
+| Vocabulum | 723605 | 985/979 | 127.0.0.1:3171 | 0 / static, unenabled |
+| Airsoft | 767388 | 986/980 | 127.0.0.1:3172 | 0 / static, unenabled |
+
+Both `*-started.json` receipts include the pinned revision/PID. Full installed
+artifact and guard checks, actual UID/GID, own-cache access, protected-file and
+private-peer denials, the mandatory mode000 Tailscale directory and denied Unix
+connect, HTTP200 footer readiness and exact PID-owned listener checks passed.
+The Vocabulum receipt records its reconciliation and unproven initial cause.
+Old serving PIDs4056033 and3542385 remained active/enabled with zero restarts.
+The final Caddy SHA256 remained
+`3f49a9a881a51683a787d103d191911bb9bb842c058116fb2d846b04751b8a9c`;
+packet policy and both protected EnvironmentFiles were unchanged from each phase's
+checkpoint. No route reload, boot-selection change, old-unit stop, artifact/cache
+deletion, real sign-in or product-data mutation was performed by these phases.
+
+### Read-only boot/drain review; execution still pending
+
+Each old green unit has exactly one boot link across `/etc/systemd/system` and
+`/run/systemd/system`: its root-owned `multi-user.target.wants` link targets the
+exact `/etc/systemd/system/developed-<slug>-green.service`. Both old units have
+empty RequiredBy/PartOf/TriggeredBy; both new units also have empty WantedBy.
+The installed `systemctl` supports `add-wants`, independently of `[Install]`.
+After separately approved route and browser acceptance, capture the current
+links/fragments/PIDs, add only the two footer units to `multi-user.target` using
+`systemctl add-wants` without `--now` or `--force`, and verify each exact trusted
+symlink plus unchanged running PIDs. No unit rewrite is needed.
+
+Before disabling/stopping either exact old green unit, require both IPv4/IPv6
+socket inventories for its old port3161/3162 to contain only LISTEN/TIME_WAIT;
+drain other accepted connections first. At this review both ports showed only
+LISTEN. Disable and stop one old unit at a time, keeping every old artifact,
+cache and environment for recovery. Their stop behavior is control-group SIGTERM
+with a60-second timeout and no ExecStop; no reverse stop-propagation dependency
+was present. Require PID0/ControlPID0, no old listener, unchanged new PIDs and
+public health afterward. Any unexpected failed state requires read-only
+reconciliation, not a reset-failed, restart, deletion or broadened retry.

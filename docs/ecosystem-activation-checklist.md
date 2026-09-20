@@ -1,5 +1,41 @@
 # Central activation dependency checklist
 
+## Superseding coordinator checkpoint — 2026-09-20, 19:40 UTC
+
+Public human SSO is still off; central registration is closed and mail disabled.
+The checkpoints below are historical where they conflict with these facts:
+
+- All seven apps are now published/reportable with free joining, but
+  `enforce_oidc=false`. Actual ScreenTime/KešTrek runtime-UID owner checks passed.
+  This enables preserved device/integration checks, not public human login.
+  See the [policy checkpoint](../server/accounts/operators/final-policy-cutover.md).
+- The local OAuth/data gateway is installed and tested. The public shared API
+  tunnel still reaches legacy Kong; its reviewed exact-change operator is staged
+  as source only. No Cloudflare PUT has occurred.
+- All six host candidates remain private; public product routes and predecessors
+  are unchanged. Immutable KešTrek/Otázkomat static artifacts are ready. Durable
+  central-environment/startup guards now cover current and future service
+  instances; this does not boot-enable them or qualify authenticated access.
+- The owner-approved KešTrek development preview is stopped and disabled, with
+  its unit definitions backed up. Production KešTrek remains unchanged. Its
+  final MCP state handoff, scoped self-API permission and old-runtime retirement
+  are separate pending operations.
+- Vocabulum's public Vercel alias now serves a function-free static browser
+  handoff. Actual HTTP and Chromium checks confirm a fixed canonical destination
+  without forwarding query credentials, fragments or Referer. The exact 26 old
+  executable deployments still require retirement; alias protection alone is
+  not complete closure. Follow its dedicated runbook for the current artifact.
+- Odonto's paired promotion operator passed read-only CI inspection
+  `35532291735`. Candidates are READY and protected; canonical bindings remain
+  on the old deployments. Temporary testing bypasses are revoked.
+
+Remaining sequence: finish remote retirement and MCP handoff, switch the six
+host products and retire their predecessors, enforce app/client data access,
+switch and verify the exact shared API tunnel, promote the Odonto pair, then
+verify full security closure before admitting human SSO. Owner MFA, Android
+installation and registration/confirmation/picker/seven-app acceptance remain
+untested. No test account or confirmation email has been created.
+
 ## Current coordinator checkpoint — 2026-09-20, after 18:28 UTC
 
 Owner decisions received after this checkpoint:

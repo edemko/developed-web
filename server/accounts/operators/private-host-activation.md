@@ -293,5 +293,8 @@ restart. This establishes recovery/current health, not a zero-interruption claim
 No public config/restart was used in response to that observation.
 
 No real sign-in, OAuth start flow, mail, device ingestion, data mutation, migration,
-MCP operation, static publication or public SSO switch was performed. Central
-policy gates remain under the coordinator's separate read-only verification.
+MCP operation, static publication or public SSO switch was performed. The
+coordinator's separate final read-only checks confirmed one central settings row
+with registration closed; all seven app settings unpublished, unreportable,
+`enforce_oidc=false` and join policy closed; zero `accounts.outbox` rows; zero
+`accounts.sessions` rows; and protected central `ACCOUNTS_MAIL_ENABLED=false`.

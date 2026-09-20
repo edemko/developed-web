@@ -199,7 +199,43 @@ rollback to an executable legacy identity endpoint.
 
 Tests use fixture-only requests and cover the source/credential gate, real-smoke
 assertions, alias/domain/protection preconditions, exact deletion targets and
-wrong-project refusal. No second-phase live request has been performed yet.
+wrong-project refusal.
+
+### Promotion attempt and read-only reconciliation
+
+The original-state capture completed at `2026-09-20T19:12:16.341Z` and remains
+protected in `/root/vocabulum-vercel-closure-before-20260920.json`. The subsequent
+direct promotion request returned HTTP422. It was not retried. Read-only
+reconciliation found the original production target unchanged, while
+`dpl_J2es9uhrzdS1fcxo7gAV1U4rRpZr` remained READY with a null target and no aliases.
+No public-verification receipt, alias reassignment, domain detachment or old
+deployment deletion followed. The safe error handler discarded the upstream
+body, so no specific upstream error code/message was retained.
+
+Vercel's [promotion implementation](https://github.com/vercel/vercel/blob/main/packages/cli/src/commands/promote/request-promote.ts)
+requires an existing production deployment for direct promotion, including an
+empty JSON request object. A preview promotion instead creates a new production
+deployment. The original request used a preview ID and omitted that object;
+these are supported-flow mismatches, not proof of the discarded error message.
+The next reviewed option is to submit the same two static files with
+`target=production` and `autoAssignCustomDomains=false`, corresponding to
+[deploy --prod --skip-domain](https://vercel.com/docs/cli/deploy#skip-domain),
+and qualify its new ID before any separate promotion. Do not retry the old
+preview-promotion phase.
+
+The corrective `stage-production` phase reuses the exact two-file payload and
+changes only the production target and disabled automatic domain assignment.
+It requires the original capture fingerprint, all 27 existing IDs, empty project
+and linked shared environment, unchanged canonical VPS behavior, and no existing
+production-stage record. The returned ID is saved exclusively to root:root0600
+`/root/vocabulum-vercel-static-production-stage-20260920.json` with file/directory
+fsync. `inspect-production` requires READY/production, no aliases, the exact
+28-ID set, matching submitted-file hashes, no application environment names or
+function/build/cron metadata, and unchanged serving state and canonical VPS.
+The safe preview artifact remains separately retained, outside the 26 approved
+credential-bearing retirement targets. Neither corrective phase promotes or
+changes aliases/domains. A new reviewed revision must pin the qualified
+production ID before direct promotion with JSON body `{}`.
 
 Follow [the complete inventory and closure runbook](../../../../docs/ecosystem-vocabulum-vercel-closure-20260920.md).
 Promotion of this routing artifact only neutralizes aliases assigned to it.

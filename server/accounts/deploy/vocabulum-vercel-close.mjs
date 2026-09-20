@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import https from 'node:https';
 import { pathToFileURL } from 'node:url';
 import { PROJECT, TEAM, OLD_IDS, ENV_NAMES, CONFIG_SHA256, snapshot,
-  servingFingerprint, assertStagedDeployment } from './vocabulum-vercel-operator.mjs';
+  servingFingerprint, assertStagedDeployment, buildStaticPayload } from './vocabulum-vercel-operator.mjs';
 
 export const STATIC_ID = 'dpl_J2es9uhrzdS1fcxo7gAV1U4rRpZr';
 export const STATIC_HOST = 'vocabulary-builder-cev55ut27-erik-demkos-projects.vercel.app';
@@ -18,6 +18,7 @@ const CAPTURE = '/root/vocabulum-vercel-closure-before-20260920.json';
 const VERIFIED = '/root/vocabulum-vercel-public-verified-20260920.json';
 const JOURNAL = '/root/vocabulum-vercel-retirement-journal-20260920.jsonl';
 const STAGE_RECORD = '/root/vocabulum-vercel-static-stage-20260920.json';
+const PRODUCTION_RECORD = '/root/vocabulum-vercel-static-production-stage-20260920.json';
 const FILE_HASHES = {
   'src/index.txt': 'ea08691d51a814e4385b826c44d56502ead6b3ad82abc1e5522c63eb6bc0f507',
   'src/vercel.json': 'dd9458aa4ce756a8284f3b122122ade6c4928f1884f4fdaa5ece1d6adc3eaaae',
@@ -40,8 +41,8 @@ async function privateCreate(path, data) {
   assert.deepEqual(await privateRead(path), data);
 }
 
-export function assertStaticMetadata(d) {
-  assert.equal(d.id, STATIC_ID); assert.equal(d.projectId, PROJECT); assert.equal(d.readyState, 'READY');
+export function assertStaticMetadata(d, expectedId = STATIC_ID) {
+  assert.equal(d.id, expectedId); assert.equal(d.projectId, PROJECT); assert.equal(d.readyState, 'READY');
   assert.equal(d.meta?.purpose, 'vocabulum-static-retirement-20260920');
   assert.equal(d.meta?.routingSha256, CONFIG_SHA256);
   for (const key of ['functions', 'builds', 'crons']) assert.ok(d[key] == null
@@ -70,8 +71,27 @@ export function assertPreserved(s, { promoted = false, aliasesMoved = false, det
   if (detached) assert.ok(!s.aliases.some((a) => a.alias === CANONICAL));
 }
 
-async function verifyFiles(api) {
-  const tree = await api(`/v6/deployments/${STATIC_ID}/files`);
+export function productionPayload(configText) {
+  return { ...buildStaticPayload(configText), target: 'production', autoAssignCustomDomains: false };
+}
+
+export function assertProductionStage(d, current, record) {
+  assert.equal(record.project, PROJECT); assert.equal(record.team, TEAM);
+  assert.equal(record.previewId, STATIC_ID);
+  assert.match(record.id, /^dpl_[a-zA-Z0-9]+$/);
+  assert.ok(![STATIC_ID, ...OLD_IDS].includes(record.id));
+  assertStaticMetadata(d, record.id);
+  assert.equal(d.target, 'production'); assert.deepEqual(d.alias, []);
+  assert.equal(record.autoAssignCustomDomains, false);
+  assert.equal(record.routingSha256, CONFIG_SHA256);
+  assert.equal(servingFingerprint(current), record.beforeServing);
+  assert.deepEqual(sorted(current.deployments.map((entry) => entry.uid)), sorted([...OLD_IDS, STATIC_ID, record.id]));
+  assert.ok(current.deployments.every((entry) => entry.state === 'READY'));
+  assertPreserved({ ...current, deployments: current.deployments.filter((entry) => entry.uid !== record.id) });
+}
+
+async function verifyFiles(api, deploymentId = STATIC_ID) {
+  const tree = await api(`/v6/deployments/${deploymentId}/files`);
   const files = [];
   function walk(entries, parent = '') {
     for (const file of entries) {
@@ -83,7 +103,7 @@ async function verifyFiles(api) {
   walk(tree); assert.deepEqual(sorted(files.map((f) => f.path)), sorted(Object.keys(FILE_HASHES)));
   for (const file of files) {
     assert.match(file.uid, /^[a-zA-Z0-9_-]+$/);
-    const data = await api(`/v8/deployments/${STATIC_ID}/files/${file.uid}`);
+    const data = await api(`/v8/deployments/${deploymentId}/files/${file.uid}`);
     assert.equal(digest(Buffer.from(data.data, 'base64')), FILE_HASHES[file.path]);
   }
 }
@@ -143,7 +163,7 @@ export async function retireExact(api, journal) {
 }
 
 async function run(phase) {
-  assert.ok(['capture', 'promote', 'verify-public', 'aliases', 'detach', 'retire'].includes(phase));
+  assert.ok(['capture', 'stage-production', 'inspect-production', 'promote', 'verify-public', 'aliases', 'detach', 'retire'].includes(phase));
   assert.equal(process.getuid(), 0);
   const { token } = JSON.parse(await readFile('/home/openclaw/.local/share/com.vercel.cli/auth.json', 'utf8'));
   const api = async (path, method = 'GET', body) => {
@@ -170,10 +190,44 @@ async function run(phase) {
     const saved = await privateRead(CAPTURE);
     assert.equal(saved.project, PROJECT); assert.equal(saved.team, TEAM); assert.equal(saved.staticId, STATIC_ID);
     assert.deepEqual(saved.oldIds, OLD_IDS);
-    if (phase === 'promote') {
+    if (phase === 'stage-production') {
       assertPreserved(current); assert.equal(servingFingerprint(current), saved.beforeServing);
       assert.deepEqual(await canonicalSnapshot(), saved.canonical);
-      await api(`/v10/projects/${PROJECT}/promote/${STATIC_ID}`, 'POST');
+      try { await lstat(PRODUCTION_RECORD); throw new Error('Production stage already recorded; inspect only'); }
+      catch (error) { if (error.code !== 'ENOENT') throw error; }
+      const payload = productionPayload(await readFile(new URL('./vocabulum-vercel-retirement/config.json', import.meta.url), 'utf8'));
+      const staged = await api('/v13/deployments?skipAutoDetectionConfirmation=1', 'POST', payload);
+      assert.match(staged.id, /^dpl_[a-zA-Z0-9]+$/);
+      assert.ok(![STATIC_ID, ...OLD_IDS].includes(staged.id));
+      await privateCreate(PRODUCTION_RECORD, { project: PROJECT, team: TEAM, id: staged.id,
+        previewId: STATIC_ID, url: staged.url, autoAssignCustomDomains: false,
+        routingSha256: CONFIG_SHA256, beforeServing: saved.beforeServing, time: new Date().toISOString() });
+      const after = await snapshot(api);
+      assert.equal(servingFingerprint(after), saved.beforeServing);
+      assert.deepEqual(sorted(after.deployments.map((entry) => entry.uid)), sorted([...OLD_IDS, STATIC_ID, staged.id]));
+      assertPreserved({ ...after, deployments: after.deployments.filter((entry) => entry.uid !== staged.id) });
+      assert.deepEqual(await canonicalSnapshot(), saved.canonical);
+      console.log(JSON.stringify({ phase, id: staged.id, url: staged.url, readyState: staged.readyState,
+        target: staged.target, servingUnchanged: true, completed: true }));
+      return;
+    } else if (phase === 'inspect-production') {
+      const record = await privateRead(PRODUCTION_RECORD);
+      assert.match(record.id, /^dpl_[a-zA-Z0-9]+$/);
+      const staged = await api(`/v13/deployments/${record.id}`);
+      assertProductionStage(staged, current, record);
+      await verifyFiles(api, record.id);
+      assert.equal(record.beforeServing, saved.beforeServing);
+      assert.deepEqual(await canonicalSnapshot(), saved.canonical);
+      console.log(JSON.stringify({ phase, id: record.id, url: staged.url, readyState: staged.readyState,
+        target: staged.target, alias: staged.alias, exactTwoFiles: true, zeroApplicationEnv: true,
+        zeroFunctionsBuildsCrons: true, all27Preserved: true, servingUnchanged: true,
+        frameworkLabel: staged.projectSettings?.framework, completed: true }));
+      return;
+    } else if (phase === 'promote') {
+      assertPreserved(current); assert.equal(servingFingerprint(current), saved.beforeServing);
+      assert.deepEqual(await canonicalSnapshot(), saved.canonical);
+      assert.equal(deployment.target, 'production', 'Preview cannot be directly promoted');
+      await api(`/v10/projects/${PROJECT}/promote/${STATIC_ID}`, 'POST', {});
     } else {
       const detached = phase === 'retire';
       assertPreserved(current, { promoted: true, aliasesMoved: ['detach', 'retire'].includes(phase), detached });

@@ -1,8 +1,42 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { PROJECT, TEAM, OLD_IDS, CONFIG_SHA256, ENV_NAMES } from './vocabulum-vercel-operator.mjs';
+import { readFile } from 'node:fs/promises';
+import { PROJECT, TEAM, OLD_IDS, CONFIG_SHA256, ENV_NAMES, buildStaticPayload, servingFingerprint } from './vocabulum-vercel-operator.mjs';
 import { STATIC_ID, CANONICAL, PUBLIC_ALIAS, LEGACY_ALIASES, assertStaticMetadata, assertPreserved, publicSmoke,
-  retireExact } from './vocabulum-vercel-close.mjs';
+  retireExact, productionPayload, assertProductionStage } from './vocabulum-vercel-close.mjs';
+
+test('production staging changes only target and disabled automatic assignment', async () => {
+  const config = await readFile(new URL('./vocabulum-vercel-retirement/config.json', import.meta.url), 'utf8');
+  const { target, autoAssignCustomDomains, ...payload } = productionPayload(config);
+  assert.equal(target, 'production'); assert.equal(autoAssignCustomDomains, false);
+  assert.deepEqual(payload, buildStaticPayload(config));
+});
+
+test('production stage requires exact preserved set, unassigned READY artifact and zero credentials/runtime', () => {
+  const id = 'dpl_fixtureProduction';
+  const d = { id, projectId: PROJECT, readyState: 'READY', target: 'production', alias: [],
+    meta: { purpose: 'vocabulum-static-retirement-20260920', routingSha256: CONFIG_SHA256 },
+    env: ['VERCEL'], build: { env: ['VERCEL'] }, builds: [] };
+  const current = { project: { id: PROJECT, accountId: TEAM,
+    targets: { production: { id: OLD_IDS[0] } }, ssoProtection: { deploymentType: 'all_except_custom_domains' } },
+    envs: [], sharedEnvs: [], deployments: [...OLD_IDS, STATIC_ID, id].map((uid) => ({ uid, state: 'READY' })),
+    aliases: [...LEGACY_ALIASES, CANONICAL].map((alias) => ({ alias, deploymentId: OLD_IDS[0] })),
+    domains: [PUBLIC_ALIAS, CANONICAL].map((name) => ({ name })) };
+  const record = { id, project: PROJECT, team: TEAM, previewId: STATIC_ID, autoAssignCustomDomains: false,
+    routingSha256: CONFIG_SHA256, beforeServing: servingFingerprint(current) };
+  assertProductionStage(d, current, record);
+  for (const mutation of [
+    (a, s) => { s.project.targets.production.id = id; },
+    (a, s) => { s.deployments.pop(); }, (a, s) => { s.aliases[0].deploymentId = id; },
+    (a, s) => { s.envs.push({ key: ENV_NAMES[0] }); },
+    (a, s) => { s.sharedEnvs.push({ id: 'fixture' }); },
+    (a) => { a.alias.push(PUBLIC_ALIAS); }, (a) => { a.target = null; },
+    (a) => { a.readyState = 'BUILDING'; }, (a) => { a.env.push(ENV_NAMES[0]); },
+    (a) => { a.functions = { api: {} }; }, (a) => { a.builds = [{ use: 'nextjs' }]; },
+    (a, s, r) => { r.autoAssignCustomDomains = true; },
+  ]) { const a = structuredClone(d), s = structuredClone(current), r = structuredClone(record);
+    mutation(a, s, r); assert.throws(() => assertProductionStage(a, s, r)); }
+});
 
 test('static metadata gate rejects runtime code and any old application environment', () => {
   const original = { id: STATIC_ID, projectId: PROJECT, readyState: 'READY',

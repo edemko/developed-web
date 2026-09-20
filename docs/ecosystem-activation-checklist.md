@@ -1,6 +1,6 @@
 # Central activation dependency checklist
 
-## Current coordinator checkpoint — 2026-09-20, after 16:45 UTC
+## Current coordinator checkpoint — 2026-09-20, after 18:28 UTC
 
 Owner decisions received after this checkpoint:
 
@@ -12,8 +12,9 @@ Owner decisions received after this checkpoint:
   recovery copies. This is authorization, not a deletion-completion record.
 - Give free users personal folders, words and sentences without school/admin
   privileges. Preserve ownership and tenant isolation; do not promote their role.
-- Renew the VPS Vercel login for the account owning Vocabulum. A fresh device
-  login has been requested; access is not established merely by issuing a link.
+- The VPS Vercel login is renewed, and access to the exact Vocabulum project
+  has been verified. Its Git deployment link was disconnected at 18:28 UTC;
+  existing serving deployments, aliases, domains and protection were unchanged.
 
 **Public SSO is still off. All seven apps remain required for launch.** The
 14:29–14:38 inventory below is retained as historical evidence, not current host
@@ -57,8 +58,13 @@ and network boundaries are absent are superseded by these completed checkpoints:
   incorrectly required an empty alias list. Both the immutable URL and automatic
   alias redirect anonymous requests to Vercel authentication. No existing
   automation bypass token was available, so authenticated runtime qualification
-  remains pending. A narrowly reviewed backend-only resume is being prepared;
-  there has been no automatic retry, promotion or deletion.
+  remains pending. Reviewed backend-only resume `35528693089` subsequently
+  succeeded at 18:21 UTC, producing READY backend
+  `dpl_6LRVb8XSHMkMMRmtDrwBysqsKdro` at source `a554465`. The retained frontend,
+  original canonical bindings, pinned bundle and application-tree checks passed.
+  All four candidate/automatic URLs independently require Vercel authentication.
+  The staging gate is again disabled and its revision allowlist removed. No
+  canonical promotion, protection bypass creation or deletion occurred.
 - Mailjet sender/SPF/DKIM read-only checks and localized template/browser tests
   passed. No registration confirmation email has been sent to the approved
   test mailbox, and live mailbox delivery is not yet proven.
@@ -70,11 +76,21 @@ provider/data-ingress closure, owner MFA/recovery acceptance, Android acceptance
 and real registration/email/picker/seven-app end-to-end tests. Do not interpret
 an unpublished picker as permission to expose a pilot login endpoint.
 
-Vocabulum's read-only inventory found all existing words/folders already owned
-by the requested owner and no sentences to transfer. No sample account has
-been deleted at this checkpoint. The subsequent owner decisions above authorize
-the three-account cleanup and personal free-tier implementation; fresh checks,
-implementation and verification remain required before claiming completion.
+Vocabulum's three exact sample accounts were deleted once at 18:28 UTC by the
+reviewed immutable `a4a4260` operator. Preservation fingerprints and a fresh
+503-column scan passed. The owner retains 544 words, 22 folders, three tests and
+two classes, with no sentences needing transfer. The coordinator independently
+confirmed zero target Auth users, unchanged word/folder counts, seven closed app
+gates, closed registration and empty outbox. Protected exact recovery copies
+remain; see the [cleanup record](../server/accounts/operators/vocabulum-cleanup-20260920.md).
+
+The complete [Vocabulum Vercel inventory](ecosystem-vocabulum-vercel-closure-20260920.md)
+found 26 old executable deployments, five aliases and a retained custom-domain
+mapping. The project production alias and direct Vercel Host/SNI access still
+expose legacy credentials login. Disconnecting Git prevents accidental source
+push deployment; it does **not** retire those runtimes. Static replacement and
+exact old-artifact retirement are still pending. Personal free-tier source work
+is under review and has not replaced the private or public application build.
 
 ## Historical baseline — do not use as current deployment state
 

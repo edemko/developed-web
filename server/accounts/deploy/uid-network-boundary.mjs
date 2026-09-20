@@ -45,11 +45,17 @@ function cidr(value) {
   return `${ip}/${bits}`;
 }
 export function validateConfig(value) {
-  object(value,['version','centralUid','caddyUid','extraControlEndpoints','blockedNetworks','apps'],'configuration');
+  object(value,['version','centralUid','caddyUid','downloadRelayUid','extraControlEndpoints','blockedNetworks','apps'],'configuration');
   if(value.version!==1) throw new Error('Configuration version must be 1');
   const centralUid=uid(value.centralUid,'centralUid'),caddyUid=uid(value.caddyUid,'caddyUid');
   const seen=new Set([centralUid,caddyUid]);
   if(seen.size!==2) throw new Error('Central and Caddy UIDs must differ');
+  let downloadRelayUid;
+  if(own(value,'downloadRelayUid')) {
+    downloadRelayUid=uid(value.downloadRelayUid,'downloadRelayUid');
+    if(seen.has(downloadRelayUid)) throw new Error('Download relay needs a distinct UID');
+    seen.add(downloadRelayUid);
+  }
   const controls=[{address:'127.0.0.1',port:3141},{address:'::1',port:3141},
     ...list(value.extraControlEndpoints??[],'extraControlEndpoints').map(item=>{
       object(item,['address','port'],'control endpoint');
@@ -59,7 +65,7 @@ export function validateConfig(value) {
   const blockedNetworks=list(value.blockedNetworks,'blockedNetworks').map(cidr);
   const names=new Set();
   const apps=list(value.apps,'apps',32).map(app=>{
-    object(app,['name','uid','database','dns','musicImport'],'application');
+    object(app,['name','uid','database','dns','musicImport','downloadRelay','downloadStatus','downloadProvider'],'application');
     if(typeof app.name!=='string' || !/^[a-z][a-z0-9-]{1,31}$/.test(app.name) || names.has(app.name)) throw new Error('Unique lowercase app name required');
     names.add(app.name);
     const appUid=uid(app.uid,'app.uid');
@@ -71,15 +77,26 @@ export function validateConfig(value) {
     let musicImport;
     if(own(app,'musicImport')) {
       if(app.name!=='mega-music') throw new Error('Import exception is only available to mega-music');
-      musicImport=endpoint(app.musicImport,8787,'music import');
+      musicImport=endpoint(app.musicImport,18887,'stable music import front');
     }
-    for(const item of [...database,...dns,...(musicImport?[musicImport]:[])]) {
+    const workerEndpoints={};
+    for(const [key,port] of [['downloadRelay',1088],['downloadStatus',18088],['downloadProvider',4416]]) {
+      if(!own(app,key)) continue;
+      if(!['mega-youtube','jasom-worker'].includes(app.name) || (key==='downloadProvider' && app.name!=='mega-youtube')) {
+        throw new Error('Download exceptions require the matching dedicated worker');
+      }
+      if(key==='downloadRelay' && downloadRelayUid===undefined) throw new Error('Download relay UID protection is required');
+      const target=endpoint(app[key],port,key);
+      if(target.address!=='127.0.0.1') throw new Error('Worker exceptions require exact IPv4 loopback');
+      workerEndpoints[key]=target;
+    }
+    for(const item of [...database,...dns,...(musicImport?[musicImport]:[]),...Object.values(workerEndpoints)]) {
       if(controls.some(control=>control.address===item.address && control.port===item.port)) throw new Error('Application exception overlaps protected control endpoint');
     }
-    return {name:app.name,uid:appUid,database,dns,...(musicImport?{musicImport}:{})};
+    return {name:app.name,uid:appUid,database,dns,...(musicImport?{musicImport}:{}),...workerEndpoints};
   });
   if(!apps.length) throw new Error('At least one dedicated app UID required');
-  return {centralUid,caddyUid,controls,blockedNetworks,apps};
+  return {centralUid,caddyUid,downloadRelayUid,controls,blockedNetworks,apps};
 }
 const destination=ip=>`${isIP(ip)===4?'ip':'ip6'} daddr ${ip}`;
 export function generateRules(input,{replace=false}={}) {
@@ -92,6 +109,10 @@ export function generateRules(input,{replace=false}={}) {
     '  chain protected_control {',
     '    ct direction reply ct state established return',
     ...config.controls.map(item=>`    ${destination(item.address)} tcp dport ${item.port} meta skuid != ${trusted} counter reject with icmpx type admin-prohibited`),
+    ...(config.downloadRelayUid===undefined?[]:[
+      `    ip daddr 127.0.0.1 tcp dport 1089 meta skuid != { 0, ${config.downloadRelayUid} } counter reject with icmpx type admin-prohibited`,
+      `    ip6 daddr ::1 tcp dport 1089 meta skuid != { 0, ${config.downloadRelayUid} } counter reject with icmpx type admin-prohibited`,
+    ]),
     '  }',
   ];
   config.apps.forEach((app,index)=>{
@@ -101,7 +122,10 @@ export function generateRules(input,{replace=false}={}) {
       '    ct direction reply ct state established accept');
     for(const item of app.database) lines.push(`    ${destination(item.address)} tcp dport 5432 counter accept`);
     for(const item of app.dns) lines.push(`    ${destination(item.address)} meta l4proto { tcp, udp } th dport 53 counter accept`);
-    if(app.musicImport) lines.push(`    ${destination(app.musicImport.address)} tcp dport 8787 counter accept`);
+    if(app.musicImport) lines.push(`    ${destination(app.musicImport.address)} tcp dport 18887 counter accept`);
+    for(const key of ['downloadRelay','downloadStatus','downloadProvider']) {
+      if(app[key]) lines.push(`    ${destination(app[key].address)} tcp dport ${app[key].port} counter accept`);
+    }
     lines.push('    fib daddr type local counter reject with icmpx type admin-prohibited');
     // Individual CIDR rules avoid overlapping interval-set ambiguities and
     // keep custom Docker/publicly-numbered internal ranges explicit.

@@ -1,0 +1,36 @@
+# Root-owned boot loader. No ExecStop: stopping this unit NEVER removes rules.
+[Unit]
+Description=DevelopED dedicated runtime network boundary
+After=network-pre.target
+Before=developed-accounts.service
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+RuntimeDirectory=developed-uid-boundary
+RuntimeDirectoryMode=0700
+ExecStart=/usr/bin/flock --nonblock /run/developed-uid-boundary/loader.lock /opt/developed-runtimes/node-v22.23.2/bin/node /opt/developed-control/network/load-uid-boundary.mjs --apply
+ExecReload=/usr/bin/flock --nonblock /run/developed-uid-boundary/loader.lock /opt/developed-runtimes/node-v22.23.2/bin/node /opt/developed-control/network/load-uid-boundary.mjs --apply
+TimeoutStartSec=45
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+CapabilityBoundingSet=CAP_NET_ADMIN
+AmbientCapabilities=
+MemoryMax=96M
+TasksMax=16
+
+[Install]
+WantedBy=multi-user.target

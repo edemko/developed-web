@@ -5,7 +5,7 @@ import { generateRules,validateConfig,TABLE } from './uid-network-boundary.mjs';
 export const fixtureConfig=()=>({version:1,centralUid:61001,caddyUid:61002,
   blockedNetworks:['11.77.0.0/16','2003:77::/48'],extraControlEndpoints:[{address:'172.30.40.2',port:9999}],
   apps:[{name:'mega-music',uid:61003,database:[{address:'127.0.0.1',port:5432},{address:'172.30.40.3',port:5432}],
-    dns:[{address:'127.0.0.53',port:53},{address:'::1',port:53}],musicImport:{address:'127.0.0.1',port:8787}},
+    dns:[{address:'127.0.0.53',port:53},{address:'::1',port:53}],musicImport:{address:'127.0.0.1',port:18887}},
   {name:'vocabulum',uid:61004,database:[],dns:[{address:'127.0.0.53',port:53}]}]});
 
 test('dedicated table, both NAT sides, exact endpoints and reply-direction only',()=>{
@@ -25,6 +25,24 @@ test('atomic replacement affects only the dedicated table and requires it to exi
   assert(output.includes(`delete table inet ${TABLE}\ntable inet ${TABLE}`));
   assert(!output.includes('flush ruleset'));
 });
+test('only exact worker dependencies and the trusted download relay can reach raw proxy',()=>{
+  const config=fixtureConfig();config.downloadRelayUid=61006;
+  config.apps.push({name:'mega-youtube',uid:61007,database:[],dns:[{address:'127.0.0.53',port:53}],
+    downloadRelay:{address:'127.0.0.1',port:1088},downloadStatus:{address:'127.0.0.1',port:18088},
+    downloadProvider:{address:'127.0.0.1',port:4416}});
+  const output=generateRules(config);
+  for(const port of [1088,18088,4416]) assert(output.includes(`ip daddr 127.0.0.1 tcp dport ${port} counter accept`));
+  assert(output.includes('ip daddr 127.0.0.1 tcp dport 1089 meta skuid != { 0, 61006 }'));
+  assert(output.includes('ip6 daddr ::1 tcp dport 1089 meta skuid != { 0, 61006 }'));
+  for(const mutate of [
+    c=>delete c.downloadRelayUid,c=>c.downloadRelayUid=61001,c=>c.downloadRelayUid=61007,
+    c=>c.apps[2].name='vocabulum-worker',c=>c.apps[2].name='jasom-worker',
+    c=>c.apps[2].downloadRelay.port=1089,c=>c.apps[2].downloadStatus.address='172.30.40.2',
+    c=>c.apps[0].musicImport.port=8787,
+  ]) {const bad=structuredClone(config);mutate(bad);assert.throws(()=>validateConfig(bad));}
+  const jasom=structuredClone(config);jasom.apps[2].name='jasom-worker';delete jasom.apps[2].downloadProvider;
+  assert.doesNotThrow(()=>validateConfig(jasom));
+});
 test('reject ambiguous identities, broad exceptions, malformed input and unknown keys',()=>{
   const bad=[
     config=>config.apps[0].uid=0,config=>config.apps[0].uid=1000,
@@ -35,7 +53,7 @@ test('reject ambiguous identities, broad exceptions, malformed input and unknown
     config=>config.apps[0].database[0].address='127.0.0.0/8',
     config=>config.apps[0].database[0].address='localhost',
     config=>config.apps[0].dns[0].address='fe80::1%eth0',
-    config=>config.apps[0].dns=[],config=>config.apps[1].musicImport={address:'127.0.0.1',port:8787},
+    config=>config.apps[0].dns=[],config=>config.apps[1].musicImport={address:'127.0.0.1',port:18887},
     config=>config.apps[0].name='bad"; flush ruleset',
     config=>config.blockedNetworks=['0.0.0.0/0'],config=>config.apps[0].allowAll=true,
     config=>config.apps=[],config=>config.extraControlEndpoints=[{address:'127.0.0.1',port:5432}],

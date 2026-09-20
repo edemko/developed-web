@@ -51,8 +51,11 @@ approved committing/pushing reviewed latest My Clinic and importer code before
 deployment; this is not permission to discard other dirty work.
 
 - Central SSO is still **off**, pending the full shared security cutover.
-- Runtime/firewall/public-data templates have isolated-test evidence; no complete
-  host network enforcement or central activation is claimed.
+- Runtime/firewall/public-data templates have isolated-test evidence. The root-only
+  persistent UID boundary now covers only inactive importer UID995; eight live
+  socket probes, DNS, public HTTPS and atomic reload passed. Other UIDs and
+  proxy-target restrictions remain pending; no complete enforcement or central
+  activation is claimed. See `uid-network-boundary.md` for exact live paths.
 - My Clinic is now live as `developed-myclinic` UID996 on loopback3155, system
   `developed-myclinic@release-37c2650.service`. Old user API stopped/disabled;
   cron schedules preserved and targets updated.295/295 route-switch probes

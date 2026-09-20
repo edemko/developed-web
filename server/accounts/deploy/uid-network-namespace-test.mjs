@@ -82,7 +82,8 @@ if(mode==='--run') {
     // host addresses without contacting any host or external service.
     for(const ip of ['172.30.40.2','172.30.40.3','100.100.100.100','169.254.169.254','9.9.9.9']) run('ip',['addr','add',`${ip}/32`,'dev','lo']);
     await readyChild(process.execPath,['-e',serverSource,'0',JSON.stringify([
-      ['127.0.0.1',3141],['::1',3141],['127.0.0.1',5432],['::1',5432],['127.0.0.1',8787],
+      ['127.0.0.1',3141],['::1',3141],['127.0.0.1',5432],['::1',5432],['127.0.0.1',18887],
+      ['127.0.0.1',8787],['127.0.0.1',1088],['127.0.0.1',1089],['::1',1089],['127.0.0.1',18088],['127.0.0.1',4416],
       ['127.0.0.1',8000],['::1',8000],['127.0.0.53',53],['127.0.0.53',53,true],['::1',53],['::1',53,true],
       ['172.30.40.2',9999],['172.30.40.2',443],['172.30.40.3',5432],['100.100.100.100',443],
       ['169.254.169.254',443],['9.9.9.9',443]])]);
@@ -96,11 +97,15 @@ if(mode==='--run') {
       s.on('error',()=>process.exit(first?2:0));process.stdin.once('data',()=>{s.write('second');setTimeout(()=>process.exit(0),650)});
     `],{stdio:['pipe','pipe','pipe']});children.push(persistent);
     await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Persistent fixture timeout')),2000);persistent.stdout.once('data',()=>{clearTimeout(timer);resolve();});persistent.once('error',reject);});
-    const config={version:1,centralUid:61001,caddyUid:61002,blockedNetworks:['11.77.0.0/16','2003:77::/48'],
+    const config={version:1,centralUid:61001,caddyUid:61002,downloadRelayUid:61006,blockedNetworks:['11.77.0.0/16','2003:77::/48'],
       extraControlEndpoints:[{address:'172.30.40.2',port:9999}],apps:[
         {name:'mega-music',uid:61003,database:[{address:'127.0.0.1',port:5432},{address:'::1',port:5432},{address:'172.30.40.3',port:5432}],
-          dns:[{address:'127.0.0.53',port:53},{address:'::1',port:53}],musicImport:{address:'127.0.0.1',port:8787}},
-        {name:'vocabulum',uid:61004,database:[],dns:[{address:'127.0.0.53',port:53}]}]};
+          dns:[{address:'127.0.0.53',port:53},{address:'::1',port:53}],musicImport:{address:'127.0.0.1',port:18887}},
+        {name:'vocabulum',uid:61004,database:[],dns:[{address:'127.0.0.53',port:53}]},
+        {name:'mega-youtube',uid:61007,database:[],dns:[{address:'127.0.0.53',port:53}],
+          downloadRelay:{address:'127.0.0.1',port:1088},downloadStatus:{address:'127.0.0.1',port:18088},downloadProvider:{address:'127.0.0.1',port:4416}},
+        {name:'jasom-worker',uid:61008,database:[{address:'127.0.0.1',port:5432},{address:'172.30.40.3',port:5432}],dns:[{address:'127.0.0.53',port:53}],
+          downloadRelay:{address:'127.0.0.1',port:1088},downloadStatus:{address:'127.0.0.1',port:18088}}]};
     const rules=generateRules(config);
     run('nft',['--check',rules]);run('nft',[rules]);
     assert.throws(()=>run('nft',[rules]),'initial install must not merge into an existing table');
@@ -108,18 +113,25 @@ if(mode==='--run') {
     assert.equal(await persistentExit,0,'pre-existing forbidden connection retained access');
     const positives=[
       [61003,'127.0.0.1',5432],[61003,'::1',5432],[61003,'172.30.40.3',5432],
-      [61003,'127.0.0.1',8787],[61001,'127.0.0.1',3141],[61002,'::1',3141],[0,'127.0.0.1',3141],
+      [61003,'127.0.0.1',18887],[61001,'127.0.0.1',3141],[61002,'::1',3141],[0,'127.0.0.1',3141],
       [61001,'172.30.40.2',9999],[0,'127.0.0.1',3100],[0,'::1',3100],
-      [61003,'8.8.8.8',443],[61003,'2003:1::2',443]];
+      [61003,'8.8.8.8',443],[61003,'2003:1::2',443],
+      [61007,'127.0.0.1',1088],[61007,'127.0.0.1',18088],[61007,'127.0.0.1',4416],
+      [61008,'127.0.0.1',1088],[61008,'127.0.0.1',18088],
+      [61006,'127.0.0.1',1089],[61006,'::1',1089],[0,'127.0.0.1',1089]];
     for(const item of positives) await probe(...item,true,`allowed ${item[0]}:${item[1]}:${item[2]}`);
     for(const ip of ['127.0.0.53','::1']) for(const udp of [false,true]) await probe(61003,ip,53,true,'exact DNS works',udp);
     const negatives=[
       [61003,'127.0.0.1',3141],[61003,'::1',3141],[61005,'127.0.0.1',3141],
       [61003,'172.30.40.2',9999],[61005,'172.30.40.2',9999],
       [61003,'127.0.0.1',8000],[61003,'::1',8000],[61004,'127.0.0.1',5432],
-      [61004,'127.0.0.1',8787],[61003,'172.30.40.2',443],[61003,'100.100.100.100',443],
+      [61004,'127.0.0.1',18887],[61003,'172.30.40.2',443],[61003,'100.100.100.100',443],
       [61003,'169.254.169.254',443],[61003,'9.9.9.9',443],
       [61003,'8.8.8.8',80],[61003,'2003:1::2',80],[61004,'127.0.0.1',3100],
+      [61003,'127.0.0.1',8787],[61003,'127.0.0.1',1088],[61004,'127.0.0.1',18088],
+      [61007,'127.0.0.1',1089],[61007,'::1',1089],[61007,'127.0.0.1',3141],
+      [61008,'127.0.0.1',4416],[61008,'127.0.0.1',1089],[61008,'127.0.0.1',8000],
+      [61001,'127.0.0.1',1089],[61005,'127.0.0.1',1089],[61006,'127.0.0.1',3141],
       ...['172.22.40.2','11.77.40.2','fd00:77::2','2003:77::2','2002:1::2','64:ff9b::a00:2'].map(ip=>[61003,ip,443])];
     for(const item of negatives) await probe(...item,false,`denied ${item[0]}:${item[1]}:${item[2]}`);
     await probe(61003,'8.8.8.8',443,false,'UDP/QUIC443 is not implicit public HTTPS',true);

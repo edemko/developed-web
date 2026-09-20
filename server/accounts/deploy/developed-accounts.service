@@ -1,7 +1,8 @@
 # Staging template only. Review paths/user and release gates before installation.
 [Unit]
 Description=DevelopED central accounts
-After=network-online.target
+After=network-online.target developed-uid-boundary.service
+Requires=developed-uid-boundary.service
 Wants=network-online.target
 
 [Service]
@@ -11,7 +12,7 @@ Group=developed-accounts
 WorkingDirectory=/opt/developed-accounts/current
 Environment=NODE_ENV=production
 EnvironmentFile=/etc/developed-accounts/accounts.env
-ExecStart=/usr/bin/node /opt/developed-accounts/current/dist/main.js
+ExecStart=/opt/developed-runtimes/node-v22.23.2/bin/node /opt/developed-accounts/current/dist/main.js
 Restart=on-failure
 RestartSec=5s
 TimeoutStopSec=30s

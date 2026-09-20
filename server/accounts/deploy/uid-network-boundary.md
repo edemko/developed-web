@@ -1,11 +1,38 @@
-# Dedicated host-UID network boundary — staged source only
+# Dedicated host-UID network boundary
 
-This complements `runtime-isolation.md` and `ecosystem-app@.service`. It does
-**not** install users, start services, publish GoTrue or apply host firewall rules.
+This complements `runtime-isolation.md` and `ecosystem-app@.service`. The generator
+does **not** install users, start services, publish GoTrue or apply firewall rules.
 The chosen next topology moves the ecosystem Node processes, including Airsoft
 and Vocabulum, to separate host systemd UIDs outside `/home`. No container-app
 forwarding isolation is claimed by this artifact. Other products, Python workers,
-JASOM and My Clinic remain outside this change until separately authorized.
+JASOM and My Clinic were subsequently authorized; their exact production entries
+still require verification before adding them to the table.
+
+## Live checkpoint — 2026-09-20
+
+The dedicated table is now installed by the root-only boot-enabled system unit
+`developed-uid-boundary.service`. **Only inactive importer UID995** has its
+outbound app policy applied so far. No running legacy app was included or stopped.
+The trusted identities are central988 (reserved, not running), Caddy999 and the
+download relay987 (reserved, not running). No central provider is exposed yet.
+
+Root-owned policy is `/etc/developed-accounts/uid-network-boundary.json`; reviewed
+generator/loader are in `/opt/developed-control/network/`. The loader validates
+root ownership, ancestors and non-writable permissions, checks the transaction,
+and atomically creates/replaces **only** `inet developed_uid_boundary`. It uses
+private regular transaction files under `/run/developed-uid-boundary`: this
+host's nft rejects Node's socket-backed stdin for `--file -`. No `ExecStop` removes
+rules; stopping the loader does not remove protection. `Requires`/`After` in new
+app templates prevent booting them if boundary installation fails. Existing
+live app units still need individually coordinated drop-ins and policy entries.
+
+Actual UID995 tests passed: proxy1088/status18088/bgutil4416 reachable; Kong8000,
+Postgres5432, KešTrek3124, Caddy-admin2019 and webhook9000 denied; DNS and canonical
+public HTTPS200 work. Atomic reload passed. The extended disconnected namespace
+suite also proves IPv4/IPv6, pre/post-DNAT, raw1089 denial, incoming replies and
+role-specific worker exceptions. This is **not complete ecosystem isolation**:
+legacy1088 still needs the validated public-destination relay before worker
+activation; other app UIDs/containers and old Auth routes remain pending.
 
 ## What the rules enforce
 
@@ -26,7 +53,14 @@ For each listed product UID:
   is involved. This permits networking, not database authorization: unique
   least-privilege DB credentials are still mandatory.
 - TCP/UDP53 is allowed only to the explicitly inventoried DNS resolver addresses.
-- Only `mega-music` can have an explicit TCP8787 import-service exception.
+- Only `mega-music` can have an explicit TCP18887 stable-import-front exception.
+  Direct backend8787 is deliberately not an app exception.
+- Only `mega-youtube` and `jasom-worker` can have exact IPv4-loopback download
+  relay1088/status18088 exceptions; bgutil4416 is Mega-only. A relay exception
+  requires a distinct `downloadRelayUid`, which also protects raw1089 from every
+  host UID except root and that relay, including central and Caddy. The relay
+  UID is not authorized for private Auth. Application access to1088 is safe only
+  once the reviewed destination-validation relay replaces the raw proxy there.
 - Other host-local destinations, loopback, RFC1918, carrier-grade/Tailscale,
   link-local/metadata and reserved IPv4 ranges are denied. IPv6 is limited to
   global unicast with transition/documentation ranges excluded; ULA, link-local,
@@ -74,7 +108,7 @@ Use a root-owned configuration outside any app release. Values below are
         { "address": "172.30.40.3", "port": 5432 }
       ],
       "dns": [{ "address": "127.0.0.53", "port": 53 }],
-      "musicImport": { "address": "127.0.0.1", "port": 8787 }
+      "musicImport": { "address": "127.0.0.1", "port": 18887 }
     },
     {
       "name": "vocabulum",
@@ -108,6 +142,7 @@ the optional namespace test. Pure unit tests need no privilege:
 
 ```sh
 node --test server/accounts/deploy/uid-network-boundary.test.mjs
+node --test server/accounts/deploy/load-uid-boundary.test.mjs
 node server/accounts/deploy/uid-network-namespace-test.mjs --run
 ```
 
@@ -127,7 +162,7 @@ Namespaces and interfaces disappear when fixture processes exit; the test never
 flushes, replaces or lists the host ruleset. A failed test is not permission to
 test on the host instead.
 
-## Reviewed installation sequence — not performed by this change
+## Reviewed installation sequence
 
 1. Inventory current numeric UIDs, supplementary groups, routes, addresses,
    resolver configuration, all published/private DB tuples and actual Docker
@@ -158,6 +193,10 @@ test on the host instead.
    for an atomic scoped rollback. Persist only this dedicated table through the
    host's reviewed boot mechanism; do not enable a distro nftables unit whose
    bundled startup/shutdown actions flush the entire ruleset.
+   The installed scoped loader performs these checks and transactions. Use
+   `sudo systemctl reload developed-uid-boundary.service` after reviewing and
+   backing up an exact policy update, not a global nftables restart. Root can
+   run `load-uid-boundary.mjs --check` first; it does not apply rules.
 5. Rules must be active before any app unit or private3141 provider is reachable.
    Order the dedicated firewall loader before those units and fail their startup
    if installation fails. Reboots, restart, resolver changes, Docker IP changes,

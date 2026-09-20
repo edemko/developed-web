@@ -144,6 +144,9 @@ export function compose(app, original, material, signing, now = Date.now()) {
     const encoding = { kestrek: 'hex', screentime: 'base64', airsoft: 'hex', vocabulum: 'base64url', otazkomat: 'base64' }[app.slug];
     check(session.version === 1 && session.credential === `${app.slug}-session` && session.kind === 'session-key'
       && session.environment === app.sessionEncryptionEnv && session.encoding === encoding && encoded(session.value, encoding));
+    for (const name of ['ENCRYPTION_KEY', 'OPENAI_ENCRYPTION_SECRET', 'AUTH_SECRET', 'NEXTAUTH_SECRET', 'EMAIL_TOKEN_SECRET']) {
+      check(!previous[name] || previous[name] !== session.value);
+    }
     env[app.sessionEncryptionEnv] = session.value;
     if (app.sessionDatabaseEnv) {
       const db = material.database;
@@ -169,8 +172,10 @@ export function compose(app, original, material, signing, now = Date.now()) {
     check(!obsolete(name));
     if (/^(NEXT_PUBLIC_|VITE_|REACT_APP_)/.test(name)) check(!secrets.some(secret => value.includes(secret)));
     if (value.startsWith('eyJ') && value.split('.').length === 3) {
-      const role = JSON.parse(Buffer.from(value.split('.')[1], 'base64url')).role;
-      check(role === 'anon' || (name === app.dataJwtEnv && role === app.dataJwtRole));
+      const claims = JSON.parse(Buffer.from(value.split('.')[1], 'base64url'));
+      check(claims.role === 'anon' || (name === app.dataJwtEnv && claims.role === app.dataJwtRole));
+      check(Number.isSafeInteger(claims.exp) && claims.exp > Math.floor(now / 1000) + 300
+        && (claims.nbf === undefined || (Number.isSafeInteger(claims.nbf) && claims.nbf <= Math.floor(now / 1000))));
     }
     check(!value.startsWith('sb_secret_'));
   }

@@ -76,10 +76,20 @@ test('reject unknown variables, privileged aliases, wrong DB role and accidental
     input => { input.material.database.role = 'postgres'; },
     input => { input.material.session.environment = 'NEXT_PUBLIC_SESSION_SECRET'; },
     input => { input.material.client.provider.client_secret = input.material.client.serverKey; },
+    input => { input.original.ENCRYPTION_KEY = input.material.session.value; },
     input => { input.material.attachment.callbackUrl = 'https://evil.invalid/callback'; },
     input => { input.original.ECOSYSTEM_AUTH_ENABLED = 'true'; },
   ]) {
     const input = inputs(app); mutate(input);
+    assert.throws(() => compose(app, serializeEnvironment(input.original), input.material, signing));
+  }
+});
+
+test('preserved public anon JWT also requires a future bounded expiry and the anon role', () => {
+  const app = apps.find(app => app.slug === 'screentime');
+  for (const claims of [{ role: 'anon', exp: 1 }, { role: 'anon' }, { role: 'service_role', exp: 2000000000 }]) {
+    const input = inputs(app);
+    input.original.NEXT_PUBLIC_SUPABASE_ANON_KEY = `${Buffer.from('{"alg":"HS256"}').toString('base64url')}.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.fixture`;
     assert.throws(() => compose(app, serializeEnvironment(input.original), input.material, signing));
   }
 });

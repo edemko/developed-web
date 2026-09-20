@@ -51,7 +51,8 @@ settings are preserved. This does not configure absent managed-S4/import keys.
 
 All shared provider administrator/service-role/signing environment names are
 removed. Unknown aliases fail the allowlist; preserved JWT values must be anon
-or the exact new app data role. Scoped data JWTs additionally require valid
+or the exact new app data role and must have finite future expiry. New session
+keys cannot reuse existing application encryption or session keys. Scoped data JWTs additionally require valid
 HS256 signatures, exact issuer/audience/role, no human/client claims, finite
 future expiry (over five minutes remaining), and a lifetime at most ninety days.
 New confidential credentials must be distinct and cannot enter public variables.

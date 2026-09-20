@@ -5,6 +5,11 @@ publication, registration and every product integration off until the full
 security cutover. Do not place signing configuration or generated credentials
 in a repository, release, public root, app runtime or CI artifact.
 
+The remaining seven-product SQL inventory and owner/provisioning requirements
+are in [app SQL readiness](../../../docs/ecosystem-app-sql-readiness-20260920.md).
+`review-app-migrations.mjs` verifies the ten exact sibling source hashes offline;
+it has no apply interface and does not extend the central migration allowlist.
+
 ## Scoped data JWT issuance
 
 `issue-scoped-data-key.mjs` issues only the five reviewed data roles:

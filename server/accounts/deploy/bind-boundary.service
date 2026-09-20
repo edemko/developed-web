@@ -1,0 +1,20 @@
+[Unit]
+Description=DevelopED dedicated UID fixed-listener bind boundary
+After=local-fs.target
+Before=network.target
+RequiresMountsFor=/sys/fs/bpf /sys/fs/cgroup
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=root
+UMask=0077
+ExecStart=/opt/developed-runtimes/node-v22.23.2/bin/node /opt/developed-control/network/bind-boundary.mjs --apply
+ExecReload=/opt/developed-runtimes/node-v22.23.2/bin/node /opt/developed-control/network/bind-boundary.mjs --apply
+# No ExecStop: stopping this loader must not remove kernel protection.
+NoNewPrivileges=yes
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

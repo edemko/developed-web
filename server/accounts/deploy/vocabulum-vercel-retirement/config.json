@@ -1,0 +1,60 @@
+{
+  "version": 3,
+  "routes": [
+    {
+      "src": "^/.*$",
+      "has": [{ "type": "host", "value": "vocabulum.developed.sk" }],
+      "status": 410,
+      "headers": {
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+      }
+    },
+    {
+      "src": "^/(?:auth/login|login|register|forgot-password|reset-password)?/?$",
+      "methods": ["GET", "HEAD"],
+      "status": 303,
+      "headers": {
+        "Location": "https://vocabulum.developed.sk/auth/login#",
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+      }
+    },
+    {
+      "src": "^/(?:api|auth|oauth|\\.well-known)(?:/.*)?$",
+      "status": 410,
+      "headers": {
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+      }
+    },
+    {
+      "src": "^/.*$",
+      "methods": ["GET", "HEAD"],
+      "status": 303,
+      "headers": {
+        "Location": "https://vocabulum.developed.sk/auth/login#",
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+      }
+    },
+    {
+      "src": "^/.*$",
+      "status": 410,
+      "headers": {
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+      }
+    }
+  ]
+}

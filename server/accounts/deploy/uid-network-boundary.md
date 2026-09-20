@@ -54,6 +54,16 @@ worker lock all passed after atomic reload. No service restart or data mutation
 was needed. Exact pre-change generator/policy backups are retained alongside the
 root operator files under the `before-jasom-myclinic` names.
 
+Dedicated helper policies now also cover import-front980 and status-broker994.
+The front can initiate only127.0.0.1:8787; the broker can initiate only its fixed
+proxy-health127.0.0.1:1088. Both permit responses to incoming requests, but have no
+DNS/public/private/sibling/DB egress exception. Unix socket permissions remain
+separate. Their actual status/authenticated-health checks pass with both unit
+startup dependencies installed, without a service restart. Ten unit tests and
+the disconnected namespace suite passed, including allowed helper upstreams and
+denied DNS/public/DB/control routes. Pre-change files are retained under the
+`before-helpers` names.
+
 ## What the rules enforce
 
 `uid-network-boundary.mjs` prints only the `inet developed_uid_boundary` table.
@@ -75,6 +85,9 @@ For each listed product UID:
 - TCP/UDP53 is allowed only to the explicitly inventoried DNS resolver addresses.
 - Only `mega-music` can have an explicit TCP18887 stable-import-front exception.
   Direct backend8787 is deliberately not an app exception.
+- Optional distinct `importFrontUid` and `downloadStatusUid` identify trusted
+  fixed-target helpers, not ordinary apps; their only outgoing TCP tuples are
+  127.0.0.1:8787 and127.0.0.1:1088 respectively. No broad loopback exemption.
 - Only `mega-youtube` and `jasom-worker` can have exact IPv4-loopback download
   relay1088/status18088 exceptions; bgutil4416 is Mega-only. A relay exception
   requires a distinct `downloadRelayUid`, which also protects raw1089 from every

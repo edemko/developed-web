@@ -82,3 +82,13 @@ test('reject ambiguous identities, broad exceptions, malformed input and unknown
   ];
   for(const mutate of bad) {const config=fixtureConfig();mutate(config);assert.throws(()=>validateConfig(config));}
 });
+test('fixed front/status helpers get only their single private upstream and replies',()=>{
+  const config=fixtureConfig();config.importFrontUid=61009;config.downloadStatusUid=61010;
+  const output=generateRules(config);
+  assert.match(output,/chain import_front \{[\s\S]*?127\.0\.0\.1 tcp dport 8787 counter accept\n    counter reject/);
+  assert.match(output,/chain download_status \{[\s\S]*?127\.0\.0\.1 tcp dport 1088 counter accept\n    counter reject/);
+  assert.match(output,/meta skuid 61009 jump import_front/);
+  assert.match(output,/meta skuid 61010 jump download_status/);
+  config.importFrontUid=61003;assert.throws(()=>validateConfig(config));
+  config.importFrontUid=61010;assert.throws(()=>validateConfig(config));
+});

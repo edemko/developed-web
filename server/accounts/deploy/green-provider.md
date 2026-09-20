@@ -71,6 +71,16 @@ the provider's permitted TCP egress. No app joins this network, and green lacks
 raw/network-admin capabilities. These rules do not authorize DB access: the
 unchanged dedicated provider DB identity remains required.
 
+An additional bridge destination rule explicitly denies any forwarded request to
+green9999, including requests initiated by DB extension workers on the same
+bridge. Trusted host control traverses bridge OUTPUT, not this FORWARD rule.
+The DB namespace was already unable to establish this connection because of
+the original green reply-egress restriction; the explicit ingress denial avoids
+depending on that return-path detail. The disconnected fixture proves the DB
+can connect before policy and cannot afterward. After live atomic reload, actual
+DB-namespace denial and both root/central private health200 passed, without
+restarting either provider or the database.
+
 The root-only loader validates source/config ancestors and permissions, exact
 Docker network ID/subnet, both existing owned tables, and nft syntax before an
 atomic own-table transaction. It never flushes a ruleset. Its configuration is

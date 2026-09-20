@@ -124,7 +124,7 @@ if(mode==='--run') {
       s.on('error',()=>process.exit(first?2:0));process.stdin.once('data',()=>{s.write('second');setTimeout(()=>process.exit(0),650)});
     `],{stdio:['pipe','pipe','pipe']});children.push(persistent);
     await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Persistent fixture timeout')),2000);persistent.stdout.once('data',()=>{clearTimeout(timer);resolve();});persistent.once('error',reject);});
-    const config={version:1,centralUid:61001,caddyUid:61002,downloadRelayUid:61006,protectForwardedControl:true,blockedNetworks:['11.77.0.0/16','2003:77::/48'],
+    const config={version:1,centralUid:61001,caddyUid:61002,downloadRelayUid:61006,importFrontUid:61009,downloadStatusUid:61010,protectForwardedControl:true,blockedNetworks:['11.77.0.0/16','2003:77::/48'],
       extraControlEndpoints:[{address:'172.30.40.2',port:9999},{address:'172.22.40.2',port:9999},{address:'fd00:77::2',port:9999}],apps:[
         {name:'mega-music',uid:61003,database:[{address:'127.0.0.1',port:5432},{address:'::1',port:5432},{address:'172.30.40.3',port:5432}],
           dns:[{address:'127.0.0.53',port:53},{address:'::1',port:53}],musicImport:{address:'127.0.0.1',port:18887}},
@@ -165,6 +165,7 @@ if(mode==='--run') {
       [61008,'127.0.0.1',1088],[61008,'127.0.0.1',18088],
       [61008,'8.8.8.8',80],[61008,'2003:1::2',80],
       [61006,'127.0.0.1',1089],[0,'127.0.0.1',1089]];
+    positives.push([61009,'127.0.0.1',8787],[61010,'127.0.0.1',1088]);
     for(const item of positives) await probe(...item,true,`allowed ${item[0]}:${item[1]}:${item[2]}`);
     for(const ip of ['127.0.0.53','::1']) for(const udp of [false,true]) await probe(61003,ip,53,true,'exact DNS works',udp);
     for(const udp of [false,true]) await probe(61006,'127.0.0.53',53,true,'relay exact DNS works',udp);
@@ -183,6 +184,9 @@ if(mode==='--run') {
       [61006,'127.0.0.1',18088],[61006,'8.8.8.8',443],[61006,'2003:1::2',443],
       ...['172.22.40.2','11.77.40.2','fd00:77::2','2003:77::2','2002:1::2','64:ff9b::a00:2'].map(ip=>[61003,ip,443])];
     for(const item of negatives) await probe(...item,false,`denied ${item[0]}:${item[1]}:${item[2]}`);
+    for(const helper of [61009,61010]) for(const [host,port] of [['127.0.0.1',3141],['127.0.0.1',5432],['8.8.8.8',443],['127.0.0.53',53],['127.0.0.1',1089]]) {
+      await probe(helper,host,port,false,'helper has no unrelated network route');
+    }
     await probe(61003,'8.8.8.8',443,false,'UDP/QUIC443 is not implicit public HTTPS',true);
     // Simulate published DB DNAT. Both original and translated tuples must be
     // authorized, while a public443 DNAT to raw provider remains forbidden.

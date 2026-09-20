@@ -45,7 +45,7 @@ function cidr(value) {
   return `${ip}/${bits}`;
 }
 export function validateConfig(value) {
-  object(value,['version','centralUid','caddyUid','downloadRelayUid','protectForwardedControl','extraControlEndpoints','blockedNetworks','apps'],'configuration');
+  object(value,['version','centralUid','caddyUid','downloadRelayUid','importFrontUid','downloadStatusUid','protectForwardedControl','extraControlEndpoints','blockedNetworks','apps'],'configuration');
   if(value.version!==1) throw new Error('Configuration version must be 1');
   if(own(value,'protectForwardedControl') && typeof value.protectForwardedControl!=='boolean') throw new Error('Forwarded control protection must be boolean');
   const centralUid=uid(value.centralUid,'centralUid'),caddyUid=uid(value.caddyUid,'caddyUid');
@@ -56,6 +56,13 @@ export function validateConfig(value) {
     downloadRelayUid=uid(value.downloadRelayUid,'downloadRelayUid');
     if(seen.has(downloadRelayUid)) throw new Error('Download relay needs a distinct UID');
     seen.add(downloadRelayUid);
+  }
+  const helpers={};
+  for(const name of ['importFrontUid','downloadStatusUid']) {
+    if(!own(value,name)) continue;
+    helpers[name]=uid(value[name],name);
+    if(seen.has(helpers[name])) throw new Error('Each helper needs a distinct UID');
+    seen.add(helpers[name]);
   }
   const controls=[{address:'127.0.0.1',port:3141},{address:'::1',port:3141},
     ...list(value.extraControlEndpoints??[],'extraControlEndpoints').map(item=>{
@@ -100,7 +107,7 @@ export function validateConfig(value) {
     return {name:app.name,uid:appUid,database,dns,publicHttp:app.publicHttp===true,...(musicImport?{musicImport}:{}),...workerEndpoints};
   });
   if(!apps.length) throw new Error('At least one dedicated app UID required');
-  return {centralUid,caddyUid,downloadRelayUid,protectForwardedControl:value.protectForwardedControl===true,controls,blockedNetworks,apps};
+  return {centralUid,caddyUid,downloadRelayUid,...helpers,protectForwardedControl:value.protectForwardedControl===true,controls,blockedNetworks,apps};
 }
 const destination=ip=>`${isIP(ip)===4?'ip':'ip6'} daddr ${ip}`;
 export function generateRules(input,{replace=false}={}) {
@@ -150,12 +157,21 @@ export function generateRules(input,{replace=false}={}) {
     '    counter reject with icmpx type admin-prohibited',
     '  }',
   );
+  for(const [key,name,port] of [['importFrontUid','import_front',8787],['downloadStatusUid','download_status',1088]]) {
+    if(config[key]===undefined) continue;
+    lines.push(`  chain ${name} {`,
+      '    ct direction reply ct state established accept',
+      `    ip daddr 127.0.0.1 tcp dport ${port} counter accept`,
+      '    counter reject with icmpx type admin-prohibited','  }');
+  }
   // Conntrack runs at -200. Check once before destination NAT (-100), and again
   // after NAT, so a permitted original URL cannot translate into a private peer.
   for(const [name,priority] of [['before_dnat',-150],['after_dnat',50]]) {
     lines.push(`  chain ${name} {`,`    type filter hook output priority ${priority}; policy accept;`,
       '    jump protected_control',
       ...(config.downloadRelayUid===undefined?[]:[`    meta skuid ${config.downloadRelayUid} jump download_relay`]),
+      ...(config.importFrontUid===undefined?[]:[`    meta skuid ${config.importFrontUid} jump import_front`]),
+      ...(config.downloadStatusUid===undefined?[]:[`    meta skuid ${config.downloadStatusUid} jump download_status`]),
       ...config.apps.map((app,index)=>`    meta skuid ${app.uid} jump app_${index}`),'  }');
   }
   if(config.protectForwardedControl) {

@@ -34,6 +34,9 @@ table bridge developed_green_provider {
     type filter hook forward priority -150; policy accept;
     # Same-bridge frames need their own rule when br_netfilter is absent.
     meta ibrname "${bridge}" ether type ip6 counter drop
+    # The DB also hosts extension workers. It must not initiate Auth control
+    # requests on this bridge; host-originated trusted control uses OUTPUT.
+    ip daddr ${green} tcp dport 9999 counter drop
     ip saddr ${green} ip daddr ${db} tcp dport 5432 accept
     ip saddr ${green} counter drop
   }

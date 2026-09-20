@@ -59,9 +59,11 @@ if (mode === '--run') {
       assert.equal(ok, allowed, `${host}:${port}`);
     };
     check(green, '172.30.241.3', 5432, true); check(green, '172.30.241.3', 443, true);
+    check(db, '172.30.241.2', 9999, true);
     check(green, '8.8.8.8', 443, true); check(green, '172.30.241.1', 443, true); check(green, 'fd00:241::3', 443, true);
     run('nft', ['--check', greenProviderRules('br-green-test')]); run('nft', [greenProviderRules('br-green-test')]);
     check(green, '172.30.241.3', 5432, true); check(green, '172.30.241.3', 443, false);
+    check(db, '172.30.241.2', 9999, false);
     check(green, '8.8.8.8', 443, false); check(green, '169.254.169.254', 80, false);
     check(green, '172.30.241.1', 443, false); check(green, 'fd00:241::3', 443, false);
     check(db, '8.8.8.8', 443, true); // unrelated DB traffic survives

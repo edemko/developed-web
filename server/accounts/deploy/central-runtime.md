@@ -120,3 +120,21 @@ private provider registrations. The deployed web operator can attach the seven
 manifest entries. The deployed native operator and callback validator currently
 support only KešTrek; a Vocabulum native client requires an independently reviewed
 source extension and exact implemented callback before registration.
+
+## Mail readiness check — 2026-09-20 16:00 UTC
+
+Read-only Mailjet sender and domain lookups, using the existing protected central
+credentials, returned sender `noreply@developed.sk` **Active** and domain
+`developed.sk` **SPF OK / DKIM OK**. No sender creation, DNS mutation, validation
+email or mail delivery was requested. The sender/domain responses were reduced
+to status metadata; credentials and domain ownership tokens were not printed.
+
+All19 mail/template tests passed, including actual Chromium rendering at320,
+600 and1280px without remote assets. Templates cover verification, recovery,
+email change, invitation, security/confirmation notices and bug-report messages
+in EN/SK/CS/UK. Sender and support Reply-To remain fixed; Mailjet tracking is off.
+
+This verifies provider configuration and local rendering, **not inbox delivery**.
+`ACCOUNTS_MAIL_ENABLED=false` and closed registration remain unchanged. The
+authorized first new-account delivery address is `dddpsk@gmail.com`; send the
+real confirmation only once its canonical link and security cutover are ready.

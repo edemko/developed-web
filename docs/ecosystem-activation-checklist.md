@@ -74,8 +74,18 @@ and network boundaries are absent are superseded by these completed checkpoints:
   qualification failed and no promotion followed. Both uniquely marked tokens
   were verified revoked by the in-process cleanup and separate cleanup job.
   Anonymous protection/canonical pins passed, and the probe revision gate was
-  removed. The backend redirect and authenticated-user/data acceptance remain
-  unresolved; no user login, session, mail or registration was created.
+  removed. Follow-up backend-only diagnostic source `017c76e`, run
+  `35530363200`, succeeded at 18:51 UTC: health200 and `/auth/session`401 with
+  the exact application-level BFF-authentication denial. The earlier302 did not
+  recur; its cause is not established. Both cleanup mechanisms verified the
+  operator's temporary markers absent and protection/canonical bindings intact.
+  The revision gate was removed again. Actual authenticated-user/data acceptance
+  remains pending; no user login, session, mail or registration was created.
+- Internal-only central app-check ingress was applied from reviewed `4472848`.
+  Both exact HTTPS POST endpoints deny unauthenticated requests401; human login
+  remains404 and marketing/test home200. Caddy PID862 and restart count stayed
+  unchanged. This exposes no human registration/login/consent path and changes
+  no app policies. See the [applied ingress checkpoint](../server/accounts/deploy/internal-ingress.md).
 - Mailjet sender/SPF/DKIM read-only checks and localized template/browser tests
   passed. No registration confirmation email has been sent to the approved
   test mailbox, and live mailbox delivery is not yet proven.
@@ -102,8 +112,12 @@ expose legacy credentials login. Disconnecting Git prevents accidental source
 push deployment; it does **not** retire those runtimes. Static replacement and
 exact old-artifact retirement are still pending. Personal free-tier source work
 is committed and pushed as `1b4e623`; `305dd90` adds the Vercel Git deployment
-guard without changing application bytes. The new private artifact is being
-built and has not replaced either running application. Personal folder creation
+guard without changing application bytes. The new immutable private artifact
+`/opt/developed-apps/vocabulum/releases/305dd90d192a994aa0567af03ef8dbc15923946e`
+now runs in `developed-vocabulum-green.service`, UID985/loopback3161, PID4056033
+with NRestarts=0. Six private HTTP checks and twelve actual-UID boundary checks
+passed; public Docker PID2391125/port3001 remains selected and unchanged. See
+Vocabulum's `deploy/host-runtime.md` checkpoint `6696f95`. Personal folder creation
 and renaming and word/sentence authoring are enabled in source; student folder
 deletion deliberately fails closed pending an atomic cascading-delete guard.
 

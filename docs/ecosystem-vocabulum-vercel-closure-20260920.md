@@ -72,6 +72,30 @@ credentials from previous immutable runtimes. Vercel-authenticated members or
 previously authorized visitors can still invoke protected deployments. Never
 declare runtime retirement solely from anonymous 302 responses.
 
+## Closure completion checkpoint — 2026-09-20 19:48 UTC
+
+The inventory below is historical: all 26 listed credential-bearing deployments
+were retired at `2026-09-20T19:48:13.732Z` by reviewed immutable operator
+`accc69d`. Independent metadata GETs and anonymous immutable-URL
+`/api/auth/providers` probes return 404 for all 26. The exact deletion journal is
+root-protected and fsynced. Their immutable IDs are not assumed recoverable;
+repository/source and application data were preserved.
+
+All four legacy aliases now point to credential-free static HTML handoff
+`dpl_FUDnzBVCZ2FPNHceyC8TuYbSiCpZ`. Browser navigation uses a fixed meta refresh
+and no-referrer manual link to the canonical VPS login; real public Chromium
+tests proved source queries/fragments/referrers are not forwarded. Navigation
+returns static200, APIs and non-navigation methods return410. The initial static
+303 approach was rejected because Vercel appended incoming query parameters.
+
+The canonical Vercel project-domain attachment and alias were removed, without
+changing DNS; direct stale-origin canonical Host now returns404. The canonical
+VPS remained unchanged during this closure and was then released to the separate
+coordinated central-login cutover. Three safe static deployments are retained.
+Git remains disconnected, project/shared app variables are empty with protected
+recovery backup, and Vercel protection is unchanged. No project or database was
+deleted and no shared key was rotated. See the [completed operator evidence](../server/accounts/deploy/vocabulum-vercel-retirement/README.md).
+
 ## Complete immutable deployment inventory
 
 Every URL in this table has the form

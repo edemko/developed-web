@@ -378,6 +378,37 @@ three static artifacts remain. Final metadata and public checks verify their
 preservation and the continued VPS/handoff behavior. No automatic retry follows
 ambiguous alias/domain/delete results or a partial journal; reconcile read-only.
 
+### Final closure completed — 2026-09-20 19:48 UTC
+
+Reviewed immutable operator `accc69d` completed capture at 19:47:13Z, the two
+remaining alias assignments at 19:47:25Z, canonical project-domain detachment at
+19:47:35Z, and exact-26 retirement at `2026-09-20T19:48:13.732Z`. Every phase
+passed its fresh source, environment, scope, public HTTP and VPS checks.
+
+Independent read-only checks after deletion established:
+
+- All 26 deployment metadata GETs return 404, and all 26 inventoried immutable
+  `/api/auth/providers` URLs return 404 anonymously.
+- The fsynced deletion journal contains exactly the approved 26 IDs, in order.
+- Only three READY static artifacts remain: current HTML handoff `dpl_FUDnzBVCZ2FPNHceyC8TuYbSiCpZ`,
+  prior static production `dpl_JAKKv2iPuQdbh53NDeMtLZACwFiu`, and static preview
+  `dpl_J2es9uhrzdS1fcxo7gAV1U4rRpZr`.
+- All four legacy aliases point to the HTML handoff. The only project domain is
+  `vocabulary-builder-plum.vercel.app`; canonical Vercel domain/alias are absent.
+- Normal public handoff tests still pass (four navigation200, eight protocol410),
+  while direct stale canonical Host at Vercel returns 404. Normal VPS root and
+  provider responses were unchanged at handoff to the coordinated VPS cutover.
+- Git remains disconnected, Vercel Authentication remains
+  `all_except_custom_domains`, and project/linked shared environment lists are empty.
+
+The retired immutable deployment artifacts/URLs are not restored by this runbook;
+do not assume their IDs can be recovered. Git repository/source and application
+data were not deleted. The protected environment backup, original/final metadata
+captures, HTTP receipt and exact deletion journal remain under `/root` for
+operator-controlled recovery/audit. Recreating any runtime would be a new,
+separately reviewed deployment, not rollback of these deletions. No project,
+DNS, registered domain, database record or shared credential was deleted/rotated.
+
 Follow [the complete inventory and closure runbook](../../../../docs/ecosystem-vocabulum-vercel-closure-20260920.md).
 Promotion of this routing artifact only neutralizes aliases assigned to it.
 The 26 old credential-bearing immutable runtimes remain active until separately

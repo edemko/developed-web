@@ -38,9 +38,14 @@ and network boundaries are absent are superseded by these completed checkpoints:
   produced READY frontend candidate `dpl_3Ly2znk42wShJDB921nsCyphUP2F` at source
   `03a26c23252f12cf86d580843c5bb2806cd1d37b`, but its wrapper then failed before
   producing a backend candidate. The deployment gate was disabled and its
-  revision allowlist cleared. Read-only inventory confirmed the frontend build;
-  post-build canonical alias binding and failure diagnosis remain pending.
-  Do not retry, promote, delete or claim end-to-end acceptance from that result.
+  revision allowlist cleared. Read-only inspection `35523947563` subsequently
+  confirmed both canonical alias bindings unchanged and identified the wrapper
+  failure: Vercel recorded a protected automatic project alias, while the wrapper
+  incorrectly required an empty alias list. Both the immutable URL and automatic
+  alias redirect anonymous requests to Vercel authentication. No existing
+  automation bypass token was available, so authenticated runtime qualification
+  remains pending. A narrowly reviewed backend-only resume is being prepared;
+  there has been no automatic retry, promotion or deletion.
 - Mailjet sender/SPF/DKIM read-only checks and localized template/browser tests
   passed. No registration confirmation email has been sent to the approved
   test mailbox, and live mailbox delivery is not yet proven.

@@ -37,7 +37,7 @@ function system(user, args) {
     '/usr/bin/systemctl', '--user', ...args]) : run('/usr/bin/systemctl', args);
 }
 function unit(user, name) {
-  return Object.fromEntries(system(user, ['show', name, '-p', 'MainPID,ActiveState,UnitFileState'])
+  return Object.fromEntries(system(user, ['show', name, '-p', 'MainPID,ControlPID,ActiveState,UnitFileState,Result,ExecMainCode,ExecMainStatus,NRestarts'])
     .trim().split('\n').map(line => line.split('=')));
 }
 function container(name) {
@@ -57,6 +57,57 @@ export function activeConnections(text, selectedPorts = ports) {
     return [f[1], f[2]].some(address => selectedPorts.has(parseInt(address.split(':').at(-1), 16)))
       && !['0A', '06'].includes(f[3].toUpperCase());
   }).length;
+}
+export function listeners(text, selectedPorts) {
+  return text.trim().split('\n').slice(1).filter(Boolean).filter(line => {
+    const f = line.trim().split(/\s+/); assert.ok(f.length >= 10);
+    return selectedPorts.has(parseInt(f[1].split(':').at(-1), 16)) && f[3].toUpperCase() === '0A';
+  }).length;
+}
+function noStoppedListeners() {
+  for (const family of ['tcp', 'tcp6']) assert.equal(listeners(readFileSync(`/proc/net/${family}`, 'utf8'),
+    new Set([3137, 3138, 3127])), 0, 'A stopped predecessor port is listening');
+}
+export function assertStoppedScreen143(state) {
+  for (const [key, value] of Object.entries({ MainPID: '0', ControlPID: '0', ActiveState: 'failed',
+    UnitFileState: 'disabled', Result: 'exit-code', ExecMainCode: '1', ExecMainStatus: '143', NRestarts: '0' }))
+    assert.equal(state[key], value, 'Screen resume state differs from approved stopped exit143');
+}
+export function assertResumeCheckpoint(before, current, retired) {
+  assert.equal(before.routeHash, routeHash);
+  assert.deepEqual(before.originals.map(({ user, name }) => [user, name]), oldUnits.map(([user, name]) => [user, name]));
+  assert.deepEqual(current.originals.map(({ user, name }) => [user, name]), oldUnits.map(([user, name]) => [user, name]));
+  assert.equal(retired.length, 2);
+  for (let i = 0; i < oldUnits.length; i++) {
+    const prior = before.originals[i], now = current.originals[i];
+    assert.equal(prior.ActiveState, 'active'); assert.equal(prior.MainPID, String(oldUnits[i][2])); assert.equal(prior.UnitFileState, 'enabled');
+    if (i < 2) {
+      for (const state of [now, retired[i]]) {
+        assert.equal(state.MainPID, '0'); assert.equal(state.ActiveState, 'inactive'); assert.equal(state.UnitFileState, 'disabled');
+      }
+      assert.equal(now.ControlPID, '0'); assert.ok(typeof retired[i].time === 'string');
+    } else if (i === 2) assertStoppedScreen143(now);
+    else {
+      assert.equal(now.MainPID, prior.MainPID); assert.equal(now.ControlPID, '0');
+      assert.equal(now.ActiveState, 'active'); assert.equal(now.UnitFileState, 'enabled');
+    }
+  }
+  for (const states of [before.containers, current.containers]) {
+    assert.equal(states.length, 2);
+    for (let i = 0; i < oldContainers.length; i++) {
+      const [name, id, pid] = oldContainers[i], state = states[i];
+      assert.equal(state.id, id); assert.equal(state.name, `/${name}`); assert.equal(state.pid, pid);
+      assert.equal(state.running, true); assert.equal(state.restart, 'unless-stopped');
+    }
+  }
+  for (const states of [before.candidates, current.candidates]) {
+    assert.deepEqual(states.map(({ name, uid }) => [name, uid]), newUnits);
+    for (const state of states) { assert.equal(state.ActiveState, 'active'); assert.ok(Number(state.MainPID) > 0); }
+  }
+  for (let i = 0; i < newUnits.length; i++) {
+    assert.equal(current.candidates[i].MainPID, before.candidates[i].MainPID);
+    assert.equal(current.candidates[i].UnitFileState, 'enabled'); assert.equal(current.candidates[i].ControlPID, '0');
+  }
 }
 function draining() {
   let active = ['/proc/net/tcp', '/proc/net/tcp6'].reduce((sum, path) => sum + activeConnections(readFileSync(path, 'utf8')), 0);
@@ -81,9 +132,83 @@ function routeCheck() {
   const proof = JSON.parse(readFileSync(path));
   assert.ok(proof.phase === '--apply' && proof.candidateSha256 === routeHash && proof.humanSsoEnabled === false);
 }
+function bootProof(name) {
+  const path = `/etc/systemd/system/multi-user.target.wants/${name}`, stat = lstatSync(path);
+  assert.ok(stat.isSymbolicLink() && stat.uid === 0, 'Unexpected boot dependency');
+  const fragment = '/etc/systemd/system/' + name.replace(/@[^.]+\.service$/, '@.service');
+  assert.equal(readlinkSync(path), fragment, 'Unexpected boot dependency target'); trusted(fragment);
+}
+function privateRead(name) {
+  const path = `${backup}/${name}`; trusted(path);
+  const stat = lstatSync(path); assert.ok(stat.isFile() && stat.nlink === 1 && (stat.mode & 0o777) === 0o600);
+  return readFileSync(path, 'utf8');
+}
+function absent(name) {
+  try { lstatSync(`${backup}/${name}`); throw new Error('Resume checkpoint already exists; reconcile only'); }
+  catch (e) { if (e.code !== 'ENOENT') throw e; }
+}
+function liveCandidates() {
+  return newUnits.map(([name, uid]) => {
+    const state = unit(false, name); assert.ok(state.ActiveState === 'active' && Number(state.MainPID) > 0);
+    assert.ok(new RegExp(`^Uid:\\s+${uid}\\s+${uid}\\s+${uid}\\s+${uid}$`, 'm').test(readFileSync(`/proc/${state.MainPID}/status`, 'utf8')));
+    bootProof(name); return { name, uid, ...state };
+  });
+}
+async function resumeScreen143() {
+  trusted(backup); assert.equal(lstatSync(backup).mode & 0o777, 0o700);
+  const beforeText = privateRead('before.json'), before = JSON.parse(beforeText);
+  const retired = oldUnits.slice(0, 2).map(([, name]) => JSON.parse(privateRead(`${name}.retired.json`)));
+  for (const [user, name] of oldUnits) assert.equal(sha(privateRead(`${name}.original`)), sha(system(user, ['cat', name])), 'Unit source drift');
+  for (const name of ['completed.json', 'resume-screen-143.started.json',
+    ...oldUnits.slice(2).map(([, name]) => `${name}.retired.json`), ...oldContainers.map(([name]) => `${name}.retired.json`)]) absent(name);
+  function snapshot() { return { originals: oldUnits.map(([user, name]) => ({ user, name, ...unit(user, name) })),
+    containers: oldContainers.map(([name]) => container(name)), candidates: liveCandidates() }; }
+  let current = snapshot(); assertResumeCheckpoint(before, current, retired); noStoppedListeners();
+  let quiet = 0;
+  for (let n = 0; n < 30 && quiet < 3; n++) {
+    quiet = draining() === 0 ? quiet + 1 : 0;
+    if (quiet < 3) await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  assert.equal(quiet, 3, 'Remaining predecessor sockets have not drained');
+  routeCheck(); current = snapshot(); assertResumeCheckpoint(before, current, retired); noStoppedListeners();
+  write('resume-screen-143.started.json', { beforeSha256: sha(beforeText), approvedScreenState: current.originals[2],
+    mode: '--resume-screen-143', time: new Date().toISOString() });
+  // Screen is already stopped. Record the exact accepted failure; do not issue
+  // stop, disable, reset-failed, restart or boot-selection commands for it.
+  write('screentime-prod.service.retired.json', { ...current.originals[2], acceptedStoppedExit143: true, time: new Date().toISOString() });
+  for (const [user, name, pid] of oldUnits.slice(3)) {
+    const prior = unit(user, name); assert.equal(Number(prior.MainPID), pid); assert.equal(prior.ActiveState, 'active');
+    assert.equal(prior.UnitFileState, 'enabled'); assert.equal(draining(), 0); noStoppedListeners(); routeCheck();
+    system(user, ['disable', name]); system(user, ['stop', name]);
+    const state = unit(user, name);
+    assert.ok(state.MainPID === '0' && state.ControlPID === '0' && state.ActiveState === 'inactive' && state.UnitFileState === 'disabled');
+    write(`${name}.retired.json`, { ...state, time: new Date().toISOString() });
+  }
+  for (const [name, id, pid] of oldContainers) {
+    const state = container(name); assert.ok(state.id === id && state.pid === pid && state.running && state.restart === 'unless-stopped');
+    assert.equal(draining(), 0); noStoppedListeners(); routeCheck();
+    run('/usr/bin/docker', ['update', '--restart=no', id]); run('/usr/bin/docker', ['stop', '--timeout', '60', id]);
+    const after = container(name); assert.ok(after.id === id && !after.running && after.pid === 0 && after.restart === 'no');
+    write(`${name}.retired.json`, { ...after, time: new Date().toISOString() });
+  }
+  const candidates = liveCandidates();
+  for (let i = 0; i < candidates.length; i++) {
+    assert.equal(candidates[i].MainPID, before.candidates[i].MainPID); assert.equal(candidates[i].UnitFileState, 'enabled');
+  }
+  for (const [user, name] of oldUnits) {
+    const state = unit(user, name);
+    if (name === 'screentime-prod.service') assertStoppedScreen143(state);
+    else assert.ok(state.MainPID === '0' && state.ControlPID === '0' && state.ActiveState === 'inactive' && state.UnitFileState === 'disabled');
+  }
+  noStoppedListeners(); assert.equal(draining(), 0); routeCheck();
+  const result = { completed: true, mode: '--resume-screen-143', retiredUnits: 5, stoppedContainers: 2,
+    acceptedStoppedScreenExit143: true, containersDeleted: false, candidatesBootEnabled: 6, candidateRestarts: 0 };
+  write('completed.json', result); return result;
+}
 export async function execute(mode) {
-  assert.ok(process.getuid() === 0 && mode === '--apply', 'Reviewed root apply only');
+  assert.ok(process.getuid() === 0 && ['--apply', '--resume-screen-143'].includes(mode), 'Reviewed root mode only');
   trusted(new URL(import.meta.url).pathname); routeCheck();
+  if (mode === '--resume-screen-143') return resumeScreen143();
   const originals = oldUnits.map(([user, name, pid]) => {
     const state = unit(user, name);
     assert.ok(state.ActiveState === 'active' && Number(state.MainPID) === pid && state.UnitFileState === 'enabled', 'Old unit drift');

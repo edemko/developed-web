@@ -347,6 +347,37 @@ All 26 credential-bearing old runtimes remain intact pending the separately
 reviewed final alias/domain/retirement phases. The two prior safe static artifacts
 are not included in the exact-26 deletion authorization.
 
+### Final exact-scope closure operator (separate GO required)
+
+`vocabulum-vercel-retire.mjs` pins the successful HTML handoff. Each phase requires
+the exact 29 READY IDs, zero project/shared app environment, unchanged Git and
+Vercel Authentication, expected production target/domains and exact live alias
+mappings. It re-hashes both uploaded files, rejects functions/builds/crons and
+old app environment, repeats all public 200/410 checks and verifies the normal
+VPS remains unchanged. It never promotes or deploys another artifact.
+
+`capture` creates an exclusive root600/fsynced final recovery checkpoint that
+references the reviewed live-browser evidence in commit `28476ab` and the
+existing protected HTTP receipt. This is an explicit operator acknowledgement of
+already observed browser evidence, not a claim that the capture phase launches
+a browser. The coordinator must review that evidence before authorizing capture.
+
+`aliases` moves only the two remaining historical bindings to the handoff ID;
+already-correct bindings are not rewritten. It verifies all four legacy aliases
+afterward. `detach` removes only the canonical project-domain attachment, not DNS
+or its registered domain; it requires those four bindings and confirms the VPS
+and public handoff afterward. Following detachment, direct stale-origin 404, 410,
+421 or strict TLS hostname rejection establish a closed canonical mapping. TLS
+verification is never disabled, and only that direct-origin check accepts the
+specific hostname-rejection error.
+
+`retire` requires the canonical project domain/alias absent and repeats all gates
+before deleting exactly the original 26 credential-bearing IDs. Each deletion
+rechecks project ownership and is fsynced to an exclusive root600 journal. The
+three static artifacts remain. Final metadata and public checks verify their
+preservation and the continued VPS/handoff behavior. No automatic retry follows
+ambiguous alias/domain/delete results or a partial journal; reconcile read-only.
+
 Follow [the complete inventory and closure runbook](../../../../docs/ecosystem-vocabulum-vercel-closure-20260920.md).
 Promotion of this routing artifact only neutralizes aliases assigned to it.
 The 26 old credential-bearing immutable runtimes remain active until separately

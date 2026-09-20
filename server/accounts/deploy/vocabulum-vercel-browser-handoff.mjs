@@ -63,7 +63,7 @@ export function assertHandoffMetadata(d, id, payload, expectedAliases = [DEFAULT
   }
 }
 
-async function canonicalState() {
+export async function canonicalState() {
   const root = await fetch(`https://${CANONICAL}/`, { redirect: 'manual' });
   assert.equal(root.status, 200);
   const providers = await fetch(`https://${CANONICAL}/api/auth/providers`, { redirect: 'manual' });
@@ -81,7 +81,7 @@ async function saveRecord(value, path = RECORD) {
   assert.deepEqual(await readRecord(path), value);
 }
 
-function probe(host, path, method = 'GET', direct = false) {
+export function probe(host, path, method = 'GET', direct = false) {
   return new Promise((resolve, reject) => {
     const req = https.request({ hostname: direct ? HANDOFF_HOST : host, servername: host, method, path,
       headers: { Host: host, 'User-Agent': 'Mozilla/5.0 (Vocabulum migration check)' } }, (res) => {
@@ -92,7 +92,7 @@ function probe(host, path, method = 'GET', direct = false) {
     req.end(method === 'POST' ? 'fixture=nonsecret' : undefined);
   });
 }
-export async function smoke(probeFn = probe) {
+export async function smoke(probeFn = probe, { detached = false } = {}) {
   let checks = 0;
   for (const [method, path, status] of [
     ['GET', '/?code=fixture-code&token=fixture-token', 200], ['HEAD', '/auth/login?next=https://untrusted.invalid', 200],
@@ -108,8 +108,17 @@ export async function smoke(probeFn = probe) {
     if (status === 200 && method === 'GET') assert.equal(r.body, HTML);
     checks++;
   }
-  const direct = await probeFn(CANONICAL, '/api/auth/providers', 'GET', true); assert.equal(direct.status, 410);
-  return { navigation200: 4, protocol410: 8, directCanonical410: true, checks: checks + 1 };
+  let directResult;
+  try {
+    const direct = await probeFn(CANONICAL, '/api/auth/providers', 'GET', true);
+    assert.ok(detached ? [404, 410, 421].includes(direct.status) : direct.status === 410);
+    directResult = direct.status;
+  } catch (e) {
+    if (!detached || e.code !== 'ERR_TLS_CERT_ALTNAME_INVALID') throw e;
+    directResult = 'TLS_HOSTNAME_REJECTED';
+  }
+  return { navigation200: 4, protocol410: 8, directCanonical410: !detached,
+    directCanonicalResult: directResult, checks: checks + 1 };
 }
 
 export function assertPromoted(s) {
@@ -125,7 +134,7 @@ export function assertPromoted(s) {
       assert.equal(a.deploymentId, HANDOFF_ID); return { ...a, deploymentId: PREVIOUS_ID };
     }) });
 }
-async function verifyFiles(api, id, payload) {
+export async function verifyFiles(api, id, payload) {
   const files = [];
   function walk(entries, parent = '') { for (const f of entries) {
     const path = parent ? `${parent}/${f.name}` : f.name;

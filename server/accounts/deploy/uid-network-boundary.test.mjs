@@ -8,6 +8,16 @@ export const fixtureConfig=()=>({version:1,centralUid:61001,caddyUid:61002,
     dns:[{address:'127.0.0.53',port:53},{address:'::1',port:53}],musicImport:{address:'127.0.0.1',port:18887}},
   {name:'vocabulum',uid:61004,database:[],dns:[{address:'127.0.0.53',port:53}]}]});
 
+test('KešTrek optional self MCP call permits only exact IPv4 loopback3164',()=>{
+  const config=fixtureConfig();config.apps.push({name:'kestrek',uid:61012,database:[],dns:[{address:'127.0.0.53',port:53}],selfMcpApi:true});
+  const output=generateRules(config), chain=output.split('# kestrek: UID 61012')[1].split('\n  }')[0];
+  assert.equal(output.split('ip daddr 127.0.0.1 tcp dport 3164 counter accept').length-1,1);
+  assert(chain.indexOf('tcp dport 3164 counter accept')<chain.indexOf('fib daddr type local'));
+  assert(!output.includes('ip6 daddr ::1 tcp dport 3164 counter accept'));
+  for(const bad of [1,'true',{address:'127.0.0.1',port:3164}]) {config.apps[2].selfMcpApi=bad;assert.throws(()=>validateConfig(config));}
+  config.apps[2].selfMcpApi=true;config.apps[2].name='other';assert.throws(()=>validateConfig(config));
+});
+
 test('dedicated table, both NAT sides, exact endpoints and reply-direction only',()=>{
   const output=generateRules(fixtureConfig());
   assert(output.includes(`table inet ${TABLE}`));assert(!/^\s*flush /m.test(output));

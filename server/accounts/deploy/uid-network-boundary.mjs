@@ -73,9 +73,12 @@ export function validateConfig(value) {
   const blockedNetworks=list(value.blockedNetworks,'blockedNetworks').map(cidr);
   const names=new Set();
   const apps=list(value.apps,'apps',32).map(app=>{
-    object(app,['name','uid','database','dns','musicImport','downloadRelay','downloadStatus','downloadProvider','publicHttp'],'application');
+    object(app,['name','uid','database','dns','musicImport','downloadRelay','downloadStatus','downloadProvider','publicHttp','selfMcpApi'],'application');
     if(typeof app.name!=='string' || !/^[a-z][a-z0-9-]{1,31}$/.test(app.name) || names.has(app.name)) throw new Error('Unique lowercase app name required');
     names.add(app.name);
+    if(own(app,'selfMcpApi') && (typeof app.selfMcpApi!=='boolean' || app.name!=='kestrek')) {
+      throw new Error('Self MCP API exception requires the reviewed KešTrek app');
+    }
     if(own(app,'publicHttp') && (typeof app.publicHttp!=='boolean' || app.name!=='jasom-worker')) {
       throw new Error('Public HTTP compatibility requires the reviewed JASOM worker');
     }
@@ -104,7 +107,7 @@ export function validateConfig(value) {
     for(const item of [...database,...dns,...(musicImport?[musicImport]:[]),...Object.values(workerEndpoints)]) {
       if(controls.some(control=>control.address===item.address && control.port===item.port)) throw new Error('Application exception overlaps protected control endpoint');
     }
-    return {name:app.name,uid:appUid,database,dns,publicHttp:app.publicHttp===true,...(musicImport?{musicImport}:{}),...workerEndpoints};
+    return {name:app.name,uid:appUid,database,dns,publicHttp:app.publicHttp===true,...(app.selfMcpApi?{selfMcpApi:true}:{}),...(musicImport?{musicImport}:{}),...workerEndpoints};
   });
   if(!apps.length) throw new Error('At least one dedicated app UID required');
   return {centralUid,caddyUid,downloadRelayUid,...helpers,protectForwardedControl:value.protectForwardedControl===true,controls,blockedNetworks,apps};
@@ -137,6 +140,7 @@ export function generateRules(input,{replace=false}={}) {
     for(const key of ['downloadRelay','downloadStatus','downloadProvider']) {
       if(app[key]) lines.push(`    ${destination(app[key].address)} tcp dport ${app[key].port} counter accept`);
     }
+    if(app.selfMcpApi) lines.push('    ip daddr 127.0.0.1 tcp dport 3164 counter accept');
     lines.push('    fib daddr type local counter reject with icmpx type admin-prohibited');
     // Individual CIDR rules avoid overlapping interval-set ambiguities and
     // keep custom Docker/publicly-numbered internal ranges explicit.

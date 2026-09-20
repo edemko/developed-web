@@ -45,7 +45,7 @@ function cidr(value) {
   return `${ip}/${bits}`;
 }
 export function validateConfig(value) {
-  object(value,['version','centralUid','caddyUid','downloadRelayUid','importFrontUid','downloadStatusUid','protectForwardedControl','extraControlEndpoints','blockedNetworks','apps'],'configuration');
+  object(value,['version','centralUid','caddyUid','downloadRelayUid','importFrontUid','downloadStatusUid','dataBoundaryUid','protectForwardedControl','extraControlEndpoints','blockedNetworks','apps'],'configuration');
   if(value.version!==1) throw new Error('Configuration version must be 1');
   if(own(value,'protectForwardedControl') && typeof value.protectForwardedControl!=='boolean') throw new Error('Forwarded control protection must be boolean');
   const centralUid=uid(value.centralUid,'centralUid'),caddyUid=uid(value.caddyUid,'caddyUid');
@@ -58,7 +58,7 @@ export function validateConfig(value) {
     seen.add(downloadRelayUid);
   }
   const helpers={};
-  for(const name of ['importFrontUid','downloadStatusUid']) {
+  for(const name of ['importFrontUid','downloadStatusUid','dataBoundaryUid']) {
     if(!own(value,name)) continue;
     helpers[name]=uid(value[name],name);
     if(seen.has(helpers[name])) throw new Error('Each helper needs a distinct UID');
@@ -164,6 +164,9 @@ export function generateRules(input,{replace=false}={}) {
       `    ip daddr 127.0.0.1 tcp dport ${port} counter accept`,
       '    counter reject with icmpx type admin-prohibited','  }');
   }
+  if(config.dataBoundaryUid!==undefined) lines.push('  chain data_boundary {',
+    '    ct direction reply ct state established accept',
+    '    counter reject with icmpx type admin-prohibited','  }');
   // Conntrack runs at -200. Check once before destination NAT (-100), and again
   // after NAT, so a permitted original URL cannot translate into a private peer.
   for(const [name,priority] of [['before_dnat',-150],['after_dnat',50]]) {
@@ -172,6 +175,7 @@ export function generateRules(input,{replace=false}={}) {
       ...(config.downloadRelayUid===undefined?[]:[`    meta skuid ${config.downloadRelayUid} jump download_relay`]),
       ...(config.importFrontUid===undefined?[]:[`    meta skuid ${config.importFrontUid} jump import_front`]),
       ...(config.downloadStatusUid===undefined?[]:[`    meta skuid ${config.downloadStatusUid} jump download_status`]),
+      ...(config.dataBoundaryUid===undefined?[]:[`    meta skuid ${config.dataBoundaryUid} jump data_boundary`]),
       ...config.apps.map((app,index)=>`    meta skuid ${app.uid} jump app_${index}`),'  }');
   }
   if(config.protectForwardedControl) {

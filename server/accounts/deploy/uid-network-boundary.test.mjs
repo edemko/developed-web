@@ -92,3 +92,12 @@ test('fixed front/status helpers get only their single private upstream and repl
   config.importFrontUid=61003;assert.throws(()=>validateConfig(config));
   config.importFrontUid=61010;assert.throws(()=>validateConfig(config));
 });
+test('data denial filter can answer incoming requests but initiate no network traffic',()=>{
+  const config=fixtureConfig();config.dataBoundaryUid=61011;
+  const output=generateRules(config);
+  assert.match(output,/chain data_boundary \{\n    ct direction reply ct state established accept\n    counter reject with icmpx type admin-prohibited\n  \}/);
+  assert.equal(output.split('meta skuid 61011 jump data_boundary').length-1,2);
+  for(const duplicate of [61001,61002,61003,61004]) {
+    config.dataBoundaryUid=duplicate;assert.throws(()=>validateConfig(config));
+  }
+});

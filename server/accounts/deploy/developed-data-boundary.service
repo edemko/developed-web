@@ -1,0 +1,42 @@
+# Private prerequisite only; this does not activate any public data route.
+[Unit]
+Description=DevelopED public data credential-class denial filter
+After=developed-uid-boundary.service bind-boundary.service
+Requires=developed-uid-boundary.service bind-boundary.service
+ConditionPathExists=/etc/developed-accounts/data-boundary.env
+
+[Service]
+Type=simple
+User=developed-data-boundary
+Group=developed-data-boundary
+WorkingDirectory=/opt/developed-control/data-boundary
+EnvironmentFile=/etc/developed-accounts/data-boundary.env
+Environment=DATA_BOUNDARY_PORT=3143
+ExecStart=/opt/developed-runtimes/node-v22.23.2/bin/node /opt/developed-control/data-boundary/public-data-boundary.mjs
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectProc=invisible
+ProcSubset=pid
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_UNIX
+InaccessiblePaths=-/run/docker.sock -/var/run/docker.sock -/run/tailscale -/run/user
+MemoryMax=96M
+TasksMax=16
+
+[Install]
+WantedBy=multi-user.target

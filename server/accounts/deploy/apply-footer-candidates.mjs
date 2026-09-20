@@ -35,6 +35,8 @@ function unchangedServing(){for(const a of apps){assert.equal(system(['show',`de
 function checkpoint(){unchangedServing();return {caddy:sha(readFileSync('/etc/caddy/Caddyfile')),network:sha(readFileSync(networkPath)),environments:Object.fromEntries(apps.map(a=>[a.slug,sha(readFileSync(`/etc/developed-accounts/host-env-staging/${a.slug}.central.env`))]))};}
 function verifyCheckpoint(before){unchangedServing();assert.deepEqual(checkpoint(),before,'Unrelated route/packet policy changed');}
 function noListener(port){assert.equal(run('/usr/bin/ss',['-H','-ltn',`sport = :${port}`]).trim(),'','Candidate listener occupied');}
+export function assertInactiveUnenabled(state){assert.equal(state.MainPID,'0');assert.equal(state.ActiveState,'inactive');assert.ok(['static','disabled'].includes(state.UnitFileState));for(const key of ['WantedBy','RequiredBy','TriggeredBy','PartOf'])assert.equal(state[key],'');}
+function inactiveUnenabled(name){const state=Object.fromEntries(system(['show',name,'-p','MainPID,ActiveState,UnitFileState,WantedBy,RequiredBy,TriggeredBy,PartOf']).trim().split('\n').map(line=>{const at=line.indexOf('=');return [line.slice(0,at),line.slice(at+1)];}));assertInactiveUnenabled(state);return state;}
 function prepare(app){const value=proof();const original=value.units.find(x=>x.name===`developed-${app.slug}-footer.service`);assert.ok(original);const staged=readFileSync(`${directory}/${original.name}`);assert.equal(sha(staged),original.sha256);
  const bytes=Buffer.from(hardenCandidateUnit(staged.toString('utf8'))),unit={...original,originalSha256:original.sha256,sha256:sha(bytes)};return {value,unit,bytes};}
 export function inventory(root,relative='',skipCache=false){const entries=[];for(const name of readdirSync(root+'/'+relative).sort()){
@@ -70,8 +72,23 @@ function install(app){
  const installed={revision:app.revision,payload:manifest.files,dependencies:manifest.dependencies,cache:{path:'.next/cache',target:cache,uid:app.uid,gid:app.gid,mode:'0700'},unitSha256:unit.sha256,guardSha256:sha(guardSource)};
  write(release+'/release-manifest.json',JSON.stringify(installed),0o444);sync(release);
  write(destination,bytes,0o644);run('/usr/bin/systemd-analyze',['verify',destination]);system(['daemon-reload']);
- assert.equal(system(['show',unit.name,'-p','UnitFileState','--value']).trim(),'disabled');verifyCheckpoint(before);
+ inactiveUnenabled(unit.name);verifyCheckpoint(before);
  receipt(`${app.slug}-installed`,{revision:app.revision,manifestSha256:sha(readFileSync(release+'/release-manifest.json')),unitSha256:unit.sha256,started:false});
+}
+function reconcileVocStatic(){
+ const app=apps.find(a=>a.slug==='vocabulum'),{value,unit,bytes}=prepare(app),release=`/opt/developed-apps/vocabulum/releases/${app.revision}`;
+ assert.ok(!existsSync(`${directory}/vocabulum-installed.json`));assert.ok(!existsSync(`${directory}/bind-attempt.json`));assert.ok(!existsSync(`${directory}/vocabulum-start-attempt.json`));
+ const attempt=JSON.parse(readFileSync(`${directory}/vocabulum-install-attempt.json`)),hardened=JSON.parse(readFileSync(`${directory}/vocabulum-hardened-unit.json`));
+ assert.equal(attempt.revision,app.revision);assert.equal(attempt.unitSha256,unit.sha256);assert.equal(hardened.originalStagedSha256,unit.originalSha256);assert.equal(hardened.derivedSha256,unit.sha256);
+ verifyCheckpoint(attempt.before);assert.equal(sha(readFileSync(bindPath)),value.bindBeforeSha256);noListener(app.port);assert.equal(inactiveUnenabled(unit.name).UnitFileState,'static');
+ trusted(release);trusted('/etc/systemd/system/'+unit.name);const text=readFileSync(release+'/release-manifest.json'),manifest=JSON.parse(text);
+ assert.equal(manifest.revision,app.revision);validateManifest({app:app.slug,files:manifest.payload,dependencies:manifest.dependencies},app);
+ assert.deepEqual(inventory(release+'/node_modules'),manifest.dependencies);assert.deepEqual(inventory(release,'',true).filter(([p])=>!p.startsWith('node_modules/')&&p!=='release-manifest.json'),manifest.payload);
+ assert.deepEqual(manifest.cache,{path:'.next/cache',target:'/var/cache/developed-vocabulum-footer',uid:985,gid:979,mode:'0700'});assert.equal(readlinkSync(release+'/.next/cache'),manifest.cache.target);
+ const cache=lstatSync(manifest.cache.target);assert.ok(cache.isDirectory()&&!cache.isSymbolicLink()&&cache.uid===985&&cache.gid===979&&(cache.mode&0o777)===0o700);
+ assert.equal(manifest.unitSha256,unit.sha256);assert.deepEqual(readFileSync('/etc/systemd/system/'+unit.name),bytes);assert.equal(manifest.guardSha256,attempt.guardSha256);assert.equal(sha(readFileSync('/opt/developed-control/central-runtime-v1/assert-central-runtime.mjs')),attempt.guardSha256);
+ run('/usr/bin/systemd-analyze',['verify','/etc/systemd/system/'+unit.name]);verifyCheckpoint(attempt.before);inactiveUnenabled(unit.name);
+ receipt('vocabulum-installed',{revision:app.revision,manifestSha256:sha(text),unitSha256:unit.sha256,started:false,reconciledStatic:true});
 }
 function bind(){const before=checkpoint(),p=proof();for(const a of apps){assert.ok(existsSync(`${directory}/${a.slug}-installed.json`));noListener(a.port);}
  const old=readFileSync(bindPath),proposed=readFileSync(`${directory}/bind-proposed.json`);assert.equal(sha(old),p.bindBeforeSha256);assert.equal(sha(proposed),p.bindProposedSha256);assert.deepEqual(JSON.parse(proposed),extendBindPolicy(JSON.parse(old)));
@@ -100,6 +117,6 @@ async function start(app){const before=checkpoint(),{value,unit}=prepare(app);as
  verifyCheckpoint(before);assert.equal(system(['show',unit.name,'-p','NRestarts','--value']).trim(),'0');receipt(`${app.slug}-started`,{pid,uid:app.uid,gid:app.gid,port:app.port,publicRouteChanged:false});
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){try{assert.equal(process.getuid(),0);trusted(new URL(import.meta.url).pathname);const [mode,slug]=process.argv.slice(2),app=apps.find(a=>a.slug===slug);
- assert.ok(mode==='--bind'&&process.argv.length===3||['--install','--start'].includes(mode)&&app&&process.argv.length===4);
- if(mode==='--bind')bind();else if(mode==='--install')install(app);else await start(app);console.log('Exact footer candidate phase completed; public routes unchanged.');
+ assert.ok(['--bind','--reconcile-voc-static'].includes(mode)&&process.argv.length===3||['--install','--start'].includes(mode)&&app&&process.argv.length===4);
+ if(mode==='--reconcile-voc-static')reconcileVocStatic();else if(mode==='--bind')bind();else if(mode==='--install')install(app);else await start(app);console.log('Exact footer candidate phase completed; public routes unchanged.');
 }catch{console.error('Footer phase stopped; inspect exact protected attempt/partial state, reconcile read-only, do not retry automatically.');process.exitCode=1;}}

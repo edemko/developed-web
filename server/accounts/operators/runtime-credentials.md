@@ -5,6 +5,10 @@ the already staged roles. Its development and tests issue no live credential,
 change no production role, write no runtime environment, and activate no app.
 Use it only after coordinator review of the exact immutable dependency bundle.
 
+The subsequently approved private issuance and actual-UID authentication results
+are recorded in the [2026-09-20 credential checkpoint](../../../docs/ecosystem-runtime-credentials-checkpoint-20260920.md).
+This does not authorize a repeat bootstrap or runtime activation.
+
 The [live SQL checkpoint](../../../docs/ecosystem-app-sql-checkpoint-20260920.md)
 and separately attached seven web/one native clients are prerequisites. Before
 every operation it checks the exact three central/ten app checksum rows and

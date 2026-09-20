@@ -1,7 +1,51 @@
 # Local Vocabulum Vercel retirement artifact
 
-**Unpublished candidate.** The only authorized live Vercel change so far was
-the project Git-link disconnect. This directory does not change a deployment.
+**Private preview staged; no production promotion or old-runtime retirement.**
+The authorized Git-link disconnect, environment backup/removal and static
+preview creation are complete. The checkpoint below supersedes the earlier
+read-only inventory for those operations only.
+
+## Private staging checkpoint
+
+Source/operator revision `64db2c2` was tested (9/9 checks) and pushed with
+`[no deploy]`. A root-owned read-only copy and the pinned routing JSON were
+installed at `/opt/developed-operators/vocabulum-vercel-64db2c2/`, with source and
+installed SHA256 matches. The operator SHA256 is
+`0b2a309a4ae2cf788ff48048cd0e68c200a54a01175d173d26fc60a8d12b6081`.
+
+All seven exact project environment entries were backed up to
+`/root/vocabulum-vercel-env-recovery-20260920.json`, root:root0600, one hard link,
+file and parent-directory fsync plus private read-back verification. Their
+unchanged values/IDs were checked privately before deleting only those seven
+future-build entries. Zero project entries and zero linked shared entries were
+then verified. The old deployments' embedded credentials remain unchanged.
+
+The new static preview is `dpl_J2es9uhrzdS1fcxo7gAV1U4rRpZr`, URL
+`vocabulary-builder-cev55ut27-erik-demkos-projects.vercel.app`. The root-only
+stage record is `/root/vocabulum-vercel-static-stage-20260920.json`. Inspection
+asserted READY, target null (preview), alias list empty, builds empty, functions
+absent and no cron metadata. All 26 old READY deployment IDs, the production
+target, five existing alias bindings, two domains, protection setting and
+disconnected Git link were preserved. No promotion/domain/deployment deletion
+occurred.
+
+Deployment file enumeration contained only `src/index.txt` and
+`src/vercel.json`. Both fetched file contents, decoded from the API's base64
+envelope, exactly matched the submitted static files. Their SHA256 values were
+`ea08691d51a814e4385b826c44d56502ead6b3ad82abc1e5522c63eb6bc0f507` and
+`dd9458aa4ce756a8284f3b122122ade6c4928f1884f4fdaa5ece1d6adc3eaaae`
+respectively. Deployment `env` and `build.env` are arrays of environment names;
+none of the seven legacy app names appeared in either. No values were printed.
+
+Anonymous preview `/api/auth/providers` returned Vercel authentication 302.
+Normal canonical `/api/auth/providers` remained 200 with `credentials`, confirming
+the existing VPS serving path was not switched. The detail response still
+reports the project's `nextjs` framework metadata despite the submitted null
+framework and empty install/build commands, and its `routes` field is null.
+Consequently this checkpoint proves the exact submitted source, READY preview,
+absence of reported executable output and legacy environment names, and unchanged
+serving routes; it does **not** claim actual Vercel 303/410 behavior. That remains
+the next reviewed public-alias smoke check, without a new protection bypass.
 
 `config.json` is a complete Vercel Build Output API v3 routing artifact. It has
 no application source, functions, middleware, build dependencies, files to serve,
@@ -44,7 +88,7 @@ protection or prove a remote artifact is credential-free. A future privately
 staged deployment needs actual Vercel responses and metadata inspection before
 promotion. Do not mistake an SSO 302 for the artifact's intended 303/410.
 
-## Reviewed staging operator, not yet executed
+## Staging operator contract
 
 The sibling `vocabulum-vercel-operator.mjs` stages this artifact through the
 [documented create-deployment API](https://vercel.com/docs/rest-api/deployments/create-a-new-deployment)
@@ -101,11 +145,9 @@ It is never copied into this repository, served, or supplied to the new static
 deployment. It does not revoke shared backend/OpenAI credentials, and it does
 not alter the existing VPS application's independent runtime configuration.
 
-Vercel project variables currently remain configured; they are outside this
-source artifact. Their future-build configuration removal and remote deployment
-metadata checks need separate GO. A prebuilt, function-free artifact cannot
-execute them, but "no secrets in this source file" is not proof that Vercel
-stored no environment metadata for its new deployment.
+Project variables were removed only after the authorized protected backup.
+The new deployment still has Vercel-generated system environment names; zero
+application credentials does not mean zero platform environment metadata.
 
 No new Vocabulum protection-bypass authority exists. Therefore first qualify
 the protected stage through deployment metadata and its exact file/routing

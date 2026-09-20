@@ -25,6 +25,8 @@ required resource to the affected app and document why.
   It holds the public anon key only. Raw/private upstreams still need isolation.
   Storage S3/vector protocols remain denied because their alternate credentials
   would otherwise bypass the HTTP bearer classification.
+  `public-data-boundary.md` records the private UID978/3143 staging checkpoint;
+  it is not yet in public ingress.
 - `deploy-marketing.sh`: explicit static publication allowlist. Never rsync the
   repository into a public web root and never reset a dirty development checkout.
 - My Clinic: `my-clinic/deploy/README.md` (canonical repo `CLAUDE.md` points there).

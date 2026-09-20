@@ -25,6 +25,16 @@ test('atomic replacement affects only the dedicated table and requires it to exi
   assert(output.includes(`delete table inet ${TABLE}\ntable inet ${TABLE}`));
   assert(!output.includes('flush ruleset'));
 });
+test('opt-in forwarded control denial has no UID trust exemption or unrelated forwarding changes',()=>{
+  const config=fixtureConfig();config.protectForwardedControl=true;
+  const output=generateRules(config);
+  assert.match(output,/type filter hook forward priority -150; policy accept/);
+  assert.match(output,/type filter hook forward priority 50; policy accept/);
+  const forwarded=output.slice(output.indexOf('chain forward_control_before_dnat'));
+  assert.match(forwarded,/ip daddr 172\.30\.40\.2 tcp dport 9999 counter reject/);
+  assert(!forwarded.includes('skuid'));assert(!forwarded.includes('tcp dport 5432'));
+  config.protectForwardedControl='yes';assert.throws(()=>validateConfig(config));
+});
 test('only exact worker dependencies and the trusted download relay can reach raw proxy',()=>{
   const config=fixtureConfig();config.downloadRelayUid=61006;
   config.apps.push({name:'mega-youtube',uid:61007,database:[],dns:[{address:'127.0.0.53',port:53}],
@@ -34,6 +44,8 @@ test('only exact worker dependencies and the trusted download relay can reach ra
   for(const port of [1088,18088,4416]) assert(output.includes(`ip daddr 127.0.0.1 tcp dport ${port} counter accept`));
   assert(output.includes('ip daddr 127.0.0.1 tcp dport 1089 meta skuid != { 0, 61006 }'));
   assert(output.includes('ip6 daddr ::1 tcp dport 1089 meta skuid != { 0, 61006 }'));
+  assert.match(output,/chain download_relay \{[\s\S]*?127\.0\.0\.1 tcp dport 1089 counter accept[\s\S]*?127\.0\.0\.53.*?53 counter accept[\s\S]*?counter reject/);
+  assert.match(output,/meta skuid 61006 jump download_relay/);
   for(const mutate of [
     c=>delete c.downloadRelayUid,c=>c.downloadRelayUid=61001,c=>c.downloadRelayUid=61007,
     c=>c.apps[2].name='vocabulum-worker',c=>c.apps[2].name='jasom-worker',

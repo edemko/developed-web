@@ -34,7 +34,7 @@ const serverSource=`const net=require('node:net'),dgram=require('node:dgram');
 const probeSource=`const net=require('node:net'),dgram=require('node:dgram');
   const uid=Number(process.argv[1]),host=process.argv[2],port=Number(process.argv[3]),udp=process.argv[4]==='udp';
   if(uid){process.setgroups([]);process.setgid(uid);process.setuid(uid);}
-  let done=false;const finish=ok=>{if(!done){done=true;process.exit(ok?0:1)}};setTimeout(()=>finish(false),600);
+  let done=false;const finish=ok=>{if(!done){done=true;process.exit(ok?0:1)}};setTimeout(()=>finish(false),Number(process.argv[5]||600));
   if(udp){const s=dgram.createSocket(host.includes(':')?'udp6':'udp4');s.on('error',()=>finish(false));s.on('message',m=>finish(m.toString()==='probe'));s.send('probe',port,host);}
   else{const s=net.connect({host,port},()=>s.write('probe'));s.on('error',()=>finish(false));s.on('data',d=>finish(d.toString()==='probe'));}`;
 async function probe(uid,host,port,allowed,label,udp=false) {
@@ -77,7 +77,34 @@ if(mode==='--run') {
     inPeer(['ip','link','set','fixture1','up']);
     await readyChild('nsenter',[`--net=/proc/${peer.pid}/ns/net`,'--',process.execPath,'-e',serverSource,'0',JSON.stringify([
       ['8.8.8.8',443],['8.8.8.8',443,true],['8.8.8.8',80],['2003:1::2',443],['2003:1::2',80],
+      ['172.22.40.2',9999],['fd00:77::2',9999],
       ...['172.22.40.2','11.77.40.2','fd00:77::2','2003:77::2','2002:1::2','64:ff9b::a00:2'].map(ip=>[ip,443])])]);
+    // A separate sender exercises actual FORWARD traffic like a sibling Docker
+    // bridge. Namespace-root must not inherit trusted host-root's UID exception.
+    const sender=await readyChild('unshare',['--net','--',process.execPath,self,'--peer',host]);
+    run('ip',['link','add','sender0','type','veth','peer','name','sender1']);
+    run('ip',['link','set','sender1','netns',String(sender.pid)]);
+    run('ip',['addr','add','10.77.0.1/24','dev','sender0']);
+    run('ip',['-6','addr','add','fd00:78::1/64','dev','sender0','nodad']);
+    run('ip',['link','set','sender0','up']);
+    const inSender=args=>run('nsenter',[`--net=/proc/${sender.pid}/ns/net`,'--',...args]);
+    inSender(['ip','addr','add','10.77.0.2/24','dev','sender1']);
+    inSender(['ip','-6','addr','add','fd00:78::2/64','dev','sender1','nodad']);
+    inSender(['ip','link','set','sender1','up']);
+    inSender(['ip','route','add','172.22.40.0/24','via','10.77.0.1']);
+    inSender(['ip','-6','route','add','fd00:77::/64','via','fd00:78::1']);
+    inPeer(['ip','route','add','10.77.0.0/24','via','172.22.40.1']);
+    inPeer(['ip','-6','route','add','fd00:78::/64','via','fd00:77::1']);
+    run('sysctl',['-q','-w','net.ipv4.ip_forward=1']);
+    run('sysctl',['-q','-w','net.ipv6.conf.all.forwarding=1']);
+    const forwardProbe=(address,port,allowed)=>{
+      let ok=true;
+      // Initial IPv6 neighbor discovery across two links needs a longer budget
+      // than already-established one-hop probes; don't misclassify it as denial.
+      try {inSender([process.execPath,'-e',probeSource,'0',address,String(port),'tcp','2500']);} catch {ok=false;}
+      assert.equal(ok,allowed,`forwarded ${address}:${port}`);
+    };
+    for(const address of ['172.22.40.2','fd00:77::2']) forwardProbe(address,9999,true);
     // Local aliases exercise Docker/private/tailnet/link-local/metadata/public
     // host addresses without contacting any host or external service.
     for(const ip of ['172.30.40.2','172.30.40.3','100.100.100.100','169.254.169.254','9.9.9.9']) run('ip',['addr','add',`${ip}/32`,'dev','lo']);
@@ -97,8 +124,8 @@ if(mode==='--run') {
       s.on('error',()=>process.exit(first?2:0));process.stdin.once('data',()=>{s.write('second');setTimeout(()=>process.exit(0),650)});
     `],{stdio:['pipe','pipe','pipe']});children.push(persistent);
     await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Persistent fixture timeout')),2000);persistent.stdout.once('data',()=>{clearTimeout(timer);resolve();});persistent.once('error',reject);});
-    const config={version:1,centralUid:61001,caddyUid:61002,downloadRelayUid:61006,blockedNetworks:['11.77.0.0/16','2003:77::/48'],
-      extraControlEndpoints:[{address:'172.30.40.2',port:9999}],apps:[
+    const config={version:1,centralUid:61001,caddyUid:61002,downloadRelayUid:61006,protectForwardedControl:true,blockedNetworks:['11.77.0.0/16','2003:77::/48'],
+      extraControlEndpoints:[{address:'172.30.40.2',port:9999},{address:'172.22.40.2',port:9999},{address:'fd00:77::2',port:9999}],apps:[
         {name:'mega-music',uid:61003,database:[{address:'127.0.0.1',port:5432},{address:'::1',port:5432},{address:'172.30.40.3',port:5432}],
           dns:[{address:'127.0.0.53',port:53},{address:'::1',port:53}],musicImport:{address:'127.0.0.1',port:18887}},
         {name:'vocabulum',uid:61004,database:[],dns:[{address:'127.0.0.53',port:53}]},
@@ -109,6 +136,10 @@ if(mode==='--run') {
     const rules=generateRules(config);
     run('nft',['--check',rules]);run('nft',[rules]);
     assert.throws(()=>run('nft',[rules]),'initial install must not merge into an existing table');
+    for(const address of ['172.22.40.2','fd00:77::2']) {
+      forwardProbe(address,9999,false);
+      forwardProbe(address,443,true);
+    }
     const persistentExit=new Promise(resolve=>persistent.once('exit',resolve));persistent.stdin.end('continue');
     assert.equal(await persistentExit,0,'pre-existing forbidden connection retained access');
     const positives=[
@@ -118,9 +149,10 @@ if(mode==='--run') {
       [61003,'8.8.8.8',443],[61003,'2003:1::2',443],
       [61007,'127.0.0.1',1088],[61007,'127.0.0.1',18088],[61007,'127.0.0.1',4416],
       [61008,'127.0.0.1',1088],[61008,'127.0.0.1',18088],
-      [61006,'127.0.0.1',1089],[61006,'::1',1089],[0,'127.0.0.1',1089]];
+      [61006,'127.0.0.1',1089],[0,'127.0.0.1',1089]];
     for(const item of positives) await probe(...item,true,`allowed ${item[0]}:${item[1]}:${item[2]}`);
     for(const ip of ['127.0.0.53','::1']) for(const udp of [false,true]) await probe(61003,ip,53,true,'exact DNS works',udp);
+    for(const udp of [false,true]) await probe(61006,'127.0.0.53',53,true,'relay exact DNS works',udp);
     const negatives=[
       [61003,'127.0.0.1',3141],[61003,'::1',3141],[61005,'127.0.0.1',3141],
       [61003,'172.30.40.2',9999],[61005,'172.30.40.2',9999],
@@ -132,6 +164,8 @@ if(mode==='--run') {
       [61007,'127.0.0.1',1089],[61007,'::1',1089],[61007,'127.0.0.1',3141],
       [61008,'127.0.0.1',4416],[61008,'127.0.0.1',1089],[61008,'127.0.0.1',8000],
       [61001,'127.0.0.1',1089],[61005,'127.0.0.1',1089],[61006,'127.0.0.1',3141],
+      [61006,'::1',1089],[61006,'127.0.0.1',1088],[61006,'127.0.0.1',4416],
+      [61006,'127.0.0.1',18088],[61006,'8.8.8.8',443],[61006,'2003:1::2',443],
       ...['172.22.40.2','11.77.40.2','fd00:77::2','2003:77::2','2002:1::2','64:ff9b::a00:2'].map(ip=>[61003,ip,443])];
     for(const item of negatives) await probe(...item,false,`denied ${item[0]}:${item[1]}:${item[2]}`);
     await probe(61003,'8.8.8.8',443,false,'UDP/QUIC443 is not implicit public HTTPS',true);
@@ -148,7 +182,7 @@ if(mode==='--run') {
     run('nft',[generateRules(narrowed,{replace:true})]);
     await probe(61003,'127.0.0.1',5432,false,'missing translated DB tuple fails closed');
     assert(run('nft',['list','tables']).includes('table ip fixture_nat'),'scoped replacement touched unrelated table');
-    process.stdout.write('PASS: isolated nft syntax + IPv4/IPv6 UID packets, incoming replies, exact DB/DNS/import, public HTTPS, private/control denial and both DNAT sides.\n');
+    process.stdout.write('PASS: isolated nft syntax + IPv4/IPv6 UID and forwarded packets, incoming replies, exact DB/DNS/import/worker/relay, public HTTPS, private/control denial and both DNAT sides.\n');
   } finally {
     for(const child of children.reverse()) child.kill('SIGKILL');
     // No host cleanup: the private namespace and its veth/rules disappear when

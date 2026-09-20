@@ -52,8 +52,9 @@ deployment; this is not permission to discard other dirty work.
 
 - Central SSO is still **off**, pending the full shared security cutover.
 - Runtime/firewall/public-data templates have isolated-test evidence. The root-only
-  persistent UID boundary now covers only inactive importer UID995; eight live
-  socket probes, DNS, public HTTPS and atomic reload passed. Other UIDs and
+  persistent UID boundary now covers importer995 and staged host accounts
+  Airsoft986/Vocabulum985/Mega984/ScreenTime983; live socket probes, DNS, public
+  HTTPS and atomic reload passed. Remaining UIDs and
   proxy-target restrictions remain pending; no complete enforcement or central
   activation is claimed. See `uid-network-boundary.md` for exact live paths.
 - My Clinic is now live as `developed-myclinic` UID996 on loopback3155, system

@@ -11,10 +11,13 @@ still require verification before adding them to the table.
 ## Live checkpoint — 2026-09-20
 
 The dedicated table is now installed by the root-only boot-enabled system unit
-`developed-uid-boundary.service`. **Only inactive importer UID995** has its
-outbound app policy applied so far. No running legacy app was included or stopped.
+`developed-uid-boundary.service`. It covers importer995 and newly staged host
+app identities Airsoft986, Vocabulum985, Mega accounts984 and ScreenTime983.
+No running legacy app was included or stopped by this policy installation.
 The trusted identities are central988 (reserved, not running), Caddy999 and the
 download relay987 (reserved, not running). No central provider is exposed yet.
+Mega accounts alone also has the reviewed DB pre/post-DNAT tuples
+127.0.0.1:5432 and172.18.0.13:5432; other new app entries are HTTPS-only for now.
 
 Root-owned policy is `/etc/developed-accounts/uid-network-boundary.json`; reviewed
 generator/loader are in `/opt/developed-control/network/`. The loader validates
@@ -59,7 +62,9 @@ For each listed product UID:
   relay1088/status18088 exceptions; bgutil4416 is Mega-only. A relay exception
   requires a distinct `downloadRelayUid`, which also protects raw1089 from every
   host UID except root and that relay, including central and Caddy. The relay
-  UID is not authorized for private Auth. Application access to1088 is safe only
+  UID itself can initiate only TCP127.0.0.1:1089 and DNS127.0.0.53:53, with incoming
+  replies allowed; no direct public HTTPS, sibling ports or private Auth.
+  Application access to1088 is safe only
   once the reviewed destination-validation relay replaces the raw proxy there.
 - Other host-local destinations, loopback, RFC1918, carrier-grade/Tailscale,
   link-local/metadata and reserved IPv4 ranges are denied. IPv6 is limited to
@@ -78,6 +83,18 @@ control addresses recorded until their listeners are actually retired. Product
 UIDs additionally cannot initiate any unlisted internal connection, including
 old Kong8000/8443, GoTrue9999, Studio, Meta, Edge Functions, Caddy admin2019,
 deployment hooks, or sibling app listeners.
+
+Optional `protectForwardedControl=true` also rejects the exact configured control
+tuples in FORWARD chains, before and after the usual destination-NAT priority.
+There are **no UID trust exemptions** for forwarded/container traffic. Replies
+to provider-initiated connections remain allowed, and unrelated forwarding is
+unchanged. Set this before a green container is exposed and include its exact
+private IP9999. Never include the still-serving old provider tuple until its
+legacy consumers have migrated. The fixture proves real IPv4/IPv6 forwarding
+across three disconnected namespaces, including namespace-root denial and
+unrelated-port continuity. This option is not yet enabled in production and is
+not general per-container data/egress isolation; old product containers must
+still be replaced and retired.
 
 This is not HTTP authorization. Public issuer routes still require the reviewed
 OAuth allowlist. Public REST/Storage/Realtime still require

@@ -29,11 +29,21 @@ test('opt-in forwarded control denial has no UID trust exemption or unrelated fo
   const config=fixtureConfig();config.protectForwardedControl=true;
   const output=generateRules(config);
   assert.match(output,/type filter hook forward priority -150; policy accept/);
+  assert.match(output,/type filter hook prerouting priority -150; policy accept/);
   assert.match(output,/type filter hook forward priority 50; policy accept/);
   const forwarded=output.slice(output.indexOf('chain forward_control_before_dnat'));
   assert.match(forwarded,/ip daddr 172\.30\.40\.2 tcp dport 9999 counter reject/);
   assert(!forwarded.includes('skuid'));assert(!forwarded.includes('tcp dport 5432'));
   config.protectForwardedControl='yes';assert.throws(()=>validateConfig(config));
+});
+test('only reviewed JASOM direct-media worker gets public HTTP after private exclusions',()=>{
+  const config=fixtureConfig();config.apps.push({name:'jasom-worker',uid:61008,database:[],
+    dns:[{address:'127.0.0.53',port:53}],publicHttp:true});
+  const output=generateRules(config), worker=output.slice(output.indexOf('# jasom-worker'));
+  assert(worker.indexOf('ip daddr 127.0.0.0/8')<worker.indexOf('tcp dport 80 counter accept'));
+  assert.match(worker,/ip6 daddr 2000::\/3 tcp dport 80 counter accept/);
+  for(const bad of ['yes',80,null]) {config.apps[2].publicHttp=bad;assert.throws(()=>validateConfig(config));}
+  config.apps[2].publicHttp=true;config.apps[2].name='jasom-web';assert.throws(()=>validateConfig(config));
 });
 test('only exact worker dependencies and the trusted download relay can reach raw proxy',()=>{
   const config=fixtureConfig();config.downloadRelayUid=61006;

@@ -131,13 +131,27 @@ if(mode==='--run') {
         {name:'vocabulum',uid:61004,database:[],dns:[{address:'127.0.0.53',port:53}]},
         {name:'mega-youtube',uid:61007,database:[],dns:[{address:'127.0.0.53',port:53}],
           downloadRelay:{address:'127.0.0.1',port:1088},downloadStatus:{address:'127.0.0.1',port:18088},downloadProvider:{address:'127.0.0.1',port:4416}},
-        {name:'jasom-worker',uid:61008,database:[{address:'127.0.0.1',port:5432},{address:'172.30.40.3',port:5432}],dns:[{address:'127.0.0.53',port:53}],
+        {name:'jasom-worker',uid:61008,publicHttp:true,database:[{address:'127.0.0.1',port:5432},{address:'172.30.40.3',port:5432}],dns:[{address:'127.0.0.53',port:53}],
           downloadRelay:{address:'127.0.0.1',port:1088},downloadStatus:{address:'127.0.0.1',port:18088}}]};
     const rules=generateRules(config);
     run('nft',['--check',rules]);run('nft',[rules]);
     assert.throws(()=>run('nft',[rules]),'initial install must not merge into an existing table');
     for(const address of ['172.22.40.2','fd00:77::2']) {
       forwardProbe(address,9999,false);
+      forwardProbe(address,443,true);
+    }
+    run('nft',[`table inet fixture_forward_nat { chain before {
+      type nat hook prerouting priority -100; policy accept;
+      ip daddr 172.22.40.2 tcp dport 9999 dnat ip to 172.22.40.2:443
+      ip daddr 172.22.40.2 tcp dport 4443 dnat ip to 172.22.40.2:9999
+      ip6 daddr fd00:77::2 tcp dport 9999 dnat ip6 to [fd00:77::2]:443
+      ip6 daddr fd00:77::2 tcp dport 4443 dnat ip6 to [fd00:77::2]:9999
+    }
+    }
+    `]);
+    for(const address of ['172.22.40.2','fd00:77::2']) {
+      forwardProbe(address,9999,false); // Original protected tuple, safe translated target.
+      forwardProbe(address,4443,false); // Safe original tuple, protected translated target.
       forwardProbe(address,443,true);
     }
     const persistentExit=new Promise(resolve=>persistent.once('exit',resolve));persistent.stdin.end('continue');
@@ -149,6 +163,7 @@ if(mode==='--run') {
       [61003,'8.8.8.8',443],[61003,'2003:1::2',443],
       [61007,'127.0.0.1',1088],[61007,'127.0.0.1',18088],[61007,'127.0.0.1',4416],
       [61008,'127.0.0.1',1088],[61008,'127.0.0.1',18088],
+      [61008,'8.8.8.8',80],[61008,'2003:1::2',80],
       [61006,'127.0.0.1',1089],[0,'127.0.0.1',1089]];
     for(const item of positives) await probe(...item,true,`allowed ${item[0]}:${item[1]}:${item[2]}`);
     for(const ip of ['127.0.0.53','::1']) for(const udp of [false,true]) await probe(61003,ip,53,true,'exact DNS works',udp);
@@ -174,10 +189,12 @@ if(mode==='--run') {
     run('nft',[`table ip fixture_nat { chain output { type nat hook output priority -100; policy accept;
       ip daddr 127.0.0.1 tcp dport 5432 dnat to 172.30.40.3:5432
       ip daddr 8.8.8.8 tcp dport 443 dnat to 172.30.40.2:9999
+      ip daddr 8.8.8.8 tcp dport 80 dnat to 172.30.40.2:443
     }
     }\n`]);
     await probe(61003,'127.0.0.1',5432,true,'exact DB pre/post NAT tuples allowed');
     await probe(61003,'8.8.8.8',443,false,'public URL cannot DNAT into raw provider');
+    await probe(61008,'8.8.8.8',80,false,'JASOM public HTTP cannot DNAT into private peer');
     const narrowed=structuredClone(config);narrowed.apps[0].database=narrowed.apps[0].database.filter(item=>item.address!=='172.30.40.3');
     run('nft',[generateRules(narrowed,{replace:true})]);
     await probe(61003,'127.0.0.1',5432,false,'missing translated DB tuple fails closed');

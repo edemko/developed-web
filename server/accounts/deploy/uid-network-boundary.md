@@ -12,12 +12,17 @@ still require verification before adding them to the table.
 
 The dedicated table is now installed by the root-only boot-enabled system unit
 `developed-uid-boundary.service`. It covers importer995 and newly staged host
-app identities Airsoft986, Vocabulum985, Mega accounts984 and ScreenTime983.
+app identities Airsoft986, Vocabulum985, Mega accounts984, ScreenTime983,
+KešTrek982 and Otázkomat981. Live JASOM web993/worker990 and My Clinic996 are
+now covered as well, with actual UID positive/negative checks and no restarts.
 No running legacy app was included or stopped by this policy installation.
 The trusted identities are central988 (reserved, not running), Caddy999 and the
-download relay987 (reserved, not running). No central provider is exposed yet.
-Mega accounts alone also has the reviewed DB pre/post-DNAT tuples
+download relay987 (reserved, not running). Private green Auth is protected on
+127.0.0.1:3141 and172.30.241.2:9999; public Auth routes remain unchanged.
+Mega accounts and both JASOM identities have the reviewed DB pre/post-DNAT tuples
 127.0.0.1:5432 and172.18.0.13:5432; other new app entries are HTTPS-only for now.
+JASOM worker alone also has explicit public HTTP80 compatibility for its existing
+direct-media validator, after all local/private destination exclusions.
 
 Root-owned policy is `/etc/developed-accounts/uid-network-boundary.json`; reviewed
 generator/loader are in `/opt/developed-control/network/`. The loader validates
@@ -27,7 +32,7 @@ private regular transaction files under `/run/developed-uid-boundary`: this
 host's nft rejects Node's socket-backed stdin for `--file -`. No `ExecStop` removes
 rules; stopping the loader does not remove protection. `Requires`/`After` in new
 app templates prevent booting them if boundary installation fails. Existing
-live app units still need individually coordinated drop-ins and policy entries.
+JASOM/My Clinic units now have the corresponding startup dependency drop-ins.
 
 Actual UID995 tests passed: proxy1088/status18088/bgutil4416 reachable; Kong8000,
 Postgres5432, KešTrek3124, Caddy-admin2019 and webhook9000 denied; DNS and canonical
@@ -36,6 +41,18 @@ suite also proves IPv4/IPv6, pre/post-DNAT, raw1089 denial, incoming replies and
 role-specific worker exceptions. This is **not complete ecosystem isolation**:
 legacy1088 still needs the validated public-destination relay before worker
 activation; other app UIDs/containers and old Auth routes remain pending.
+
+The JASOM/My Clinic extension passed nine unit tests and the disconnected real
+namespace suite, including JASOM public IPv4/IPv6 HTTP and private-DNAT denial.
+The first PREROUTING fixture caught trusted loopback being incorrectly denied;
+the explicit loopback exception fixed it before production installation. A later
+fixture-only NAT rule needed a newline between closing braces; final verification
+passed. Actual990/993/996 denied private Auth, Kong, Caddy admin, hooks and sibling
+apps; JASOM alone retained DB access. Public HTTPS200, JASOM worker HTTP200, live
+catalogue200, My Clinic health200, central private Auth200 and the sole JASOM
+worker lock all passed after atomic reload. No service restart or data mutation
+was needed. Exact pre-change generator/policy backups are retained alongside the
+root operator files under the `before-jasom-myclinic` names.
 
 ## What the rules enforce
 
@@ -72,7 +89,9 @@ For each listed product UID:
   multicast, IPv4-mapped and standard NAT64 ranges are not public egress.
   Configured additional internal networks are denied before public egress.
 - Remaining public TCP443 is allowed. HTTP80, QUIC/UDP443 and arbitrary other
-  ports are not. The host's own public IP443 is **not** an exception; canonical
+  ports are not. The sole optional `publicHttp:true` exception is accepted only
+  for `jasom-worker`; it permits public TCP80 after the same local/private ranges
+  are denied, on both sides of DNAT. The host's own public IP443 is **not** an exception; canonical
   HTTPS resolves through the public Cloudflare ingress. Do not point these
   canonical names at loopback/private addresses in `/etc/hosts`.
 
@@ -85,14 +104,19 @@ old Kong8000/8443, GoTrue9999, Studio, Meta, Edge Functions, Caddy admin2019,
 deployment hooks, or sibling app listeners.
 
 Optional `protectForwardedControl=true` also rejects the exact configured control
-tuples in FORWARD chains, before and after the usual destination-NAT priority.
+tuples in PREROUTING before destination NAT and in FORWARD after translation.
+FORWARD hook priorities alone do not precede PREROUTING DNAT. Loopback ingress
+is exempt from this extra PREROUTING chain because its locally originating
+requests already passed UID-aware OUTPUT checks; container interfaces are not.
 There are **no UID trust exemptions** for forwarded/container traffic. Replies
 to provider-initiated connections remain allowed, and unrelated forwarding is
 unchanged. Set this before a green container is exposed and include its exact
 private IP9999. Never include the still-serving old provider tuple until its
 legacy consumers have migrated. The fixture proves real IPv4/IPv6 forwarding
 across three disconnected namespaces, including namespace-root denial and
-unrelated-port continuity. This option is not yet enabled in production and is
+unrelated-port continuity, plus original-protected/translated-safe and
+original-safe/translated-protected cases for both IP families. This option is
+enabled in production and is
 not general per-container data/egress isolation; old product containers must
 still be replaced and retired.
 

@@ -66,9 +66,12 @@ export function validateConfig(value) {
   const blockedNetworks=list(value.blockedNetworks,'blockedNetworks').map(cidr);
   const names=new Set();
   const apps=list(value.apps,'apps',32).map(app=>{
-    object(app,['name','uid','database','dns','musicImport','downloadRelay','downloadStatus','downloadProvider'],'application');
+    object(app,['name','uid','database','dns','musicImport','downloadRelay','downloadStatus','downloadProvider','publicHttp'],'application');
     if(typeof app.name!=='string' || !/^[a-z][a-z0-9-]{1,31}$/.test(app.name) || names.has(app.name)) throw new Error('Unique lowercase app name required');
     names.add(app.name);
+    if(own(app,'publicHttp') && (typeof app.publicHttp!=='boolean' || app.name!=='jasom-worker')) {
+      throw new Error('Public HTTP compatibility requires the reviewed JASOM worker');
+    }
     const appUid=uid(app.uid,'app.uid');
     if(seen.has(appUid)) throw new Error('Each application needs a distinct UID');
     seen.add(appUid);
@@ -94,7 +97,7 @@ export function validateConfig(value) {
     for(const item of [...database,...dns,...(musicImport?[musicImport]:[]),...Object.values(workerEndpoints)]) {
       if(controls.some(control=>control.address===item.address && control.port===item.port)) throw new Error('Application exception overlaps protected control endpoint');
     }
-    return {name:app.name,uid:appUid,database,dns,...(musicImport?{musicImport}:{}),...workerEndpoints};
+    return {name:app.name,uid:appUid,database,dns,publicHttp:app.publicHttp===true,...(musicImport?{musicImport}:{}),...workerEndpoints};
   });
   if(!apps.length) throw new Error('At least one dedicated app UID required');
   return {centralUid,caddyUid,downloadRelayUid,protectForwardedControl:value.protectForwardedControl===true,controls,blockedNetworks,apps};
@@ -133,6 +136,8 @@ export function generateRules(input,{replace=false}={}) {
     for(const range of [...deniedV4,...deniedV6,...config.blockedNetworks]) {
       lines.push(`    ${isIP(range.split('/')[0])===4?'ip':'ip6'} daddr ${range} counter reject with icmpx type admin-prohibited`);
     }
+    if(app.publicHttp) lines.push('    meta nfproto ipv4 tcp dport 80 counter accept',
+      '    ip6 daddr 2000::/3 tcp dport 80 counter accept');
     lines.push('    meta nfproto ipv4 tcp dport 443 counter accept',
       '    ip6 daddr 2000::/3 tcp dport 443 counter accept',
       '    counter reject with icmpx type admin-prohibited','  }');
@@ -154,6 +159,13 @@ export function generateRules(input,{replace=false}={}) {
       ...config.apps.map((app,index)=>`    meta skuid ${app.uid} jump app_${index}`),'  }');
   }
   if(config.protectForwardedControl) {
+    lines.push('  chain prerouting_control {',
+      '    type filter hook prerouting priority -150; policy accept;',
+      // Local loopback requests already pass the UID-aware OUTPUT chains.
+      '    iifname "lo" return',
+      '    ct direction reply ct state established return',
+      ...config.controls.map(item=>`    ${destination(item.address)} tcp dport ${item.port} counter reject with icmpx type admin-prohibited`),
+      '  }');
     for(const [name,priority] of [['forward_control_before_dnat',-150],['forward_control_after_dnat',50]]) {
       lines.push(`  chain ${name} {`,`    type filter hook forward priority ${priority}; policy accept;`,
         '    ct direction reply ct state established return',

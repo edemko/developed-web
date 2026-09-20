@@ -59,6 +59,10 @@ deployment; this is not permission to discard other dirty work.
   public HTTPS and atomic reload passed. Remaining UIDs and
   proxy-target restrictions remain pending; no complete enforcement or central
   activation is claimed. See `uid-network-boundary.md` for exact live paths.
+- JASOM web993/worker990 and My Clinic996 now have actual UID network checks
+  and boot dependencies too. JASOM keeps its exact DB tuples and worker-only
+  public HTTP80 compatibility; My Clinic remains on its independent hosted
+  identity over HTTPS. No service restarts were needed for these policy updates.
 - The separate root-cgroup bind boundary is live for fourteen dedicated UIDs,
   with fixed-port/address negative probes and boot dependencies verified. Existing
   services were not restarted. Systemd's accepted SocketBind directives alone

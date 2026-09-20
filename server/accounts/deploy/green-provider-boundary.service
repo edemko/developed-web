@@ -1,0 +1,23 @@
+[Unit]
+Description=DevelopED private green provider DB-only network boundary
+Requires=docker.service developed-uid-boundary.service
+After=docker.service developed-uid-boundary.service
+Before=developed-auth-green.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=root
+Group=root
+RuntimeDirectory=developed-green-provider
+RuntimeDirectoryMode=0700
+ExecStart=/opt/developed-runtimes/node-v22.23.2/bin/node /opt/developed-control/green-provider/green-provider-load-boundary.mjs --apply
+ExecReload=/opt/developed-runtimes/node-v22.23.2/bin/node /opt/developed-control/green-provider/green-provider-load-boundary.mjs --apply
+UMask=0077
+ProtectHome=yes
+ProtectSystem=strict
+PrivateTmp=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

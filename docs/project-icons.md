@@ -19,6 +19,11 @@ and lazy loading keeps them out of the initial viewport's critical requests.
 - KešTrek: `kestrek/frontend/src/favicon.svg`.
 - Otazkomat: `otazkomat/frontend/public/favicon.svg`.
 - Vocabulum: `vocabulary-builder/public/favicon.svg`.
+- Odonto AI: SVG transcription of the tooth/sparkle mark in
+  `odonto-ai/frontend/src/components/Logo.tsx`, for the staged account picker.
+- Airsoft: an A monogram fallback in the marketplace's olive/orange palette,
+  for the staged picker. The app currently uses a text badge and has no dedicated
+  brand icon; its framework favicon is not used as product branding.
 - Filament Check: the project homepage has no favicon. Its existing logo was copied
   from https://www.filamentree.eu/nest_filamentree_theme/static/src/img/filamentree-full-logo.svg
   on 2026-09-15. It is hosted locally rather than loaded from that service at runtime.

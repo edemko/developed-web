@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <path d="M32 4C24 4 18 10 16 18C14 26 12 34 14 42C16 50 20 58 24 58C28 58 28 50 32 50C36 50 36 58 40 58C44 58 48 50 50 42C52 34 50 26 48 18C46 10 40 4 32 4Z" fill="url(#toothGradient)" stroke="#0ea5e9" stroke-width="2"/>
+  <path d="M26 14C24 18 24 24 26 28" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+  <circle cx="48" cy="12" r="4" fill="#22d3ee"/>
+  <circle cx="52" cy="8" r="2" fill="#67e8f9" opacity="0.8"/>
+  <circle cx="54" cy="14" r="1.5" fill="#a5f3fc" opacity="0.6"/>
+  <defs><linearGradient id="toothGradient" x1="16" y1="4" x2="48" y2="58" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#f0fdfa"/><stop offset="0.5" stop-color="#ccfbf1"/><stop offset="1" stop-color="#99f6e4"/>
+  </linearGradient></defs>
+</svg>

@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "origin": "https://www.developed.sk",
+  "registrationMode": "closed",
+  "mailEnabled": false,
+  "apps": [
+    {
+      "appId": "app_mega_music", "slug": "mega-music", "name": "Mega Music",
+      "icon": "/assets/projects/mega-music-square-192.b19ee4800c84.webp",
+      "launchUrl": "https://megamusic.developed.sk/api/music/auth/start",
+      "callbackUrl": "https://megamusic.developed.sk/api/music/auth/callback",
+      "published": false, "enforceOidc": false, "joinPolicy": "closed"
+    },
+    {
+      "appId": "app_kestrek", "slug": "kestrek", "name": "KešTrek",
+      "icon": "/assets/projects/kestrek.svg",
+      "launchUrl": "https://kestrek.sk/api/auth/ecosystem/start",
+      "callbackUrl": "https://kestrek.sk/api/auth/ecosystem/callback",
+      "published": false, "enforceOidc": false, "joinPolicy": "closed"
+    },
+    {
+      "appId": "app_screentime", "slug": "screentime", "name": "ScreenTime",
+      "icon": "/assets/projects/screentime.svg",
+      "launchUrl": "https://screentime.developed.sk/api/auth/login",
+      "callbackUrl": "https://screentime.developed.sk/api/auth/callback",
+      "published": false, "enforceOidc": false, "joinPolicy": "closed"
+    },
+    {
+      "appId": "app_airsoft", "slug": "airsoft", "name": "Airsoft",
+      "icon": "/assets/projects/airsoft.svg",
+      "launchUrl": "https://amp.developed.sk/api/auth/ecosystem/login",
+      "callbackUrl": "https://amp.developed.sk/api/auth/ecosystem/callback",
+      "published": false, "enforceOidc": false, "joinPolicy": "closed"
+    },
+    {
+      "appId": "app_voc_builder", "slug": "vocabulum", "name": "Vocabulum",
+      "icon": "/assets/projects/vocabulum.svg",
+      "launchUrl": "https://vocabulum.developed.sk/auth/login",
+      "callbackUrl": "https://vocabulum.developed.sk/api/auth/callback/developed",
+      "published": false, "enforceOidc": false, "joinPolicy": "closed"
+    },
+    {
+      "appId": "app_odonto", "slug": "odonto", "name": "Odonto AI",
+      "icon": "/assets/projects/odonto.svg",
+      "launchUrl": "https://frontend-jet-rho-66.vercel.app/api/account/login",
+      "callbackUrl": "https://frontend-jet-rho-66.vercel.app/api/account/callback",
+      "published": false, "enforceOidc": false, "joinPolicy": "closed"
+    },
+    {
+      "appId": "app_otazkomat", "slug": "otazkomat", "name": "Otázkomat",
+      "icon": "/assets/projects/otazkomat.svg",
+      "launchUrl": "https://educatio.sk/api/auth/ecosystem/start",
+      "callbackUrl": "https://educatio.sk/api/auth/ecosystem/callback",
+      "published": false, "enforceOidc": false, "joinPolicy": "closed"
+    }
+  ]
+}

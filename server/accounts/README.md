@@ -250,6 +250,11 @@ Actual registry IDs: `app_mega_music`, `app_kestrek`, `app_screentime`; report s
 `mega-music`, `kestrek`, `screentime`. Callback/start paths must come from each
 implemented adapter, not guessed host conventions.
 
+The confirmed picker now includes seven products. The nonsecret
+[launch catalog](launch-catalog.json) and [staging runbook](../../docs/ecosystem-launch-catalog.md)
+also cover Airsoft, Vocabulum, Odonto AI and Otázkomat, with exact adapter URLs
+and same-origin icons. The manifest does not create registry rows or enable SSO.
+
 Keep `enforce_oidc=false`, app publication off and registration closed until
 each product's migration/gateway checks pass. `enforce_oidc` is deliberately not
 an ordinary portal switch. Existing users/roles/device credentials must be

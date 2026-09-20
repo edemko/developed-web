@@ -6,6 +6,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 
 const playwrightModule = process.env.PLAYWRIGHT_MODULE;
+const launchCatalog = JSON.parse(await readFile(new URL('../launch-catalog.json', import.meta.url), 'utf8'));
 
 test('browser account and report flows retain safe state and render user text inertly', { skip: !playwrightModule }, async () => {
   const { chromium } = await import(playwrightModule);
@@ -40,7 +41,7 @@ test('browser account and report flows retain safe state and render user text in
       else if (path === '/register') { registrationAttempts++; if (registrationAttempts === 1) { status = 503; result = { error: { code: 'unavailable' } }; } else result = { ok: true }; }
       else if (path === '/resend-verification') result = { ok: true };
       else if (path === '/login') { authenticated = true; result = { user }; }
-      else if (path === '/apps') result = { apps: [{ id: 'music', slug: 'mega-music', name: 'Mega Music', description: 'Your music', available: true, plan: 'free', launchUrl: 'https://megamusic.developed.sk/auth/login' }] };
+      else if (path === '/apps') result = { apps: launchCatalog.apps.map(app => ({ ...app, id: app.appId, available: true, plan: 'free' })) };
       else if (path === '/reports/source/mega-music') result = { app: { id: 'music', slug: 'mega-music', name: 'Mega Music' } };
       else if (path === '/reports/source/unknown') { status = 404; result = { error: { code: 'not_found' } }; }
       else if (path === '/reports') { reportAttempts++; if (reportAttempts === 1) { status = 503; result = { error: { code: 'unavailable' } }; } else result = { reference: 'DEV-42' }; }
@@ -52,6 +53,15 @@ test('browser account and report flows retain safe state and render user text in
       await route.fulfill({ status, json: result });
     });
     await page.route('https://app.example.test/**', route => route.fulfill({ contentType: 'text/html', body: '<h1>App signed in</h1>' }));
+    // These are local UI fixtures, never real product/provider requests. The
+    // manifest stays closed; availability above is synthetic presentation data.
+    for (const app of launchCatalog.apps) {
+      await page.route(app.launchUrl, route => route.fulfill({ contentType: 'text/html', body: '<h1>Launch fixture</h1>' }));
+      await page.route(`**${app.icon}`, async route => route.fulfill({
+        contentType: app.icon.endsWith('.svg') ? 'image/svg+xml' : 'image/webp',
+        body: await readFile(new URL(`../../../${app.icon.slice(1)}`, import.meta.url)),
+      }));
+    }
     const base = `http://127.0.0.1:${server.address().port}`;
     await page.goto(`${base}/register?next=${encodeURIComponent('/account/authorize?authorization_id=pending-auth&redirect_uri=https://evil.test')}`);
     await page.getByRole('heading', { name: 'Create account', exact: true }).waitFor();
@@ -113,6 +123,14 @@ test('browser account and report flows retain safe state and render user text in
     await page.getByRole('heading', { name: 'Your apps', exact: true }).waitFor();
     await page.getByRole('button', { name: /Mega Music/ }).waitFor();
     assert.equal(await page.locator('.avatar').innerText(), 'ON');
+    assert.equal(await page.locator('.app-tile').count(), 7);
+    for (const app of launchCatalog.apps) {
+      await page.getByRole('button', { name: new RegExp(app.name) }).click();
+      await page.getByRole('heading', { name: 'Launch fixture', exact: true }).waitFor();
+      assert.equal(page.url(), app.launchUrl);
+      await page.goto(`${base}/apps`);
+      await page.getByRole('heading', { name: 'Your apps', exact: true }).waitFor();
+    }
     await page.goto(`${base}/admin/reports`);
     await page.getByText('Test issue', { exact: true }).waitFor();
     await page.getByText('Details', { exact: true }).click();

@@ -6,7 +6,7 @@ closed and transactional email starts disabled. Existing static Slovak/English
 marketing remains a separate public artifact; it is not replaced by this app.
 
 Current production: `developed-accounts.service`, UID988, loopback3140,
-release `57277411f3b9510bad1e93063649d56f5c184247`. All seven web apps use
+release `ffefcf90c349cfe4154beed40febb5b3aa3c21b9`. All seven web apps use
 central SSO; registration is invitation-only. Browser-family enforcement is
 active. See the [2026-09-21 upgrade checkpoint](deploy/portal-upgrade-checkpoint-20260921.md)
 for current paths, verification and the approved one-time web-app re-login.

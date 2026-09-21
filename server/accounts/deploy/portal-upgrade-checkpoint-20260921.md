@@ -1,5 +1,26 @@
 # Portal and browser-family production upgrade — 2026-09-21
 
+## Latest UI-only follow-up: language flag dropdown
+
+Current API release is `ffefcf90c349cfe4154beed40febb5b3aa3c21b9`, PID3525884;
+current mail launcher is `a4e05167f90cc5e5f28a871a324f54ab187ce7bc`, PID3525935.
+Only `public/app.js` and `public/app.css` differ in the application artifact.
+All compiled backend/dependency files remain byte-identical to the family release
+below. Mail implementation/input/environment, Caddy PID862/config, marketing,
+data and browser-session enforcement remain unchanged. One coordinated API/mail
+restart completed with the bounded readiness guard; no migration or session reset.
+
+The portal header uses SK/GB/CZ/UA flag icons, native language names, current
+selection and Apps-style dropdown styling. Keyboard arrows/Home/End/Escape,
+outside-click dismissal and focus return are supported. The marketing flag links
+and profile's saved-language form field are intentionally unchanged.
+Focused UI/browser10/10 and mail guard10/10 checks passed. Live320/1440px checks
+confirmed flags load, language switching works and the menu stays inside the
+viewport. Protected backup/manifests/receipts are under
+`/var/backups/developed-language-dropdown-20260921`; prior immutable releases remain.
+
+The original family-cutover checkpoint follows; its old release/PIDs are historical.
+
 The owner approved browser-only logout across DevelopED and its web apps,
 preserving other browsers/native apps, plus a one-time web-app re-login. This
 checkpoint supersedes the original private-runtime/SSO-off observations.

@@ -1,11 +1,13 @@
 # Separate central mail worker — active after reviewed start
 
-Current2026-09-21 checkpoint: worker PID3462074 is active/enabled, using launcher
-bundle `/opt/developed-accounts/mail-workers/e4ab156a91c2a437fd0e47505fa0724bb9e66ab8`.
+Current2026-09-21 checkpoint: worker PID3525935 is active/enabled, using launcher
+bundle `/opt/developed-accounts/mail-workers/a4e05167f90cc5e5f28a871a324f54ab187ce7bc`.
 Its imported mail implementation and WorkingDirectory remain `releases/c561a81`;
-its independent API pin is `releases/57277411f3b9510bad1e93063649d56f5c184247`,
-API PID3432072. The protected six-field input and all four mail-module hashes
+its independent API pin is `releases/ffefcf90c349cfe4154beed40febb5b3aa3c21b9`,
+API PID3525884. The protected six-field input and all four mail-module hashes
 are unchanged. This supersedes original launcher path/PID observations below.
+The latest release changes only the portal flag selector UI; the worker guard
+was repinned to its new immutable API path, with no other worker code change.
 
 The guard now polls for at most five seconds for the same pinned API PID to
 finish exec into the exact runtime/cwd/entrypoint and answer loopback health200.

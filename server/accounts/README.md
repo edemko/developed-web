@@ -94,12 +94,13 @@ provider JWT has not expired. Integrated products must perform their own
 central access checks and client-aware data authorization; hiding a tile is not
 an access-control mechanism.
 
-The default central logout ends **this browser's DevelopED portal session**;
-other devices and independently signed-in product sessions remain active.
+The default central logout ends **DevelopED and its web apps in this browser**;
+other browser families and native mobile app sessions remain active.
 The separate, explicit **all apps and devices** action revokes all interactive
-human sessions. Local app logout removes that product session. Provider OAuth
-sessions have no browser-family lineage, so portal-only logout must not be
-presented as logging out every app on this computer. Child-device and MCP/
+human sessions. Local app logout removes that product session. Browser lineage
+comes from exact server-side OAuth code/session bindings, never guessed from a
+user, client or timestamp. See [the session-family contract](../../docs/ecosystem-browser-families.md)
+for the additive migration and coordinated one-time web re-login gate. Child-device and MCP/
 integration credentials are separate and must retain their intended lifecycle;
 do not delete them as a browser-session cleanup shortcut.
 
@@ -178,7 +179,7 @@ The acceptance covers central sign-in → app tile → logged-in app, cross-site
 host-only Secure/HttpOnly/Lax cookies, empty browser token storage, free-tier
 membership, return-to-picker, direct app SSO and explicit all-device central
 logout denying a still-present app cookie. The separate opt-in
-`test/logout-database.test.mjs` qualifies portal-local versus global logout with
+`test/logout-database.test.mjs` qualifies browser-family versus global logout with
 two independent central sessions, two real delegated OAuth sessions and RLS
 checks. It uses the same labeled fixture opt-in and never sends email.
 Product rendering/provisioning is a minimal fixture, not a

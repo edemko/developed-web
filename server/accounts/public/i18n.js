@@ -30,36 +30,36 @@ export const messages = {
 // confirmation remains separate from an email-bound invitation acceptance.
 const accountUpdates = {
   en: {
-    appsMenu: 'Apps', logout: 'Log out here', logoutAll: 'Log out of all apps and devices', logoutConfirm: 'Log out here?', logoutAllConfirm: 'Log out of all apps and devices?',
-    logoutLocalNote: 'End this browser’s DevelopED portal session. Other devices and apps with their own sessions stay signed in.',
-    securityIntro: 'Manage your account security across DevelopED. Choose local sign-out or explicitly sign out of all apps and devices.',
+    appsMenu: 'Apps', logout: 'Log out of this browser', logoutAll: 'Log out of all apps and devices', logoutConfirm: 'Log out of this browser?', logoutAllConfirm: 'Log out of all apps and devices?',
+    logoutLocalNote: 'Sign out of DevelopED and its apps in this browser. Other browsers, devices and native mobile apps stay signed in.',
+    securityIntro: 'Manage your account security across DevelopED. Sign out of this browser and its apps, or explicitly sign out of all apps and devices.',
     invitedIntro: 'Create your DevelopED account using your invitation. Your email is already verified.',
     invitedEmailHelp: 'This invitation belongs to this email address and cannot be transferred.',
     accountCreated: 'Your account is ready', invitedComplete: 'Your invitation verified your email. Sign in to choose an app.',
     invalidInvitation: 'This invitation is invalid, expired or already used. Ask for a new invitation.', accountExists: 'An account already exists for this invitation. Sign in or reset your password.'
   },
   sk: {
-    appsMenu: 'Aplikácie', logout: 'Odhlásiť tu', logoutAll: 'Odhlásiť zo všetkých aplikácií a zariadení', logoutConfirm: 'Odhlásiť sa tu?', logoutAllConfirm: 'Odhlásiť zo všetkých aplikácií a zariadení?',
-    logoutLocalNote: 'Ukončí sa relácia portálu DevelopED v tomto prehliadači. Ostatné zariadenia a aplikácie s vlastnými reláciami zostanú prihlásené.',
-    securityIntro: 'Spravujte zabezpečenie účtu v DevelopED. Vyberte miestne odhlásenie alebo výslovne odhlásenie zo všetkých aplikácií a zariadení.',
+    appsMenu: 'Aplikácie', logout: 'Odhlásiť tento prehliadač', logoutAll: 'Odhlásiť zo všetkých aplikácií a zariadení', logoutConfirm: 'Odhlásiť tento prehliadač?', logoutAllConfirm: 'Odhlásiť zo všetkých aplikácií a zariadení?',
+    logoutLocalNote: 'Odhlásite sa z DevelopED a jeho aplikácií v tomto prehliadači. Ostatné prehliadače, zariadenia a natívne mobilné aplikácie zostanú prihlásené.',
+    securityIntro: 'Spravujte zabezpečenie účtu v DevelopED. Odhláste tento prehliadač a jeho aplikácie alebo výslovne všetky aplikácie a zariadenia.',
     invitedIntro: 'Vytvorte si účet DevelopED pomocou pozvánky. Váš e-mail je už overený.',
     invitedEmailHelp: 'Pozvánka patrí tejto e-mailovej adrese a nemožno ju preniesť.',
     accountCreated: 'Váš účet je pripravený', invitedComplete: 'Pozvánka overila váš e-mail. Prihláste sa a vyberte si aplikáciu.',
     invalidInvitation: 'Pozvánka je neplatná, vypršala alebo už bola použitá. Požiadajte o novú pozvánku.', accountExists: 'Pre túto pozvánku už účet existuje. Prihláste sa alebo si obnovte heslo.'
   },
   cs: {
-    appsMenu: 'Aplikace', logout: 'Odhlásit zde', logoutAll: 'Odhlásit ze všech aplikací a zařízení', logoutConfirm: 'Odhlásit se zde?', logoutAllConfirm: 'Odhlásit ze všech aplikací a zařízení?',
-    logoutLocalNote: 'Ukončí se relace portálu DevelopED v tomto prohlížeči. Ostatní zařízení a aplikace s vlastními relacemi zůstanou přihlášené.',
-    securityIntro: 'Spravujte zabezpečení účtu v DevelopED. Zvolte místní odhlášení nebo výslovně odhlášení ze všech aplikací a zařízení.',
+    appsMenu: 'Aplikace', logout: 'Odhlásit tento prohlížeč', logoutAll: 'Odhlásit ze všech aplikací a zařízení', logoutConfirm: 'Odhlásit tento prohlížeč?', logoutAllConfirm: 'Odhlásit ze všech aplikací a zařízení?',
+    logoutLocalNote: 'Odhlásíte se z DevelopED a jeho aplikací v tomto prohlížeči. Ostatní prohlížeče, zařízení a nativní mobilní aplikace zůstanou přihlášené.',
+    securityIntro: 'Spravujte zabezpečení účtu v DevelopED. Odhlaste tento prohlížeč a jeho aplikace nebo výslovně všechny aplikace a zařízení.',
     invitedIntro: 'Vytvořte si účet DevelopED pomocí pozvánky. Váš e-mail je již ověřený.',
     invitedEmailHelp: 'Pozvánka patří této e-mailové adrese a nelze ji přenést.',
     accountCreated: 'Váš účet je připraven', invitedComplete: 'Pozvánka ověřila váš e-mail. Přihlaste se a vyberte si aplikaci.',
     invalidInvitation: 'Pozvánka je neplatná, vypršela nebo již byla použita. Požádejte o novou pozvánku.', accountExists: 'Pro tuto pozvánku již účet existuje. Přihlaste se nebo obnovte heslo.'
   },
   uk: {
-    appsMenu: 'Застосунки', logout: 'Вийти тут', logoutAll: 'Вийти з усіх застосунків і пристроїв', logoutConfirm: 'Вийти тут?', logoutAllConfirm: 'Вийти з усіх застосунків і пристроїв?',
-    logoutLocalNote: 'Завершиться сеанс порталу DevelopED у цьому браузері. Інші пристрої та застосунки з власними сеансами залишаться активними.',
-    securityIntro: 'Керуйте безпекою облікового запису DevelopED. Виберіть локальний вихід або окремо вихід з усіх застосунків і пристроїв.',
+    appsMenu: 'Застосунки', logout: 'Вийти в цьому браузері', logoutAll: 'Вийти з усіх застосунків і пристроїв', logoutConfirm: 'Вийти в цьому браузері?', logoutAllConfirm: 'Вийти з усіх застосунків і пристроїв?',
+    logoutLocalNote: 'Вийти з DevelopED та його застосунків у цьому браузері. Інші браузери, пристрої та нативні мобільні застосунки залишаться активними.',
+    securityIntro: 'Керуйте безпекою облікового запису DevelopED. Вийдіть у цьому браузері та його застосунках або окремо в усіх застосунках і на всіх пристроях.',
     invitedIntro: 'Створіть обліковий запис DevelopED за запрошенням. Вашу пошту вже підтверджено.',
     invitedEmailHelp: 'Запрошення належить цій електронній адресі й не може бути передане.',
     accountCreated: 'Ваш обліковий запис готовий', invitedComplete: 'Запрошення підтвердило вашу пошту. Увійдіть і виберіть застосунок.',

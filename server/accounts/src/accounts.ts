@@ -15,8 +15,10 @@ export class Accounts {
   async bootstrap(rawCookie?: string): Promise<Context> {
     let session: Row | undefined;
     if (rawCookie && /^[A-Za-z0-9_-]{43}$/.test(rawCookie)) {
-      [session] = await this.db.query(`select * from accounts.sessions where token_hash=$1 and revoked_at is null
-        and expires_at>now() and last_seen_at>now()-interval '24 hours'`, [hash(rawCookie)]);
+      [session] = await this.db.query(`select s.* from accounts.sessions s where token_hash=$1 and revoked_at is null
+        and expires_at>now() and last_seen_at>now()-interval '24 hours'
+        and (s.user_id is null or exists(select 1 from accounts.browser_families f
+          where f.id=s.browser_family_id and f.user_id=s.user_id and f.revoked_at is null))`, [hash(rawCookie)]);
     }
     if (!session) {
       const raw = token(), id = randomUUID();
@@ -97,24 +99,34 @@ export class Accounts {
     }
     return result;
   }
-  async newSession(ctx: Context, auth: ProviderSession, user: Row, options: { enroll?: boolean; fence?: string } = {}): Promise<Context> {
+  async newSession(ctx: Context, auth: ProviderSession, user: Row, options: { enroll?: boolean; fence?: string; newFamily?: boolean } = {}): Promise<Context> {
     const parsed = claims(auth.access_token), raw = token(), id = randomUUID();
     if (parsed.sub !== user.id || parsed.client_id) return fail(401, 'invalid_session');
     const pending = options.enroll ? 'enroll' : parsed.aal !== 'aal2' && (user.hasMfa || auth.user.factors?.some(f => f.status === 'verified') || user.role === 'SUPERADMIN') ? user.hasMfa || auth.user.factors?.some(f => f.status === 'verified') ? 'challenge' : 'enroll' : null;
     const [created] = await this.db.tx(async q => {
-      if (options.fence) {
-        const [owned] = await q('select id from accounts.sessions where id=$1 and refresh_id=$2 and revoked_at is null and expires_at>now() for update', [ctx.session.id, options.fence]);
-        if (!owned) return fail(401, 'invalid_session');
-      }
       await q('insert into accounts.security_state(user_id) values($1) on conflict do nothing', [user.id]);
       const [state] = await q('select * from accounts.security_state where user_id=$1 for update', [user.id]);
       if (state!.locked || state!.operation_id) return fail(403, 'account_unavailable');
+      // A fresh browser starts a new family; password re-login, reauthentication
+      // and MFA rotation retain an existing, validated same-user browser family.
+      const carryFamily = !options.newFamily && ctx.session.user_id === user.id && ctx.session.browser_family_id;
+      const familyId = carryFamily || randomUUID();
+      if (carryFamily) {
+        const [family] = await q('select id from accounts.browser_families where id=$1 and user_id=$2 and revoked_at is null for update', [familyId, user.id]);
+        if (!family) return fail(401, 'invalid_session');
+      } else await q('insert into accounts.browser_families(id,user_id) values($1,$2)', [familyId, user.id]);
+      // Consistent lock order: account state -> family -> opaque session.
+      if (options.fence || carryFamily) {
+        const [owned] = await q(`select id from accounts.sessions where id=$1 and revoked_at is null and expires_at>now()
+          and ($2::uuid is null or refresh_id=$2) for update`, [ctx.session.id, options.fence || null]);
+        if (!owned) return fail(401, 'invalid_session');
+      }
       const [valid] = await q('select id from auth.sessions where id=$1 and user_id=$2 and created_at>$3', [parsed.session_id, user.id, state!.revoked_before]);
       if (!valid) return fail(401, 'invalid_session');
       await q('update accounts.sessions set revoked_at=now() where id=$1', [ctx.session.id]);
-      return q(`insert into accounts.sessions(id,token_hash,csrf_hash,user_id,provider_session_id,provider_tokens,security_version,authenticated_at,expires_at,mfa_pending)
-        values($1,$2,$3,$4,$5,$6,$7,case when $8::text is null then now() else null end,now()+$9*interval '1 second',$8) returning *`,
-      [id, hash(raw), hash(this.csrf({ id })), user.id, parsed.session_id, seal(auth, this.config.encryptionKey, `session:${id}`), state!.security_version, pending, pending ? 600 : 604800]);
+      return q(`insert into accounts.sessions(id,token_hash,csrf_hash,user_id,provider_session_id,provider_tokens,security_version,authenticated_at,expires_at,mfa_pending,browser_family_id)
+        values($1,$2,$3,$4,$5,$6,$7,case when $8::text is null then now() else null end,now()+$9*interval '1 second',$8,$10) returning *`,
+      [id, hash(raw), hash(this.csrf({ id })), user.id, parsed.session_id, seal(auth, this.config.encryptionKey, `session:${id}`), state!.security_version, pending, pending ? 600 : 604800, familyId]);
     });
     created!.aal = parsed.aal || 'aal1';
     return this.context(created!, user, this.cookie(raw, pending ? 600 : 604800));
@@ -175,9 +187,8 @@ export class Accounts {
     await query(`update accounts.credentials set consumed_at=now() where user_id=$1 and consumed_at is null and purpose in ('recovery','email_change')`, [userId]);
   }
   async logout(ctx: Context) {
-    // Portal-local logout: delegated OAuth sessions have independent provider
-    // IDs, not a trustworthy browser-family relationship. Do not revoke them
-    // by guessing from timestamps/client IDs, or invalidate another device.
+    // Browser-family logout: only explicit server-issued bindings are revoked.
+    // Native OAuth clients and another browser's family remain independent.
     let access: string | null = ctx.user ? await this.providerToken(ctx).catch(() => null) : null;
     const user = ctx.user || ctx.candidate;
     if (!access && user && ctx.session.provider_tokens) {
@@ -188,7 +199,10 @@ export class Accounts {
       } catch { /* A corrupt/expired provider bundle must not prevent local logout. */ }
     }
     await this.db.tx(async q => {
-      await q('update accounts.sessions set revoked_at=now() where id=$1 and revoked_at is null', [ctx.session.id]);
+      if (user && ctx.session.browser_family_id) {
+        await q('update accounts.browser_families set revoked_at=coalesce(revoked_at,now()) where id=$1 and user_id=$2', [ctx.session.browser_family_id, user.id]);
+        await q('update accounts.sessions set revoked_at=now() where browser_family_id=$1 and user_id=$2 and revoked_at is null', [ctx.session.browser_family_id, user.id]);
+      } else await q('update accounts.sessions set revoked_at=now() where id=$1 and revoked_at is null', [ctx.session.id]);
       if (user) await this.db.audit(q, user.id, user.id, 'logout_local', 'succeeded');
     });
     // The opaque central session is already denied even during provider outage.
@@ -404,18 +418,79 @@ export class Accounts {
     if (!/^[A-Za-z0-9_-]{43}$/.test(serverKey)) return fail(401, 'invalid_app_credentials');
     const [app] = await this.db.query(`select a.*,c.name,c.status,c.deleted_at from accounts.app_settings a join core.apps c on c.id=a.app_id where a.server_key_hash=$1`, [hash(serverKey)]);
     if (!app) return fail(401, 'invalid_app_credentials');
+    const checked = await this.oauthContext(text(accessToken, 12000, true));
+    if (checked.app.app_id !== app.app_id) return fail(401, 'invalid_session');
+    const plan = await this.ensureAccess(checked.user, checked.app);
+    return { user: this.publicUser(checked.user), app: { id: app.app_id, plan }, client: { id: checked.client.client_id, kind: checked.client.client_kind }, securityVersion: checked.user.security_version };
+  }
+  async validateOAuthAccess(accessToken: string, expectedClientId?: string) {
+    const { user, app, client } = await this.oauthContext(accessToken, expectedClientId);
+    const plan = await this.ensureAccess(user, app);
+    return { user: this.publicUser(user), app: { id: app.app_id, plan }, client: { id: client.client_id, kind: client.client_kind }, securityVersion: user.security_version };
+  }
+  private async oauthContext(accessToken: string, expectedClientId?: string, requireBinding = true) {
     const access = text(accessToken, 12000, true);
     const providerUser = await this.provider.user(access), parsed = claims(access);
     if (parsed.sub !== providerUser.id || !parsed.client_id || !providerUser.email_confirmed_at) return fail(401, 'invalid_session');
-    const [client] = await this.db.query('select client_id,client_kind from accounts.oauth_clients where client_id=$1 and app_id=$2 and enabled', [uuid(parsed.client_id), app.app_id]);
+    if (expectedClientId && parsed.client_id !== expectedClientId) return fail(401, 'invalid_session');
+    const [client] = await this.db.query('select client_id,client_kind,app_id from accounts.oauth_clients where client_id=$1 and enabled', [uuid(parsed.client_id)]);
     if (!client) return fail(401, 'invalid_session');
+    const [app] = await this.db.query(`select a.*,c.name,c.status,c.deleted_at from accounts.app_settings a join core.apps c on c.id=a.app_id where a.app_id=$1`, [client.app_id]);
+    if (!app) return fail(401, 'invalid_session');
     const user = await this.userById(parsed.sub);
     if (!user || user.locked || user.operation_id || user.requirePasswordChange || !user.emailVerified) return fail(403, 'account_unavailable');
     const [valid] = await this.db.query(`select id from auth.sessions where id=$1 and user_id=$2 and oauth_client_id=$3
       and created_at>$4 and (not_after is null or not_after>now())`, [parsed.session_id, user.id, client.client_id, user.revoked_before]);
     if (!valid) return fail(401, 'invalid_session');
-    const plan = await this.ensureAccess(user, app);
-    return { user: this.publicUser(user), app: { id: app.app_id, plan }, client: { id: client.client_id, kind: client.client_kind }, securityVersion: user.security_version };
+    if (requireBinding && client.client_kind === 'web') {
+      const [binding] = await this.db.query(`select d.user_id,d.client_id,f.user_id as family_user_id,f.revoked_at,
+        exists(select 1 from accounts.sessions cs join auth.sessions ps on ps.id=cs.provider_session_id and ps.user_id=cs.user_id
+          where cs.browser_family_id=f.id and cs.user_id=f.user_id and cs.mfa_pending is null
+          and cs.revoked_at is null and cs.expires_at>now() and cs.last_seen_at>now()-interval '24 hours'
+          and (ps.not_after is null or ps.not_after>now())) as active
+        from accounts.browser_delegations d join accounts.browser_families f on f.id=d.browser_family_id where d.provider_session_id=$1`, [parsed.session_id]);
+      if (binding) {
+        if (binding.user_id !== user.id || binding.family_user_id !== user.id || binding.client_id !== client.client_id || binding.revoked_at || !binding.active) return fail(401, 'invalid_session');
+      } else {
+        const [settings] = await this.db.query('select browser_binding_required from accounts.settings where singleton');
+        if (!settings || settings.browser_binding_required) return fail(401, 'invalid_session');
+      }
+    }
+    return { user, app, client, parsed };
+  }
+  async finalizeOAuthCode(code: string, accessToken: string, expectedClientId: string): Promise<void> {
+    if (typeof code !== 'string' || !code || code.length>2048) return fail(400, 'invalid_authorization');
+    const codeHash = hash(code); // Opaque credential: never trim or normalize it.
+    // A token freshly returned by the private provider still needs subject,
+    // client, live session and central policy validation before binding.
+    const { user, app, client, parsed } = await this.oauthContext(accessToken, expectedClientId, false);
+    await this.ensureAccess(user, app);
+    await this.db.tx(async q => {
+      const [state] = await q('select * from accounts.security_state where user_id=$1 for update', [user.id]);
+      const [binding] = await q(`select * from accounts.oauth_code_bindings where code_hash=$1 and user_id=$2 and client_id=$3
+        and consumed_at is null and expires_at>now()`, [codeHash, user.id, client.client_id]);
+      if (!state || state.locked || state.operation_id || state.require_password_change || !binding
+        || String(binding.security_version) !== String(state.security_version)) return fail(401, 'invalid_session');
+      if (client.client_kind === 'web') {
+        const [family] = await q('select id from accounts.browser_families where id=$1 and user_id=$2 and revoked_at is null for update', [binding.browser_family_id, user.id]);
+        if (!family) return fail(401, 'invalid_session');
+        const [active] = await q(`select cs.id from accounts.sessions cs join auth.sessions ps on ps.id=cs.provider_session_id and ps.user_id=cs.user_id
+          where cs.browser_family_id=$1 and cs.user_id=$2 and cs.mfa_pending is null and cs.revoked_at is null
+          and cs.expires_at>now() and cs.last_seen_at>now()-interval '24 hours' and (ps.not_after is null or ps.not_after>now()) limit 1`, [family.id, user.id]);
+        if (!active) return fail(401, 'invalid_session');
+      } else if (binding.browser_family_id !== null) return fail(401, 'invalid_session');
+      const [valid] = await q(`select id from auth.sessions where id=$1 and user_id=$2 and oauth_client_id=$3
+        and created_at>$4 and (not_after is null or not_after>now())`, [parsed.session_id, user.id, client.client_id, state.revoked_before]);
+      if (!valid) return fail(401, 'invalid_session');
+      const [consumed] = await q(`update accounts.oauth_code_bindings set consumed_at=now() where code_hash=$1
+        and consumed_at is null and expires_at>now() returning code_hash`, [codeHash]);
+      if (!consumed) return fail(401, 'invalid_session');
+      if (client.client_kind === 'web') {
+        // No upsert/reparent: a provider session can belong to exactly one family.
+        await q(`insert into accounts.browser_delegations(provider_session_id,user_id,client_id,browser_family_id)
+          values($1,$2,$3,$4)`, [parsed.session_id, user.id, client.client_id, binding.browser_family_id]);
+      }
+    });
   }
   async internalUserCheck(serverKey: string, userId: unknown) {
     if (!/^[A-Za-z0-9_-]{43}$/.test(serverKey)) return fail(401, 'invalid_app_credentials');
@@ -452,6 +527,22 @@ export class Accounts {
     if (!approve && details.redirect_url) {
       // Do not return an already minted code after a user chose Cancel.
       target.searchParams.delete('code'); target.searchParams.set('error', 'access_denied');
+    }
+    if (approve && target.searchParams.has('code')) {
+      const code = target.searchParams.get('code')!;
+      if (!code || code.length>2048) return fail(502, 'invalid_provider_response');
+      await this.db.tx(async q => {
+        const [state] = await q('select * from accounts.security_state where user_id=$1 for update', [user.id]);
+        if (!state || state.locked || state.operation_id || state.require_password_change
+          || String(state.security_version) !== String(ctx.session.security_version)) return fail(401, 'invalid_session');
+        const [family] = await q('select id from accounts.browser_families where id=$1 and user_id=$2 and revoked_at is null for update', [ctx.session.browser_family_id, user.id]);
+        if (!family) return fail(401, 'invalid_session');
+        const [current] = await q(`select id from accounts.sessions where id=$1 and user_id=$2
+          and browser_family_id=$3 and revoked_at is null and expires_at>now() for update`, [ctx.session.id, user.id, family.id]);
+        if (!current) return fail(401, 'invalid_session');
+        await q(`insert into accounts.oauth_code_bindings(code_hash,user_id,client_id,browser_family_id,security_version,expires_at)
+          values($1,$2,$3,$4,$5,now()+interval '5 minutes')`, [hash(code), user.id, app.client_id, app.client_kind === 'web' ? family.id : null, state.security_version]);
+      });
     }
     return { redirectUrl: target.href };
   }

@@ -5,9 +5,10 @@ Status: architecture with local implementation in progress; not deployed. Update
 Implementation notes and actual test results are tracked in
 [ecosystem-identity-progress.md](ecosystem-identity-progress.md). The current
 [API contract](ecosystem-identity-api.md) supersedes illustrative interfaces here.
-The 2026-09-21 revision adds default portal-only browser logout and keeps global
-interactive logout as a separate explicit security action. Neither logs out all
-apps on only one device: there is no authorization-code/browser-family binding.
+The 2026-09-21 revision adds default browser-family logout and keeps global
+interactive logout as a separate explicit security action. Exact server-side
+authorization-code/session bindings now implement that family relationship;
+see [the session-family contract](ecosystem-browser-families.md).
 See the current API contract for the implemented scopes; older proposed scopes
 below are not deployment evidence. Provider protocol
 qualification passed with additional mandatory gateway-isolation requirements;

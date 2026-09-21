@@ -193,7 +193,8 @@ test('isolated real-provider account lifecycle, report privacy, DB grants and po
       await admin.query("insert into accounts.oauth_clients(client_id,app_id,client_kind,callback_url) values($1,$2,'web',$3)", [client.client_id,id,callback]);
       const store = new Map(), externalIssuer = 'http://127.0.0.1:9999';
       const rp = createOidcClient({ issuer: externalIssuer, clientId: client.client_id, clientSecret: client.client_secret, redirectUri: callback,
-        allowLoopbackHttp: true, fetch: (url, options) => fetch(String(url).replace(externalIssuer, provider.url), options),
+        allowLoopbackHttp: true, fetch: (url, options) => fetch(String(url).replace(externalIssuer,
+          ['/oauth/token', '/oauth/userinfo'].includes(new URL(url).pathname) ? origin : provider.url), options),
         store: { create: async (key, value) => store.set(key, value), consume: async key => { const value = store.get(key); store.delete(key); return value; } } });
       const begin = async () => {
         const flow = await rp.begin('/library');

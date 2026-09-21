@@ -122,7 +122,7 @@ test('isolated central TOTP enrollment, restricted sessions, AAL2, fresh step-up
       const consent = await request('/authorize', 'POST', { authorizationId, approve: true });
       assert.equal(consent.status, 200, consent.body.error?.code);
       const code = new URL(consent.body.redirectUrl).searchParams.get('code');
-      const response = await fetch(provider.url + '/oauth/token', { method: 'POST', body: new URLSearchParams({ client_id: client.client_id, client_secret: client.client_secret, grant_type: 'authorization_code', code, redirect_uri: callback, code_verifier: verifier }) });
+      const response = await fetch(config.origin + '/oauth/token', { method: 'POST', body: new URLSearchParams({ client_id: client.client_id, client_secret: client.client_secret, grant_type: 'authorization_code', code, redirect_uri: callback, code_verifier: verifier }) });
       assert.equal(response.status, 200);
       const bundle = await response.json(), delegated = claims(bundle.access_token);
       assert.equal(delegated.sub, user.id); assert.equal(delegated.client_id, client.client_id);
@@ -150,7 +150,11 @@ test('isolated central TOTP enrollment, restricted sessions, AAL2, fresh step-up
     });
   } finally {
     if (server.listening) await new Promise(resolve => server.close(resolve));
-    if (client) { await admin.query('delete from accounts.oauth_clients where client_id=$1', [client.client_id]); await provider.call(`/admin/oauth/clients/${client.client_id}`, 'DELETE').catch(() => {}); }
+    if (client) {
+      await admin.query('delete from accounts.browser_delegations where client_id=$1', [client.client_id]);
+      await admin.query('delete from accounts.oauth_code_bindings where client_id=$1', [client.client_id]);
+      await admin.query('delete from accounts.oauth_clients where client_id=$1', [client.client_id]); await provider.call(`/admin/oauth/clients/${client.client_id}`, 'DELETE').catch(() => {});
+    }
     if (appId) {
       for (const table of ['accounts.entitlements', 'core.app_access', 'accounts.app_settings']) await admin.query(`delete from ${table} where app_id=$1`, [appId]);
       await admin.query('delete from core.apps where id=$1', [appId]);

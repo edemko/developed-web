@@ -7,6 +7,7 @@ import { diagnostics, email, equal, fail, hash, HttpError, language, password, t
 import type { Row } from './db.js';
 import { Mfa } from './mfa.js';
 import { catalogApp } from './catalog.js';
+import { oauthBroker } from './oauth-broker.js';
 
 const assets = new Map<string, [string, string]>([
   ['app.js', ['app.js', 'text/javascript']], ['i18n.js', ['i18n.js', 'text/javascript']],
@@ -55,6 +56,13 @@ export function createAccountServer(accounts: Accounts) {
     try {
       const url = new URL(req.url || '/', accounts.config.origin), method = req.method || 'GET';
       if (url.origin !== accounts.config.origin) return fail(400, 'invalid_request');
+      // Only the issuer's exact OAuth routes are mapped here by the gateway.
+      // These standard back-channel endpoints never bootstrap browser cookies,
+      // trust a portal cookie, or expose a generic provider proxy.
+      if (url.pathname === '/oauth/token' || url.pathname === '/oauth/userinfo') {
+        if (url.search) return json(res, { error: 'invalid_request' }, 400);
+        return await oauthBroker(accounts, req, res, url.pathname);
+      }
       if (url.pathname === '/health' && method === 'GET') return json(res, { ok: true });
       if (!url.pathname.startsWith('/api/account/')) {
         if (method !== 'GET' && method !== 'HEAD') return fail(405, 'method_not_allowed');

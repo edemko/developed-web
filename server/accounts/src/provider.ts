@@ -39,5 +39,14 @@ export class Provider {
     return this.call<ProviderUser>('/admin/users', 'POST', { email, password, email_confirm: emailConfirmed, user_metadata: { name: displayName } });
   }
   update(id: string, data: object) { return this.call<ProviderUser>(`/admin/users/${encodeURIComponent(id)}`, 'PUT', data); }
+  // Standard OAuth exchange: the client's credentials and PKCE proof remain
+  // authoritative. Never substitute the platform administrator bearer here.
+  exchangeOAuth(form: URLSearchParams, authorization?: string) {
+    return this.request(`${this.url}/oauth/token`, {
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded',
+        ...(authorization ? { Authorization: authorization } : {}) },
+      body: form.toString(), redirect: 'error', signal: AbortSignal.timeout(10_000),
+    });
+  }
   logout(accessToken: string, scope = 'global') { return this.call(`/logout?scope=${scope}`, 'POST', undefined, accessToken); }
 }

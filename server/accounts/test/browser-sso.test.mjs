@@ -150,7 +150,7 @@ test('isolated browser cross-site SSO, host-only cookies and central logout', {
       },
       oidcFactory: options => createOidcClient({ ...options, allowLoopbackHttp: true, fetch: (url, init) => {
         const target = new URL(url); assert.equal(target.origin, new URL(issuer).origin);
-        return fetch(`${authOrigin}${target.pathname}${target.search}`, init);
+        return fetch(`${['/oauth/token', '/oauth/userinfo'].includes(target.pathname) ? localOrigin(centralServer) : authOrigin}${target.pathname}${target.search}`, init);
       } }),
     });
     appServer = createServer(async (req, res) => {
@@ -311,6 +311,42 @@ test('isolated browser cross-site SSO, host-only cookies and central logout', {
       directLoginPassed = true;
     });
     if (!directLoginPassed) return;
+    await t.test('browser logout denies its Mega cookie while another real browser stays signed in', async () => {
+      const other = await browser.newContext({ locale: 'en-US', ignoreHTTPSErrors: true });
+      try {
+        await other.route('**/*', route => {
+          const url = new URL(route.request().url());
+          if ([centralOrigin, appOrigin, browserProviderOrigin].includes(url.origin)) return route.continue();
+          unexpectedRequests.push(`${url.origin}${url.pathname}`); return route.abort();
+        });
+        const otherPage = await other.newPage(); otherPage.setDefaultTimeout(15000);
+        otherPage.on('pageerror', error => pageErrors.push(error.name));
+        await otherPage.goto(`${centralOrigin}/login?lang=en`);
+        await otherPage.getByLabel('Email', { exact: true }).fill(email);
+        await otherPage.getByLabel('Password', { exact: true }).fill(password);
+        await otherPage.getByRole('button', { name: 'Sign in', exact: true }).click();
+        await otherPage.getByRole('heading', { name: 'Your apps', exact: true }).waitFor();
+        await otherPage.getByRole('button', { name: /Mega Music/ }).click();
+        await otherPage.waitForURL(`${appOrigin}/app/`);
+        await page.goto(`${centralOrigin}/security`);
+        await page.getByRole('button', { name: 'Log out of this browser', exact: true }).click();
+        await page.getByRole('dialog').getByRole('button', { name: 'Confirm', exact: true }).click();
+        await page.waitForURL(`${centralOrigin}/login`);
+        assert.ok((await context.cookies(appOrigin)).some(cookie => cookie.name === '__Host-mm_session'));
+        await page.goto(`${appOrigin}/app/`); assert.equal((await appIdentity()).status, 401);
+        assert.equal(await otherPage.evaluate(async () => (await fetch('/api/music/me')).status), 200);
+        await otherPage.goto(`${centralOrigin}/apps`);
+        await otherPage.getByRole('heading', { name: 'Your apps', exact: true }).waitFor();
+      } finally { await other.close(); }
+      // Fresh ordinary sign-in for the following independent global-logout test.
+      await page.goto(`${centralOrigin}/login?lang=en`);
+      await page.getByLabel('Email', { exact: true }).fill(email);
+      await page.getByLabel('Password', { exact: true }).fill(password);
+      await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+      await page.getByRole('heading', { name: 'Your apps', exact: true }).waitFor();
+      await page.getByRole('button', { name: /Mega Music/ }).click();
+      await page.waitForURL(`${appOrigin}/app/`); assert.equal((await appIdentity()).status, 200);
+    });
     await t.test('explicit all-device central logout denies the still-present separate app cookie on its next API request', async () => {
       await page.getByRole('link', { name: 'DevelopED', exact: true }).click();
       await page.getByRole('heading', { name: 'Your apps', exact: true }).waitFor();
@@ -330,7 +366,11 @@ test('isolated browser cross-site SSO, host-only cookies and central logout', {
     if (appServer?.listening) await close(appServer);
     if (centralServer.listening) await close(centralServer);
     if (clientId) await provider.call(`/admin/oauth/clients/${clientId}`, 'DELETE').catch(() => {});
-    if (clientId) await admin.query('delete from accounts.oauth_clients where client_id=$1', [clientId]);
+    if (clientId) {
+      await admin.query('delete from accounts.browser_delegations where client_id=$1', [clientId]);
+      await admin.query('delete from accounts.oauth_code_bindings where client_id=$1', [clientId]);
+      await admin.query('delete from accounts.oauth_clients where client_id=$1', [clientId]);
+    }
     if (originalRegistrationMode !== undefined) await admin.query('update accounts.settings set registration_mode=$1', [originalRegistrationMode]);
     if (registryConfigured && originalApp) {
       await admin.query(`update accounts.app_settings set oauth_client_id=$1,server_key_hash=$2,launch_url=$3,callback_url=$4,

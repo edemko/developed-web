@@ -96,7 +96,7 @@ test('isolated native central authorization, operator metadata, registry and RLS
     const approved = await request('/authorize', 'POST', { authorizationId, approve: true }); assert.equal(approved.status, 200);
     const redirect = new URL(approved.body.redirectUrl);
     assert.equal(`${redirect.protocol}//${redirect.host}${redirect.pathname}`, callback); assert.equal(redirect.searchParams.get('state'), state);
-    const exchange = await fetch(`${provider.url}/oauth/token`, { method: 'POST', body: new URLSearchParams({
+    const exchange = await fetch(`${config.origin}/oauth/token`, { method: 'POST', body: new URLSearchParams({
       grant_type: 'authorization_code', client_id: client.client_id, redirect_uri: callback,
       code: redirect.searchParams.get('code'), code_verifier: verifier,
     }) });
@@ -131,9 +131,28 @@ test('isolated native central authorization, operator metadata, registry and RLS
       await admin.query('update accounts.oauth_clients set enabled=true where client_id=$1', [client.client_id]);
       assert.equal((await gate(appKey)).status, 200); assert.equal(await rls(appId), true);
     });
+    await t.test('browser-family logout preserves native API, RLS, refresh and userinfo; global logout denies native too', async () => {
+      const before = (await admin.query('select browser_binding_required from accounts.settings where singleton')).rows[0].browser_binding_required;
+      try {
+        await admin.query('update accounts.settings set browser_binding_required=true where singleton');
+        assert.equal((await request('/logout', 'POST', {})).status, 200);
+        assert.equal((await gate(appKey)).status, 200); assert.equal(await rls(appId), true);
+        const refresh = await fetch(`${config.origin}/oauth/token`, { method: 'POST', body: new URLSearchParams({ grant_type: 'refresh_token', client_id: client.client_id, refresh_token: issued.refresh_token }) });
+        assert.equal(refresh.status, 200);
+        const refreshed = await refresh.json();
+        const userinfo = await fetch(`${config.origin}/oauth/userinfo`, { headers: { Authorization: `Bearer ${refreshed.access_token}` } });
+        assert.equal(userinfo.status, 200);
+        await request('/session');
+        assert.equal((await request('/login', 'POST', { email: address, password: secret })).status, 200); await request('/session');
+        assert.equal((await request('/logout-all', 'POST', {})).status, 200);
+        assert.equal((await gate(appKey)).status, 401); assert.equal(await rls(appId), false);
+      } finally { await admin.query('update accounts.settings set browser_binding_required=$1 where singleton', [before]); }
+    });
   } finally {
     if (server.listening) await new Promise(resolve => server.close(resolve));
     for (const id of createdClients) {
+      await admin.query('delete from accounts.browser_delegations where client_id=$1', [id]);
+      await admin.query('delete from accounts.oauth_code_bindings where client_id=$1', [id]);
       await admin.query('delete from accounts.oauth_clients where client_id=$1', [id]);
       await provider.call(`/admin/oauth/clients/${id}`, 'DELETE').catch(() => {});
     }

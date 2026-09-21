@@ -16,12 +16,13 @@ opaque, host-only, HttpOnly, Secure, SameSite=Lax. Responses are no-store.
   `user: null`; complete the restricted MFA flow before opening any authenticated page.
   UI navigates to `/apps` unless
   a validated local authorization continuation was explicitly supplied.
-- POST `/logout`: this browser's **DevelopED portal session only**, `{ ok: true }`.
-  Other devices and independent product sessions remain signed in. Allowed for
+- POST `/logout`: **DevelopED and delegated web apps in this browser**, `{ ok: true }`.
+  Other browser families and native mobile apps remain signed in. Allowed for
   anonymous and pending-MFA cookies too; requires the normal Origin/CSRF checks.
 - POST `/logout-all`: explicit **all apps and devices** interactive logout,
   `{ ok: true }`; requires a fully authenticated central session. Product-local
-  logout remains local. No custom browser-family/code binding is implemented.
+  logout remains local. Browser-family code binding is described in
+  [the session-family contract](ecosystem-browser-families.md).
 - POST `/reauthenticate` `{ password, code?, factorId? }`: `{ ok: true }`, five-minute freshness.
   Enrolled users require password plus six-digit TOTP; no password-only step-up.
 - GET `/mfa`: `{ mode, enabled, required, factors: [{ id, type: 'totp' }], enrollmentId }`.

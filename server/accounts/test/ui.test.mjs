@@ -78,3 +78,12 @@ test('account UI does not render untrusted HTML or persist account credentials i
   assert.match(source, /idempotencyKey = crypto.randomUUID\(\)/);
   assert.match(source, /await api\('\/reauthenticate'[\s\S]*?await bootstrap\(\)/);
 });
+
+test('portal and both marketing languages share the existing first-party favicon', async () => {
+  for (const path of ['../public/index.html', '../../../index.html', '../../../en/index.html']) {
+    const html = await readFile(new URL(path, import.meta.url), 'utf8');
+    assert.match(html, /<link\s+rel="icon"[^>]*href="\/favicon\.png"/);
+  }
+  const icon = await readFile(new URL('../../../favicon.png', import.meta.url));
+  assert.deepEqual([...icon.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+});

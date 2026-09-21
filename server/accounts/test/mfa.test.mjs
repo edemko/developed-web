@@ -10,7 +10,7 @@ function fixture({ enrolled = false, role = 'SUPERADMIN' } = {}) {
   const id = randomUUID(), providerId = randomUUID(), factorId = randomUUID(), key = randomBytes(32), queries = [], calls = [];
   const user = { id, email: 'mfa-fixture@example.invalid', emailVerified: true, role, hasMfa: enrolled, language: 'en' };
   const auth = (aal = 'aal1') => ({ access_token: `fixture.${Buffer.from(JSON.stringify({ sub: id, session_id: providerId, exp: Date.now() / 1000 + 300, aal })).toString('base64url')}.signature`, refresh_token: 'server-only-refresh', user: { id, email: user.email, email_confirmed_at: 'confirmed', factors: user.hasMfa ? [{ id: factorId, factor_type: 'totp', status: 'verified' }] : [] } });
-  const session = { id: randomUUID(), user_id: id, provider_session_id: providerId, created_at: new Date(), expires_at: new Date(Date.now() + 600000), mfa_pending: enrolled ? 'challenge' : 'enroll', mfa_enrollment_id: enrolled ? null : factorId, aal: 'aal1' };
+  const session = { id: randomUUID(), user_id: id, provider_session_id: providerId, browser_family_id: randomUUID(), created_at: new Date(), expires_at: new Date(Date.now() + 600000), mfa_pending: enrolled ? 'challenge' : 'enroll', mfa_enrollment_id: enrolled ? null : factorId, aal: 'aal1' };
   session.provider_tokens = seal(auth(), key, `session:${session.id}`);
   const sessions = new Map([[session.id, session]]);
   let failure, failSave = false, failCleanup = false;
@@ -21,8 +21,10 @@ function fixture({ enrolled = false, role = 'SUPERADMIN' } = {}) {
       if (sql.includes('from auth.mfa_factors')) return args[0] === id || args[0] === factorId ? [{ id: factorId, status: user.hasMfa ? 'verified' : 'unverified', factor_type: 'totp', type: 'totp' }] : [];
       if (sql.startsWith('insert into accounts.security_state')) return [];
       if (sql.startsWith('select * from accounts.security_state')) return [{ security_version: 1 }];
+      if (sql.startsWith('select id from accounts.browser_families')) return [{ id: session.browser_family_id }];
+      if (sql.startsWith('insert into accounts.browser_families')) return [];
       if (sql.startsWith('select id from auth.sessions')) return [{ id: providerId }];
-      if (sql.startsWith('select id from accounts.sessions')) { const row = sessions.get(args[0]); return row && !row.revoked_at && row.refresh_id === args[1] ? [{ id: row.id }] : []; }
+      if (sql.startsWith('select id from accounts.sessions')) { const row = sessions.get(args[0]); return row && !row.revoked_at && (!args[1] || row.refresh_id === args[1]) ? [{ id: row.id }] : []; }
       if (sql.startsWith('update accounts.sessions set refresh_id=$2')) {
         const row = sessions.get(args[0]); if (!row || row.revoked_at || row.refresh_id) return [];
         row.refresh_id = args[1]; return [{ id: row.id }];
@@ -34,7 +36,7 @@ function fixture({ enrolled = false, role = 'SUPERADMIN' } = {}) {
       }
       if (sql.startsWith('insert into accounts.sessions')) {
         if (failSave) throw new Error('save unavailable');
-        const row = { id: args[0], user_id: args[3], provider_session_id: args[4], provider_tokens: args[5], security_version: args[6], mfa_pending: args[7], expires_in: args[8], created_at: new Date(), authenticated_at: args[7] ? null : new Date() };
+        const row = { id: args[0], user_id: args[3], provider_session_id: args[4], provider_tokens: args[5], security_version: args[6], mfa_pending: args[7], expires_in: args[8], browser_family_id: args[9], created_at: new Date(), authenticated_at: args[7] ? null : new Date() };
         sessions.set(row.id, row); return [row];
       }
       if (sql.startsWith('insert into accounts.outbox')) return [];
@@ -67,6 +69,7 @@ test('verified enrollment rotates the cookie, creates AAL2 access, and keeps pro
   const next = await f.mfa.verify(f.ctx(), f.factorId, '123456');
   assert.equal(next.user.id, f.user.id); assert.equal(next.mfa, undefined);
   assert.equal(next.session.aal, 'aal2'); assert.notEqual(next.session.id, f.session.id);
+  assert.equal(next.session.browser_family_id, f.session.browser_family_id);
   assert.equal(next.session.expires_in, 604800);
   assert.ok(f.session.revoked_at); assert.ok(next.cookie.includes('HttpOnly'));
   assert.equal(f.accounts.requireAdmin(next, true).id, f.user.id);

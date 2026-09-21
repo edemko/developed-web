@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { migrations, prepareMigration, run } from '../operators/apply-central-migration.mjs';
+import { run as applyBrowserFamily } from '../operators/browser-family-migration.mjs';
 
 const script = fileURLToPath(new URL('../operators/apply-central-migration.mjs', import.meta.url));
 const source = item => readFile(new URL(`../../../supabase/migrations/${item.file}`, import.meta.url));
@@ -162,6 +163,22 @@ test('isolated PostgreSQL proves atomic schema/ledger commit, rollback and order
   assert.equal(sql("SELECT NOT EXISTS(SELECT FROM pg_proc p,LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl WHERE p.oid='accounts.app_request_allowed(text)'::regprocedure AND acl.grantee=0 AND acl.privilege_type='EXECUTE')"), 't');
   assert.equal(sql("BEGIN; SET LOCAL ROLE authenticated; SELECT accounts.app_request_allowed('unknown-app'); ROLLBACK;"), 'f');
   await assert.rejects(apply(migrations[2]));
+  // New additive family migration rehearses the real production ownership graph,
+  // including the non-superuser postgres role and least-privileged RLS owner.
+  sql(`CREATE FUNCTION accounts.test_ledger_reject() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fixture ledger failure'; END $$;
+    CREATE TRIGGER test_ledger_reject BEFORE INSERT ON accounts.deployment_migrations FOR EACH ROW EXECUTE FUNCTION accounts.test_ledger_reject();`);
+  assert.throws(() => applyBrowserFamily(['--apply', '--container', container]));
+  assert.equal(sql("SELECT to_regclass('accounts.browser_families') IS NULL"), 't');
+  assert.equal(sql('SELECT count(*) FROM accounts.deployment_migrations'), '3');
+  sql('DROP TRIGGER test_ledger_reject ON accounts.deployment_migrations; DROP FUNCTION accounts.test_ledger_reject();');
+  applyBrowserFamily(['--apply', '--container', container]);
+  assert.equal(sql('SELECT count(*) FROM accounts.deployment_migrations'), '4');
+  assert.equal(sql('SELECT browser_binding_required FROM accounts.settings'), 'f');
+  assert.equal(sql("SELECT pg_get_userbyid(proowner) FROM pg_proc WHERE oid='accounts.app_request_allowed(text)'::regprocedure"), 'developed_accounts');
+  assert.equal(sql("SELECT has_function_privilege('authenticated','accounts.app_request_allowed(text)','EXECUTE') AND NOT has_function_privilege('anon','accounts.app_request_allowed(text)','EXECUTE')"), 't');
+  assert.equal(sql("SELECT has_table_privilege('authenticated','accounts.browser_families','SELECT')"), 'f');
+  assert.throws(() => applyBrowserFamily(['--apply', '--container', container]));
+  sql("DELETE FROM accounts.deployment_migrations WHERE version='20260921112156';");
   sql(`DELETE FROM accounts.deployment_migrations WHERE version='${migrations[2].version}';
     UPDATE accounts.deployment_migrations SET source_sha256=repeat('0',64) WHERE version='${migrations[0].version}';`);
   await assert.rejects(apply(migrations[2]));

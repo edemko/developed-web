@@ -10,6 +10,7 @@ test('marketing navigation exposes login, registration and owner-selected app th
   const files = new Map([
     ['/', ['index.html', 'text/html']], ['/en/', ['en/index.html', 'text/html']],
     ['/styles.css', ['styles.css', 'text/css']], ['/script.js', ['script.js', 'text/javascript']],
+    ['/favicon.png', ['favicon.png', 'image/png']],
     ...catalog.apps.map(app => [app.icon, [app.icon.slice(1), app.icon.endsWith('.svg') ? 'image/svg+xml' : 'image/webp']]),
   ]);
   const server = createServer(async (req, res) => {
@@ -30,6 +31,11 @@ test('marketing navigation exposes login, registration and owner-selected app th
       for (const width of [375, 768, 1024, 1440]) {
         await page.setViewportSize({ width, height: 900 });
         await page.goto(`http://127.0.0.1:${server.address().port}${path}`);
+        assert.equal(await page.locator('link[rel=icon]').getAttribute('href'), '/favicon.png');
+        assert.equal(await page.evaluate(() => new Promise(resolve => {
+          const icon = new Image(); icon.onload = () => resolve(icon.naturalWidth > 0 && icon.naturalHeight > 0);
+          icon.onerror = () => resolve(false); icon.src = document.querySelector('link[rel=icon]').href;
+        })), true);
         await page.waitForFunction(() => document.querySelectorAll('[data-apps-list] img').length === 7 && [...document.querySelectorAll('[data-apps-list] img')].every(image => image.complete && image.naturalWidth > 0));
         const summary = page.locator('[data-apps-menu] summary');
         await summary.click();

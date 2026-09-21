@@ -12,6 +12,10 @@ test('browser account and report flows retain safe state and render user text in
   const { chromium } = await import(playwrightModule);
   const server = createServer(async (req, res) => {
     const path = new URL(req.url, 'http://localhost').pathname;
+    if (path === '/favicon.png') {
+      res.setHeader('Content-Type', 'image/png');
+      res.end(await readFile(new URL('../../../favicon.png', import.meta.url))); return;
+    }
     const asset = path.startsWith('/account-assets/') ? path.slice('/account-assets/'.length) : 'index.html';
     if (!['index.html', 'app.js', 'i18n.js', 'app.css'].includes(asset)) { res.writeHead(404).end(); return; }
     const content = await readFile(new URL(`../public/${asset}`, import.meta.url));
@@ -70,6 +74,11 @@ test('browser account and report flows retain safe state and render user text in
     const base = `http://127.0.0.1:${server.address().port}`;
     await page.goto(`${base}/register?next=${encodeURIComponent('/account/authorize?authorization_id=pending-auth&redirect_uri=https://evil.test')}`);
     await page.getByRole('heading', { name: 'Create account', exact: true }).waitFor();
+    assert.equal(await page.locator('link[rel=icon]').getAttribute('href'), '/favicon.png');
+    assert.equal(await page.evaluate(() => new Promise(resolve => {
+      const icon = new Image(); icon.onload = () => resolve(icon.naturalWidth > 0 && icon.naturalHeight > 0);
+      icon.onerror = () => resolve(false); icon.src = document.querySelector('link[rel=icon]').href;
+    })), true);
     assert.equal(await page.getByLabel('Invitation code').count(), 0);
     await page.getByLabel('Name', { exact: true }).fill('Registration Fixture');
     await page.getByLabel('Email', { exact: true }).fill('new@example.test');
@@ -178,7 +187,8 @@ test('browser account and report flows retain safe state and render user text in
     assert.equal(new URL(page.url()).pathname, '/profile');
     user.requirePasswordChange = false;
     await page.goto(`${base}/security`);
-    await page.getByRole('button', { name: 'Log out here', exact: true }).click();
+    await page.getByRole('button', { name: 'Log out of this browser', exact: true }).click();
+    await page.getByRole('dialog').getByText('Sign out of DevelopED and its apps in this browser. Other browsers, devices and native mobile apps stay signed in.', { exact: true }).waitFor();
     await page.getByRole('dialog').getByRole('button', { name: 'Confirm', exact: true }).click();
     await page.waitForURL('**/login');
     assert.equal(requests.filter(request => request.path === '/logout').length, 1);

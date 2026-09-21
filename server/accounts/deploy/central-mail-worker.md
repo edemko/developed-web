@@ -1,5 +1,9 @@
 # Separate central mail worker — active after reviewed start
 
+Current API/mail pins and coordinated music activation are recorded in
+[managed-music-checkpoint-20260921.md](managed-music-checkpoint-20260921.md).
+Earlier release/PID observations below are historical.
+
 Current2026-09-21 checkpoint: worker PID3525935 is active/enabled, using launcher
 bundle `/opt/developed-accounts/mail-workers/a4e05167f90cc5e5f28a871a324f54ab187ce7bc`.
 Its imported mail implementation and WorkingDirectory remain `releases/c561a81`;

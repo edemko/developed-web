@@ -1,5 +1,9 @@
 # Portal and browser-family production upgrade — 2026-09-21
 
+Current API/mail pins and coordinated music activation are recorded in
+[managed-music-checkpoint-20260921.md](managed-music-checkpoint-20260921.md).
+Earlier release/PID observations below are historical.
+
 ## Latest UI-only follow-up: language flag dropdown
 
 Current API release is `ffefcf90c349cfe4154beed40febb5b3aa3c21b9`, PID3525884;

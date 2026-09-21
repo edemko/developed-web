@@ -4,6 +4,11 @@ Read `README.md`, `runtime-isolation.md`, and the affected application's own
 deployment instructions before any host change. These files are not permission
 to deploy: follow the user's current authorized scope.
 
+For central API/mail releases also read `portal-upgrade-checkpoint-20260921.md`
+and `central-mail-worker.md`: the API and worker have separate immutable pins,
+browser-family enforcement is active, and historical SSO-off worksheets are not
+current state. Never replay a completed release's baseline-pinned coordinator.
+
 - Separate the trusted deployment/operator account from non-login runtime UIDs.
   Runtime UIDs must not receive sudo/Docker groups, control sockets, writable
   executables, sibling credentials or unrestricted Tailscale control access.

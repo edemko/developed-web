@@ -1,5 +1,25 @@
 # Separate central mail worker — active after reviewed start
 
+Current2026-09-21 checkpoint: worker PID3462074 is active/enabled, using launcher
+bundle `/opt/developed-accounts/mail-workers/e4ab156a91c2a437fd0e47505fa0724bb9e66ab8`.
+Its imported mail implementation and WorkingDirectory remain `releases/c561a81`;
+its independent API pin is `releases/57277411f3b9510bad1e93063649d56f5c184247`,
+API PID3432072. The protected six-field input and all four mail-module hashes
+are unchanged. This supersedes original launcher path/PID observations below.
+
+The guard now polls for at most five seconds for the same pinned API PID to
+finish exec into the exact runtime/cwd/entrypoint and answer loopback health200.
+It then performs every existing UID/GID, actual-environment, input-parity,
+immutable-hash and single-sender check. Wrong process, PID replacement or deadline
+fails closed. This retries only read-only readiness observations, never service
+actions or mail. Ten injected/unit tests passed. The original guard refused once
+during API restart, then passed after the API was fully ready; the exact original
+cause was not logged. The hardened launcher was installed in a new immutable
+bundle and only the mail service restarted/drained; API and Caddy PIDs stayed
+unchanged. An immediate post-start process probe also observed Type=simple's
+pre-exec window; later exact-process/ready-log verification passed without another
+restart. See [complete upgrade evidence](portal-upgrade-checkpoint-20260921.md).
+
 The production start checkpoint at the end supersedes the original staging state
 below. The reviewed worker is now active/enabled after explicit coordinator GO.
 The existing central API continues

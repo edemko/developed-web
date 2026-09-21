@@ -1,5 +1,11 @@
 # DevelopED deployment and runtime separation
 
+Current central status (2026-09-21): all seven apps are enabled, admission is
+invitation-only, and browser-family logout enforcement is active. See the
+[portal upgrade checkpoint](portal-upgrade-checkpoint-20260921.md). The dated
+2026-09-20 inventory below is retained historical evidence, not a current claim
+that public SSO is off. Recheck actual units/routes before any later deployment.
+
 ## What changes for the operator
 
 Continue using the existing trusted SSH/Git/deployment account. Each application
@@ -13,6 +19,11 @@ deployment hooks or sibling secrets to fix a permission error. Give only the
 required resource to the affected app and document why.
 
 ## Runbooks and tests
+
+- `portal-upgrade-checkpoint-20260921.md`: current API/broker/browser-family
+  activation, branding/favicon and invitation acceptance evidence.
+- `portal-upgrade.md`: bounded release procedure; its baseline pins describe
+  the completed upgrade and must not be replayed against the new production state.
 
 - `tailscale-runtime-socket-closure.md`: no-restart directory masks and
   nonoptional future-start drop-ins; source preparation is not installation.

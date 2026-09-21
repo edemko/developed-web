@@ -1,16 +1,17 @@
-# DevelopED central account service — private runtime
+# DevelopED central account service
 
 This directory contains the new Node/TypeScript account backend and its vanilla
 browser UI. It is **not deployed by creating these files**. Registration starts
 closed and transactional email starts disabled. Existing static Slovak/English
 marketing remains a separate public artifact; it is not replaced by this app.
 
-The approved private runtime is now `developed-accounts.service`, UID988,
-loopback3140, application release `c561a81`; public SSO remains off. The exact
-credential paths, two anonymous acceptance sessions, scoped-role checks and
-remaining activation gates are recorded in the
-[private runtime checkpoint](deploy/central-runtime.md). No public account
-routes, real users, client registrations or mail delivery were enabled.
+Current production: `developed-accounts.service`, UID988, loopback3140,
+release `57277411f3b9510bad1e93063649d56f5c184247`. All seven web apps use
+central SSO; registration is invitation-only. Browser-family enforcement is
+active. See the [2026-09-21 upgrade checkpoint](deploy/portal-upgrade-checkpoint-20260921.md)
+for current paths, verification and the approved one-time web-app re-login.
+The [private runtime checkpoint](deploy/central-runtime.md) is historical
+staging evidence, not the current public activation state.
 
 Read the [implementation plan](../../docs/ecosystem-identity-plan.md),
 [API contract](../../docs/ecosystem-identity-api.md) and
@@ -28,9 +29,10 @@ generic provider identity/consent APIs and legacy shared administrator keys.
   and bug-report/admin routes handled by this service.
 - PostgreSQL-backed opaque sessions, central account state, registry extension,
   email credentials, audit log, rate limits and encrypted mail outbox.
-- One in-process outbox worker, no Redis or separate queue daemon. A 60-second
-  lease with `SKIP LOCKED` and a per-job lease identifier allows safe competing
-  workers if deliberately scaled later.
+- Production delivery uses one separate `developed-accounts-mail-worker.service`;
+  the API's in-process sender stays explicitly disabled. A 60-second lease with
+  `SKIP LOCKED` and per-job lease identifiers governs the shared encrypted outbox.
+  Never enable another sender without the reviewed drain/start procedure.
 - Provider password authentication, account management and consent happen
   server-side. Provider credentials/tokens and the encryption key never enter
   the browser. Product OIDC integrations use the separate

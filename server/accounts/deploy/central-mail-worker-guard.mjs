@@ -3,6 +3,7 @@ import { readFileSync, readdirSync, readlinkSync, realpathSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
+import { setTimeout as pause } from 'node:timers/promises';
 import { INPUT, API_ENV, validateInput, selectInput, parseEnvironment, protectedText, trusted } from './central-mail-worker-input.mjs';
 export const RELEASE = '/opt/developed-accounts/releases/c561a81';
 // API and worker releases are separate pins. The worker keeps its reviewed mail
@@ -23,10 +24,54 @@ export function checkModules(release = RELEASE) {
     assert.equal(createHash('sha256').update(readFileSync(path)).digest('hex'), expected, 'Immutable mail module changed');
   }
 }
-function apiState() {
+function apiState(timeout = 10000) {
   const r = spawnSync('/usr/bin/systemctl', ['show', 'developed-accounts.service', '-p', 'MainPID,ActiveState,User,Group'],
-    { encoding: 'utf8', timeout: 10000 }); assert.equal(r.status, 0);
+    { encoding: 'utf8', timeout }); assert.equal(r.status, 0);
   return Object.fromEntries(r.stdout.trim().split('\n').map((line) => line.split('=')));
+}
+function apiProcess(pid) {
+  const args = readFileSync(`/proc/${pid}/cmdline`, 'utf8').split('\0').filter(Boolean);
+  return { exe: readlinkSync(`/proc/${pid}/exe`), cwd: readlinkSync(`/proc/${pid}/cwd`),
+    argumentCount: args.length, main: args.length === 2 ? realpathSync(args[1]) : null };
+}
+async function apiHealth(timeout) {
+  const response = await fetch('http://127.0.0.1:3140/health', {
+    method: 'GET', redirect: 'error', signal: AbortSignal.timeout(timeout),
+  });
+  void response.body?.cancel().catch(() => {});
+  return response.status === 200;
+}
+export async function waitForCentralReadiness({ state = apiState, processEvidence = apiProcess,
+  health = apiHealth, now = () => performance.now(), sleep = pause, timeoutMs = 5000 } = {}) {
+  assert.ok(Number.isInteger(timeoutMs) && timeoutMs > 0 && timeoutMs <= 5000);
+  const deadline = now() + timeoutMs;
+  let pinnedPid;
+  while (now() < deadline) {
+    let current;
+    try { current = state(Math.max(1, Math.min(250, Math.floor(deadline - now())))); }
+    catch { /* systemd may still be publishing its new Type=simple process. */ }
+    const pid = Number(current?.MainPID);
+    if (Number.isSafeInteger(pid) && pid > 0) {
+      if (pinnedPid === undefined) pinnedPid = pid;
+      assert.equal(pid, pinnedPid, 'API changed during startup readiness');
+      if (current.ActiveState === 'active') {
+        let processReady = false;
+        try {
+          const evidence = processEvidence(pid);
+          processReady = evidence.exe === NODE && evidence.cwd === API_RELEASE
+            && evidence.argumentCount === 2 && evidence.main === `${API_RELEASE}/dist/main.js`;
+        } catch { /* /proc may not yet contain the final exec/cwd metadata. */ }
+        if (processReady && now() < deadline) {
+          let healthy = false;
+          try { healthy = await health(Math.max(1, Math.min(400, Math.floor(deadline - now())))); }
+          catch { /* Bounded loopback readiness only; never retry a service action. */ }
+          if (healthy && now() < deadline) return pinnedPid;
+        }
+      }
+    }
+    if (now() < deadline) await sleep(Math.min(100, deadline - now()));
+  }
+  throw new Error('Central API readiness deadline exceeded');
 }
 export function assertCentralEvidence(state, status, actualEnv, input) {
   assert.equal(state.ActiveState, 'active'); assert.ok(Number(state.MainPID) > 0);
@@ -46,7 +91,9 @@ export function assertWorkerProcesses(commands) {
 export async function checkCentral(input) {
   assert.equal(process.getuid(), 0); trusted(new URL(import.meta.url).pathname); checkModules();
   assert.deepEqual(selectInput(parseEnvironment(protectedText(API_ENV))), validateInput(input));
+  const readyPid = await waitForCentralReadiness();
   const state = apiState(), pid = Number(state.MainPID); assert.ok(Number.isSafeInteger(pid) && pid > 0);
+  assert.equal(pid, readyPid, 'API changed after startup readiness');
   const actual = parseEnvironment(readFileSync(`/proc/${pid}/environ`, 'utf8'), '\0');
   assertCentralEvidence(state, readFileSync(`/proc/${pid}/status`, 'utf8'), actual, input);
   assert.equal(readlinkSync(`/proc/${pid}/exe`), NODE);

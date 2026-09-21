@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { selectInput, parseEnvironment, validateInput, writeProtectedInput, keys } from './central-mail-worker-input.mjs';
-import { assertCentralEvidence, assertWorkerProcesses, RELEASE, API_RELEASE, checkModules } from './central-mail-worker-guard.mjs';
+import { assertCentralEvidence, assertWorkerProcesses, RELEASE, API_RELEASE, NODE, checkModules, waitForCentralReadiness } from './central-mail-worker-guard.mjs';
 import { mailConfig, assertRole, ROLE_SQL, startLoop } from './central-mail-worker.mjs';
 const fixtureEnv = () => ({
   ACCOUNTS_DATABASE_URL: 'postgresql://developed_accounts:fixture-password@172.18.0.12:5432/postgres',
@@ -46,6 +46,47 @@ test('root guard requires active same-UID/GID API actual-mail-false and one proc
   assertWorkerProcesses([['/node', `${API_RELEASE}/dist/main.js`]]);
   assert.throws(() => assertWorkerProcesses([api, ['/node', `${API_RELEASE}/dist/main.js`]]));
   assert.throws(() => checkModules('/opt/developed-accounts/releases/unreviewed'));
+});
+function readinessFixture() {
+  let clock = 0;
+  const calls = { state: 0, process: 0, health: 0, sleeps: [] };
+  const evidence = { exe: NODE, cwd: API_RELEASE, argumentCount: 2, main: `${API_RELEASE}/dist/main.js` };
+  const input = { now: () => clock, sleep: async delay => { calls.sleeps.push(delay); clock += delay; },
+    state: timeout => { assert.ok(timeout > 0 && timeout <= 250); calls.state++; return { MainPID: '123', ActiveState: 'active' }; },
+    processEvidence: pid => { assert.equal(pid, 123); calls.process++; return evidence; },
+    health: async timeout => { assert.ok(timeout > 0 && timeout <= 400); calls.health++; return true; } };
+  return { input, calls, evidence, clock: () => clock, advance: ms => { clock += ms; } };
+}
+test('readiness tolerates bounded Type=simple metadata/HTTP startup before requiring the full existing guard', async () => {
+  const f = readinessFixture();
+  f.input.state = () => ++f.calls.state === 1 ? { MainPID: '0', ActiveState: 'activating' } : { MainPID: '123', ActiveState: 'active' };
+  f.input.processEvidence = () => { if (++f.calls.process === 1) throw new Error('fixture not exec-ready'); return f.evidence; };
+  f.input.health = async () => { if (++f.calls.health === 1) throw new Error('fixture connection refused'); return true; };
+  assert.equal(await waitForCentralReadiness(f.input), 123);
+  assert.equal(f.calls.health, 2); assert.equal(f.clock(), 300);
+  // This readiness result grants nothing itself: UID/GID, actual mail=false,
+  // input parity, immutable hashes and duplicate-worker checks still run later.
+});
+test('readiness deadline fails closed for unavailable health or wrong executable/cwd/args, never exceeding five seconds', async () => {
+  for (const mutation of [f => { f.input.health = async () => false; },
+    f => { f.evidence.exe = '/untrusted/node'; }, f => { f.evidence.cwd = RELEASE; },
+    f => { f.evidence.argumentCount = 3; }, f => { f.evidence.main = `${RELEASE}/dist/main.js`; }]) {
+    const f = readinessFixture(); mutation(f);
+    await assert.rejects(waitForCentralReadiness(f.input), /readiness deadline exceeded/);
+    assert.equal(f.clock(), 5000); assert.ok(f.calls.state <= 50);
+    if (f.evidence.exe !== NODE || f.evidence.cwd !== API_RELEASE || f.evidence.argumentCount !== 2 || f.evidence.main !== `${API_RELEASE}/dist/main.js`) assert.equal(f.calls.health, 0);
+  }
+  await assert.rejects(waitForCentralReadiness({ ...readinessFixture().input, timeoutMs: 5001 }));
+});
+test('readiness refuses PID replacement and health success arriving after its deadline', async () => {
+  const f = readinessFixture();
+  f.input.state = () => ({ MainPID: ++f.calls.state === 1 ? '123' : '124', ActiveState: 'active' });
+  f.input.health = async () => false;
+  await assert.rejects(waitForCentralReadiness(f.input), /API changed during startup readiness/);
+  assert.equal(f.clock(), 100);
+  const late = readinessFixture(); late.input.health = async () => { late.advance(5000); return true; };
+  await assert.rejects(waitForCentralReadiness(late.input), /readiness deadline exceeded/);
+  assert.equal(late.clock(), 5000);
 });
 test('startup role gate is read-only and rejects role switching, privilege and membership', () => {
   assert.ok(!/\b(insert|update|delete|alter|grant|revoke)\b/i.test(ROLE_SQL));

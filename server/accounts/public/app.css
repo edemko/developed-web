@@ -19,7 +19,7 @@ button.danger { border-color: #cd6c7e; background: #632d3b; }
 .brand { color: #fff; text-decoration: none; font-size: 1.5rem; line-height: 1.2; font-weight: 700; }
 .brand span { color: var(--primary); }
 nav { display: flex; align-items: center; gap: 1rem; }
-.language { width: auto; max-width: 8rem; }
+.language-flag { width: 27px; height: 18px; flex: 0 0 auto; border-radius: 3px; object-fit: cover; box-shadow: 0 0 0 1px #ffffff24; }
 main { padding-block: 3.5rem; min-height: calc(100vh - 195px); }
 h1 { margin: 0 0 .65rem; font-size: clamp(1.9rem, 4vw, 2.65rem); letter-spacing: -.045em; line-height: 1.15; }
 h2 { margin: 0 0 1.1rem; font-size: 1.22rem; }
@@ -67,6 +67,13 @@ img.app-icon[src$=".svg"] { padding: .5rem; }
 .apps-menu-items a:hover { background: #262626; }
 .apps-menu-items .app-icon { width: 36px; height: 36px; border-radius: 8px; font-size: .9rem; }
 .apps-menu-items a.all-apps { border-top: 1px solid var(--line); margin-top: .4rem; color: #b5b2ff; }
+.language-menu > summary { gap: .55rem; padding: .5rem .65rem; border: 1px solid var(--line); border-radius: .5rem; font-size: .85rem; color: #fff; }
+.language-menu > summary:hover, .language-menu[open] > summary { background: #262626; border-color: var(--primary-light); }
+.language-menu .language-options { position: absolute; left: auto; right: 0; top: calc(100% + .75rem); width: min(215px, calc(100vw - 2rem)); max-height: min(320px, calc(100dvh - 160px)); }
+.language-options button { display: flex; align-items: center; justify-content: flex-start; gap: .8rem; width: 100%; padding: .65rem; text-align: left; border: 0; background: transparent; color: #fff; border-radius: .5rem; font-size: .9rem; font-weight: 400; }
+.language-options button:hover { background: #262626; }
+.language-options button[aria-pressed=true] { color: #c4bfff; background: #6366f11a; }
+.language-check { margin-left: auto; color: var(--primary-light); }
 .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
 .two-column .panel { margin: 0; }
 .table-scroll { overflow-x: auto; margin-block: 1.2rem; }
@@ -86,4 +93,5 @@ dialog::backdrop { background: #050b17cc; }
 footer { border-top: 1px solid var(--line); padding-block: 1.5rem; display: flex; flex-wrap: wrap; gap: 1.5rem; font-size: .85rem; }
 @media(max-width: 760px) { .header-inner, main, footer { width: calc(100% - 2rem); } .header-inner { flex-wrap: wrap; gap: .35rem .75rem; } .brand-group { gap: 1rem; } nav { gap: .5rem; margin-left: auto; } .language { max-width: 7rem; } .register-link { padding: .65rem .75rem; } .apps-menu-items { position: fixed; left: 1rem; top: 80px; width: min(320px, calc(100vw - 2rem)); max-height: calc(100dvh - 100px); } main { padding-block: 2rem; } .panel { padding: 1.1rem; } .two-column { grid-template-columns: 1fr; } .app-grid { grid-template-columns: 1fr; } .app-tile { min-height: 190px; } }
 @media(max-width: 480px) { nav { width: 100%; justify-content: flex-end; } .apps-menu-items { top: 128px; max-height: calc(100dvh - 148px); } }
+@media(max-width: 760px) { .language-menu .language-options { position: fixed; right: 1rem; left: auto; top: 128px; } }
 @media(prefers-reduced-motion: no-preference) { button, a { transition: background .15s, border-color .15s; } }

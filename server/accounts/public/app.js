@@ -1,5 +1,13 @@
 import { languages, normaliseLanguage, translate } from './i18n.js';
 
+// First-party interface icons; SK/GB reuse the marketing header's flag artwork.
+const languageFlags = {
+  sk: '<rect width="60" height="40" fill="#fff"/><rect y="13.333" width="60" height="13.333" fill="#0b4ea2"/><rect y="26.667" width="60" height="13.333" fill="#ee1c25"/><path d="M20 7.5c-5.2 0-9 1.6-9 1.6v12.4c0 6.6 4.6 9.9 9 12.5 4.4-2.6 9-5.9 9-12.5V9.1s-3.8-1.6-9-1.6z" fill="#fff"/><path d="M20 9.8c-4.3 0-7.3 1.3-7.3 1.3v10.4c0 5.5 3.7 8.3 7.3 10.5 3.6-2.2 7.3-5 7.3-10.5V11.1S24.3 9.8 20 9.8z" fill="#ee1c25"/><path d="M18.9 13.2h2.2v2.6h2.9v2.2h-2.9v2.6h3.6v2.2h-3.6v3.4h-2.2v-3.4h-3.6v-2.2h3.6v-2.6h-2.9v-2.2h2.9z" fill="#fff"/><path d="M13 29.4c1.6-2.6 3.3-3.4 4.6-3.4 1.4 0 2 .8 2.4 1.5.4-.7 1-1.5 2.4-1.5 1.3 0 3 .8 4.6 3.4-1.6 1.6-3.7 2.9-7 4.8-3.3-1.9-5.4-3.2-7-4.8z" fill="#0b4ea2"/>',
+  en: '<clipPath id="quarters"><path d="M30 20h30v20zv20H30zH0V20zV0h30z"/></clipPath><rect width="60" height="40" fill="#012169"/><path d="M0 0l60 40m0-40L0 40" stroke="#fff" stroke-width="8"/><path d="M0 0l60 40m0-40L0 40" stroke="#c8102e" stroke-width="4.8" clip-path="url(#quarters)"/><path d="M30 0v40M0 20h60" stroke="#fff" stroke-width="13.3"/><path d="M30 0v40M0 20h60" stroke="#c8102e" stroke-width="8"/>',
+  cs: '<rect width="60" height="40" fill="#fff"/><rect y="20" width="60" height="20" fill="#d7141a"/><path d="M0 0L30 20 0 40z" fill="#11457e"/>',
+  uk: '<rect width="60" height="40" fill="#0057b7"/><rect y="20" width="60" height="20" fill="#ffd700"/>',
+};
+
 export function safeContinuation(value, origin) {
   if (!value || !value.startsWith('/') || value.startsWith('//')) return '/apps';
   try {
@@ -241,16 +249,7 @@ async function start() {
     document.documentElement.lang = language;
     navigation.replaceChildren();
     navigation.setAttribute('aria-label', t('account'));
-    const langSelect = el('select', undefined, 'language');
-    langSelect.setAttribute('aria-label', t('language'));
-    for (const [id, name] of Object.entries(languages)) {
-      const option = el('option', name);
-      option.value = id;
-      langSelect.append(option);
-    }
-    langSelect.value = language;
-    langSelect.addEventListener('change', () => { language = langSelect.value; renderChrome(); render(); });
-    navigation.append(langSelect);
+    navigation.append(languageMenu());
     if (session?.user) {
       const menu = el('details', undefined, 'avatar-menu');
       const summary = el('summary');
@@ -270,6 +269,50 @@ async function start() {
     } else navigation.append(link(t('login'), '/login', 'login-link'), link(t('register'), '/register', 'button register-link'));
     renderAppMenu();
     footer.replaceChildren(link('DevelopED', '/'), link(t('reportBug'), '/report-bug'), link('info@developed.sk', 'mailto:info@developed.sk'));
+  }
+
+  function languageMenu() {
+    const menu = el('details', undefined, 'apps-menu language-menu');
+    const summary = el('summary');
+    summary.setAttribute('aria-label', `${t('language')}: ${languages[language]}`);
+    const flag = id => {
+      const icon = el('img', undefined, 'language-flag');
+      icon.src = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 40">${languageFlags[id]}</svg>`)}`;
+      icon.alt = ''; icon.width = 27; icon.height = 18;
+      return icon;
+    };
+    summary.append(flag(language), el('span', language.toUpperCase()));
+    const items = el('div', undefined, 'apps-menu-items language-options');
+    for (const [id, name] of Object.entries(languages)) {
+      const option = button('', () => {
+        if (id !== language) { language = id; renderChrome(); render(); }
+        menu.open = false;
+        navigation.querySelector('.language-menu > summary')?.focus();
+      });
+      option.lang = id;
+      option.setAttribute('aria-pressed', String(id === language));
+      option.append(flag(id), el('span', name));
+      if (id === language) {
+        const check = el('span', '✓', 'language-check');
+        check.setAttribute('aria-hidden', 'true'); option.append(check);
+      }
+      items.append(option);
+    }
+    menu.append(summary, items);
+    menu.addEventListener('keydown', event => {
+      if (event.key === 'Escape') { menu.open = false; summary.focus(); }
+      else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+        event.preventDefault(); menu.open = true;
+        const options = [...items.querySelectorAll('button')];
+        const current = options.indexOf(document.activeElement);
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1
+          : event.key === 'ArrowDown' ? (current + 1) % options.length
+          : (current < 0 ? options.length - 1 : (current - 1 + options.length) % options.length);
+        options[next].focus();
+      }
+    });
+    document.addEventListener('click', event => { if (!menu.contains(event.target)) menu.open = false; }, { signal: chromeController.signal });
+    return menu;
   }
 
   async function logout(all = false) {

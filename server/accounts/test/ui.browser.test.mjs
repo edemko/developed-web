@@ -74,6 +74,31 @@ test('browser account and report flows retain safe state and render user text in
     const base = `http://127.0.0.1:${server.address().port}`;
     await page.goto(`${base}/register?next=${encodeURIComponent('/account/authorize?authorization_id=pending-auth&redirect_uri=https://evil.test')}`);
     await page.getByRole('heading', { name: 'Create account', exact: true }).waitFor();
+    assert.equal(await page.locator('nav select').count(), 0);
+    for (const width of [320, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      const menu = page.locator('.language-menu');
+      await menu.locator('summary').click();
+      assert.equal(await menu.getByRole('button').count(), 4);
+      await page.waitForFunction(() => [...document.querySelectorAll('.language-menu img')].every(img => img.complete && img.naturalWidth > 0));
+      assert.equal(await menu.locator('.language-options').evaluate(node => { const box = node.getBoundingClientRect(); return box.left >= 0 && box.right <= innerWidth; }), true);
+      await page.keyboard.press('Escape');
+      assert.equal(await menu.evaluate(node => node.open), false);
+      await page.keyboard.press('ArrowDown');
+      assert.equal(await menu.evaluate(node => node.open), true);
+      assert.equal(await menu.getByRole('button').first().evaluate(node => node === document.activeElement), true);
+      await page.keyboard.press('Escape');
+    }
+    for (const [id, name] of [['sk', 'Slovenčina'], ['cs', 'Čeština'], ['uk', 'Українська'], ['en', 'English']]) {
+      await page.locator('.language-menu > summary').click();
+      await page.locator('.language-menu').getByRole('button', { name, exact: true }).click();
+      assert.equal(await page.locator('html').getAttribute('lang'), id);
+      assert.equal(await page.locator('.language-menu').evaluate(node => node.open), false);
+      assert.equal(await page.locator('.language-menu > summary').evaluate(node => node === document.activeElement), true);
+    }
+    await page.locator('.language-menu > summary').click();
+    await page.getByRole('heading', { name: 'Create account', exact: true }).click();
+    assert.equal(await page.locator('.language-menu').evaluate(node => node.open), false);
     assert.equal(await page.locator('link[rel=icon]').getAttribute('href'), '/favicon.png');
     assert.equal(await page.evaluate(() => new Promise(resolve => {
       const icon = new Image(); icon.onload = () => resolve(icon.naturalWidth > 0 && icon.naturalHeight > 0);
@@ -153,9 +178,9 @@ test('browser account and report flows retain safe state and render user text in
     assert.equal(await page.locator('.avatar').innerText(), 'ON');
     assert.equal(await page.locator('.app-tile').count(), 7);
     await page.waitForFunction(() => [...document.querySelectorAll('.app-tile img')].length === 7 && [...document.querySelectorAll('.app-tile img')].every(image => image.complete && image.naturalWidth > 0));
-    await page.locator('.apps-menu summary').click();
-    assert.equal(await page.locator('.apps-menu-items img').count(), 7);
-    assert.equal(await page.locator('.apps-menu-items img').evaluateAll(images => images.every(image => image.complete && image.naturalWidth > 0)), true);
+    await page.locator('#app-navigation .apps-menu summary').click();
+    assert.equal(await page.locator('#app-navigation .apps-menu-items img').count(), 7);
+    assert.equal(await page.locator('#app-navigation .apps-menu-items img').evaluateAll(images => images.every(image => image.complete && image.naturalWidth > 0)), true);
     if (process.env.UI_SCREENSHOT_DIR) {
       await page.screenshot({ path: `${process.env.UI_SCREENSHOT_DIR}/portal-desktop.png`, fullPage: true });
       await page.setViewportSize({ width: 375, height: 812 });
@@ -163,7 +188,7 @@ test('browser account and report flows retain safe state and render user text in
       await page.setViewportSize({ width: 1280, height: 720 });
     }
     await page.keyboard.press('Escape');
-    assert.equal(await page.locator('.apps-menu').evaluate(menu => menu.open), false);
+    assert.equal(await page.locator('#app-navigation .apps-menu').evaluate(menu => menu.open), false);
     for (const app of launchCatalog.apps) {
       await page.getByRole('button', { name: new RegExp(app.name) }).click();
       await page.getByRole('heading', { name: 'Launch fixture', exact: true }).waitFor();

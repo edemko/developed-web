@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { selectInput, parseEnvironment, validateInput, writeProtectedInput, keys } from './central-mail-worker-input.mjs';
-import { assertCentralEvidence, assertWorkerProcesses, RELEASE, checkModules } from './central-mail-worker-guard.mjs';
+import { assertCentralEvidence, assertWorkerProcesses, RELEASE, API_RELEASE, checkModules } from './central-mail-worker-guard.mjs';
 import { mailConfig, assertRole, ROLE_SQL, startLoop } from './central-mail-worker.mjs';
 const fixtureEnv = () => ({
   ACCOUNTS_DATABASE_URL: 'postgresql://developed_accounts:fixture-password@172.18.0.12:5432/postgres',
@@ -42,6 +42,10 @@ test('root guard requires active same-UID/GID API actual-mail-false and one proc
   const api = ['/node', `${RELEASE}/dist/main.js`]; assertWorkerProcesses([api, ['/node', '/guard.mjs']]);
   assert.throws(() => assertWorkerProcesses([api, ['/node', '/opt/worker/central-mail-worker.mjs']]));
   assert.throws(() => assertWorkerProcesses([api, api])); assert.throws(() => assertWorkerProcesses([]));
+  assert.notEqual(RELEASE, API_RELEASE);
+  assertWorkerProcesses([['/node', `${API_RELEASE}/dist/main.js`]]);
+  assert.throws(() => assertWorkerProcesses([api, ['/node', `${API_RELEASE}/dist/main.js`]]));
+  assert.throws(() => checkModules('/opt/developed-accounts/releases/unreviewed'));
 });
 test('startup role gate is read-only and rejects role switching, privilege and membership', () => {
   assert.ok(!/\b(insert|update|delete|alter|grant|revoke)\b/i.test(ROLE_SQL));

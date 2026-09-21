@@ -5,6 +5,9 @@ import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { INPUT, API_ENV, validateInput, selectInput, parseEnvironment, protectedText, trusted } from './central-mail-worker-input.mjs';
 export const RELEASE = '/opt/developed-accounts/releases/c561a81';
+// API and worker releases are separate pins. The worker keeps its reviewed mail
+// implementation while the browser-family release advances the central API.
+export const API_RELEASE = '/opt/developed-accounts/releases/57277411f3b9510bad1e93063649d56f5c184247';
 export const NODE = '/opt/developed-runtimes/node-v22.23.2/bin/node';
 export const moduleHashes = {
   'mail.js': 'a804bab2046a1a301e62b26455136963e55a6fa900e0e22006da8c4bca815494',
@@ -12,10 +15,11 @@ export const moduleHashes = {
   'security.js': '0157b3dd013b36d86c845a30c134d7cf298d0b375997bcf53ef44956bb5fa296',
   'mail-templates.js': '82937b3e9bade97c8978412e7d74536e21cb7e2e2f3e09be64f424a739a8b921',
 };
-export function checkModules() {
-  trusted(RELEASE); trusted(NODE);
+export function checkModules(release = RELEASE) {
+  assert.ok(release === RELEASE || release === API_RELEASE, 'Unapproved mail-compatible release');
+  trusted(release); trusted(NODE);
   for (const [file, expected] of Object.entries(moduleHashes)) {
-    const path = `${RELEASE}/dist/${file}`; trusted(path);
+    const path = `${release}/dist/${file}`; trusted(path);
     assert.equal(createHash('sha256').update(readFileSync(path)).digest('hex'), expected, 'Immutable mail module changed');
   }
 }
@@ -34,7 +38,8 @@ export function assertWorkerProcesses(commands) {
   let centralCount = 0;
   for (const command of commands) {
     assert.ok(!command.some((arg) => arg.endsWith('/central-mail-worker.mjs')), 'Another standalone mail worker exists');
-    if (command.some((arg) => arg === `${RELEASE}/dist/main.js` || arg === '/opt/developed-accounts/current/dist/main.js')) centralCount++;
+    if (command.some((arg) => /^\/opt\/developed-accounts\/releases\/[a-f0-9]{7,40}\/dist\/main\.js$/.test(arg)
+      || arg === '/opt/developed-accounts/current/dist/main.js')) centralCount++;
   }
   assert.equal(centralCount, 1, 'Unexpected duplicate central API');
 }
@@ -46,7 +51,9 @@ export async function checkCentral(input) {
   assertCentralEvidence(state, readFileSync(`/proc/${pid}/status`, 'utf8'), actual, input);
   assert.equal(readlinkSync(`/proc/${pid}/exe`), NODE);
   const args = readFileSync(`/proc/${pid}/cmdline`, 'utf8').split('\0').filter(Boolean);
-  assert.equal(args.length, 2); assert.equal(realpathSync(args[1]), `${RELEASE}/dist/main.js`);
+  trusted(`${API_RELEASE}/dist/main.js`); checkModules(API_RELEASE);
+  assert.equal(args.length, 2); assert.equal(realpathSync(args[1]), `${API_RELEASE}/dist/main.js`);
+  assert.equal(readlinkSync(`/proc/${pid}/cwd`), API_RELEASE);
   const commands = [];
   for (const name of readdirSync('/proc').filter((name) => /^\d+$/.test(name))) {
     let command;

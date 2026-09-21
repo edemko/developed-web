@@ -8,7 +8,7 @@ import { INPUT, API_ENV, validateInput, selectInput, parseEnvironment, protected
 export const RELEASE = '/opt/developed-accounts/releases/c561a81';
 // API and worker releases are separate pins. The worker keeps its reviewed mail
 // implementation while the browser-family release advances the central API.
-export const API_RELEASE = '/opt/developed-accounts/releases/57277411f3b9510bad1e93063649d56f5c184247';
+export const API_RELEASE = '/opt/developed-accounts/releases/ffefcf90c349cfe4154beed40febb5b3aa3c21b9';
 export const NODE = '/opt/developed-runtimes/node-v22.23.2/bin/node';
 export const moduleHashes = {
   'mail.js': 'a804bab2046a1a301e62b26455136963e55a6fa900e0e22006da8c4bca815494',

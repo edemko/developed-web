@@ -73,7 +73,7 @@ export function validateConfig(value) {
   const blockedNetworks=list(value.blockedNetworks,'blockedNetworks').map(cidr);
   const names=new Set();
   const apps=list(value.apps,'apps',32).map(app=>{
-    object(app,['name','uid','database','dns','musicImport','downloadRelay','downloadStatus','downloadProvider','publicHttp','selfMcpApi'],'application');
+    object(app,['name','uid','database','dns','musicImport','downloadRelay','downloadStatus','downloadProvider','musicAccounts','publicHttp','selfMcpApi'],'application');
     if(typeof app.name!=='string' || !/^[a-z][a-z0-9-]{1,31}$/.test(app.name) || names.has(app.name)) throw new Error('Unique lowercase app name required');
     names.add(app.name);
     if(own(app,'selfMcpApi') && (typeof app.selfMcpApi!=='boolean' || app.name!=='kestrek')) {
@@ -94,9 +94,9 @@ export function validateConfig(value) {
       musicImport=endpoint(app.musicImport,18887,'stable music import front');
     }
     const workerEndpoints={};
-    for(const [key,port] of [['downloadRelay',1088],['downloadStatus',18088],['downloadProvider',4416]]) {
+    for(const [key,port] of [['downloadRelay',1088],['downloadStatus',18088],['downloadProvider',4416],['musicAccounts',3178]]) {
       if(!own(app,key)) continue;
-      if(!['mega-youtube','jasom-worker'].includes(app.name) || (key==='downloadProvider' && app.name!=='mega-youtube')) {
+      if(!['mega-youtube','jasom-worker'].includes(app.name) || (['downloadProvider','musicAccounts'].includes(key) && app.name!=='mega-youtube')) {
         throw new Error('Download exceptions require the matching dedicated worker');
       }
       if(key==='downloadRelay' && downloadRelayUid===undefined) throw new Error('Download relay UID protection is required');
@@ -137,7 +137,7 @@ export function generateRules(input,{replace=false}={}) {
     for(const item of app.database) lines.push(`    ${destination(item.address)} tcp dport 5432 counter accept`);
     for(const item of app.dns) lines.push(`    ${destination(item.address)} meta l4proto { tcp, udp } th dport 53 counter accept`);
     if(app.musicImport) lines.push(`    ${destination(app.musicImport.address)} tcp dport 18887 counter accept`);
-    for(const key of ['downloadRelay','downloadStatus','downloadProvider']) {
+    for(const key of ['downloadRelay','downloadStatus','downloadProvider','musicAccounts']) {
       if(app[key]) lines.push(`    ${destination(app[key].address)} tcp dport ${app[key].port} counter accept`);
     }
     if(app.selfMcpApi) lines.push('    ip daddr 127.0.0.1 tcp dport 3164 counter accept');

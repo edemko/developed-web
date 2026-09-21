@@ -111,3 +111,14 @@ test('data denial filter can answer incoming requests but initiate no network tr
     config.dataBoundaryUid=duplicate;assert.throws(()=>validateConfig(config));
   }
 });
+
+
+test('managed import callbacks permit only Mega worker to exact loopback music account port',()=>{
+  const config=fixtureConfig();config.apps.push({name:'mega-youtube',uid:61007,database:[],dns:[{address:'127.0.0.53',port:53}],musicAccounts:{address:'127.0.0.1',port:3178}});
+  const output=generateRules(config),worker=output.split('# mega-youtube: UID 61007')[1].split('\n  }')[0];
+  assert.equal(output.split('ip daddr 127.0.0.1 tcp dport 3178 counter accept').length-1,1);
+  assert(worker.indexOf('tcp dport 3178 counter accept')<worker.indexOf('fib daddr type local'));
+  for(const mutate of [c=>c.apps[2].name='jasom-worker',c=>c.apps[2].musicAccounts.port=3140,c=>c.apps[2].musicAccounts.address='::1',c=>c.apps[2].musicAccounts.address='172.18.0.12']){
+    const bad=structuredClone(config);mutate(bad);assert.throws(()=>validateConfig(bad));
+  }
+});

@@ -16,8 +16,12 @@ opaque, host-only, HttpOnly, Secure, SameSite=Lax. Responses are no-store.
   `user: null`; complete the restricted MFA flow before opening any authenticated page.
   UI navigates to `/apps` unless
   a validated local authorization continuation was explicitly supplied.
-- POST `/logout`: central **all apps and devices** logout, `{ ok: true }`.
-  Product-local logout remains local. No custom browser-family/code binding.
+- POST `/logout`: this browser's **DevelopED portal session only**, `{ ok: true }`.
+  Other devices and independent product sessions remain signed in. Allowed for
+  anonymous and pending-MFA cookies too; requires the normal Origin/CSRF checks.
+- POST `/logout-all`: explicit **all apps and devices** interactive logout,
+  `{ ok: true }`; requires a fully authenticated central session. Product-local
+  logout remains local. No custom browser-family/code binding is implemented.
 - POST `/reauthenticate` `{ password, code?, factorId? }`: `{ ok: true }`, five-minute freshness.
   Enrolled users require password plus six-digit TOTP; no password-only step-up.
 - GET `/mfa`: `{ mode, enabled, required, factors: [{ id, type: 'totp' }], enrollmentId }`.
@@ -30,7 +34,16 @@ opaque, host-only, HttpOnly, Secure, SameSite=Lax. Responses are no-store.
   Incomplete sessions expire after ten minutes and cannot read protected profile/admin/app
   data or approve consent. There is no factor-removal or MFA-bypass browser endpoint.
 - POST `/register` `{ email, password, displayName, language, invitation?, continuation? }`:
-  `{ accepted: true }`, generic mailbox message; creates no signed-in session.
+  `{ accepted: true, emailVerified: boolean }`; creates no signed-in session.
+  Ordinary signup still needs the confirmation email. A valid invitation proves
+  the address, creates a confirmed account and queues no second verification.
+  The stored invitation address is authoritative; a mismatching submitted email
+  is rejected, including direct API requests. Invites are single-use and checked
+  even when open registration is enabled. Existing accounts are never confirmed
+  or password-changed through this flow.
+- POST `/invitation/preview` `{ token }`: `{ email }` for a valid unconsumed invite.
+  Normal Origin/CSRF/no-store controls apply. This does not consume the invite;
+  the browser shows its address read-only and keeps the fragment token in memory.
 - POST `/resend-verification` or `/forgot-password` `{ email }`:
   `{ accepted: true }`, generic response independent of account existence.
 - POST `/verify-email` `{ token }`: `{ ok: true, loginUrl }`. Email credential comes from
@@ -48,6 +61,10 @@ opaque, host-only, HttpOnly, Secure, SameSite=Lax. Responses are no-store.
 - GET `/apps`: `{ apps: [{ id, slug, name, description, icon, launchUrl,
   available, plan }] }`. Launch URLs are operator-registered HTTPS app login
   entry points, never arbitrary user return URLs. No provider credentials in URLs.
+- GET `/catalog`: anonymous published/active app metadata for the header menu;
+  no user, plan, membership or entitlement fields and no cookie/session creation.
+  Both catalog and picker resolve historical symbolic icons to reviewed
+  first-party assets. Catalog visibility does not grant application access.
 - GET `/security`: `{ sessions: [{ id, createdAt, expiresAt, current }] }`.
 - GET `/authorize?authorization_id=...`: provider details after app registration,
   central identity and eligibility checks, `{ app: { id, name }, scopes }`.

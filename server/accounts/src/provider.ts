@@ -35,8 +35,8 @@ export class Provider {
     const challenge = await this.call<{ id: string }>(`/factors/${encodeURIComponent(factorId)}/challenge`, 'POST', {}, accessToken);
     return this.call<ProviderSession>(`/factors/${encodeURIComponent(factorId)}/verify`, 'POST', { challenge_id: challenge.id, code }, accessToken);
   }
-  create(email: string, password: string, displayName: string) {
-    return this.call<ProviderUser>('/admin/users', 'POST', { email, password, email_confirm: false, user_metadata: { name: displayName } });
+  create(email: string, password: string, displayName: string, emailConfirmed = false) {
+    return this.call<ProviderUser>('/admin/users', 'POST', { email, password, email_confirm: emailConfirmed, user_metadata: { name: displayName } });
   }
   update(id: string, data: object) { return this.call<ProviderUser>(`/admin/users/${encodeURIComponent(id)}`, 'PUT', data); }
   logout(accessToken: string, scope = 'global') { return this.call(`/logout?scope=${scope}`, 'POST', undefined, accessToken); }

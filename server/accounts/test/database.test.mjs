@@ -89,6 +89,40 @@ test('isolated real-provider account lifecycle, report privacy, DB grants and po
       assert.equal((await request('/register', 'POST', {}, { 'X-CSRF-Token': 'é'.repeat(csrf.length) })).status, 403);
       assert.equal((await request('/register', 'POST', {}, { 'Content-Type': 'text/plain' })).status, 415);
     });
+    await t.test('invitation preview and signup bind the email, consume once and need no confirmation mail', async () => {
+      const previousMode = (await admin.query('select registration_mode from accounts.settings where singleton')).rows[0].registration_mode;
+      const invitedEmail = `invited-${randomUUID()}@example.invalid`, invite = token();
+      await admin.query("update accounts.settings set registration_mode='invitation'");
+      await admin.query(`insert into accounts.credentials(token_hash,purpose,email,security_version,expires_at)
+        values($1,'invitation',$2,1,now()+interval '1 hour')`, [hash(invite), invitedEmail]);
+      try {
+        const beforeMail = (await admin.query('select count(*)::int as n from accounts.outbox')).rows[0].n;
+        assert.equal((await request('/invitation/preview', 'POST', { token: invite }, { 'X-CSRF-Token': 'wrong' })).status, 403);
+        const preview = await request('/invitation/preview', 'POST', { token: invite });
+        assert.equal(preview.status, 200); assert.deepEqual(preview.data, { email: invitedEmail });
+        assert.equal((await admin.query('select consumed_at from accounts.credentials where token_hash=$1', [hash(invite)])).rows[0].consumed_at, null);
+        const data = { invitation: invite, email: invitedEmail, password: secret, displayName: 'Invited fixture' };
+        assert.equal((await request('/register', 'POST', { ...data, email: `forged-${randomUUID()}@example.invalid` })).status, 400);
+        assert.equal((await admin.query('select consumed_at from accounts.credentials where token_hash=$1', [hash(invite)])).rows[0].consumed_at, null);
+        const results = await Promise.all([request('/register', 'POST', data), request('/register', 'POST', data)]);
+        assert.deepEqual(results.map(result => result.status).sort(), [200, 400]);
+        assert.deepEqual(results.find(result => result.status === 200).data, { accepted: true, emailVerified: true });
+        const invited = (await admin.query('select id,email_confirmed_at from auth.users where email=$1', [invitedEmail])).rows;
+        assert.equal(invited.length, 1); assert.ok(invited[0].email_confirmed_at);
+        assert.equal((await admin.query('select count(*)::int as n from accounts.outbox')).rows[0].n, beforeMail);
+        assert.equal((await request('/invitation/preview', 'POST', { token: invite })).status, 400);
+        assert.equal((await request('/register', 'POST', data)).status, 400);
+        const auth = await provider.login(invitedEmail, secret);
+        assert.equal(auth.user.id, invited[0].id); await provider.logout(auth.access_token, 'local');
+        // A second invite must never confirm or replace a pre-existing account.
+        const duplicate = token();
+        await admin.query(`insert into accounts.credentials(token_hash,purpose,email,security_version,expires_at)
+          values($1,'invitation',$2,1,now()+interval '1 hour')`, [hash(duplicate), invitedEmail]);
+        assert.equal((await request('/register', 'POST', { ...data, invitation: duplicate, password: 'a different attacker password' })).status, 409);
+        const unchanged = await provider.login(invitedEmail, secret);
+        assert.equal(unchanged.user.id, invited[0].id); await provider.logout(unchanged.access_token, 'local');
+      } finally { await admin.query('update accounts.settings set registration_mode=$1', [previousMode]); }
+    });
     await t.test('closed registration denies and open signup requires confirmation', async () => {
       await admin.query("update accounts.settings set registration_mode='closed'");
       assert.equal((await request('/register', 'POST', { email: address, password: secret, displayName: 'Test' })).status, 403);

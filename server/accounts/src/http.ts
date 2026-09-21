@@ -6,6 +6,7 @@ import { Accounts, type Context } from './accounts.js';
 import { diagnostics, email, equal, fail, hash, HttpError, language, password, text, uuid } from './security.js';
 import type { Row } from './db.js';
 import { Mfa } from './mfa.js';
+import { catalogApp } from './catalog.js';
 
 const assets = new Map<string, [string, string]>([
   ['app.js', ['app.js', 'text/javascript']], ['i18n.js', ['i18n.js', 'text/javascript']],
@@ -89,6 +90,12 @@ export function createAccountServer(accounts: Accounts) {
         const data = await body(req);
         return json(res, path === '/internal/session/check' ? await accounts.internalCheck(auth.slice(7), data.accessToken) : await accounts.internalUserCheck(auth.slice(7), data.userId));
       }
+      if (path === '/catalog' && method === 'GET') {
+        const apps = await accounts.db.query(`select a.app_id as id,a.slug,c.name,c.description,c.icon,a.launch_url as "launchUrl"
+          from accounts.app_settings a join core.apps c on c.id=a.app_id
+          where a.published and c.status='ACTIVE' and c.deleted_at is null order by c.sort_order,c.name`);
+        return json(res, { apps: apps.map(catalogApp) });
+      }
       let ctx = await accounts.bootstrap(cookieValue(req, accounts.config.insecureLocal ? 'developed_local' : '__Host-developed_session'));
       const setContext = (next: Context) => { ctx = next; if (ctx.cookie) res.setHeader('Set-Cookie', ctx.cookie); };
       setContext(ctx);
@@ -119,7 +126,7 @@ export function createAccountServer(accounts: Accounts) {
           const redirectUrl = ctx.user ? await accounts.launchAfterLogin(ctx, data.appSlug) : undefined;
           return json(res, { user: accounts.publicUser(ctx.user), mfa: ctx.mfa || null, ...(redirectUrl ? { redirectUrl } : {}) });
         }
-        if (path === '/register') { await accounts.register(data); return json(res, { accepted: true }); }
+        if (path === '/register') return json(res, await accounts.register(data));
         if (path === '/resend-verification' || path === '/forgot-password') { await accounts.sendCredential(data.email, path === '/forgot-password'); return json(res, { accepted: true }); }
         if (path === '/verify-email' || path === '/reset-password') return json(res, await accounts.consumeCredential(data.token, path === '/reset-password' ? data.password : undefined));
         const user = accounts.requireUser(ctx, true);
@@ -127,8 +134,14 @@ export function createAccountServer(accounts: Accounts) {
         const auth = await accounts.checkPassword(user, data.password, data.code, data.factorId);
         setContext(await accounts.newSession(ctx, auth, user)); return json(res, { ok: true });
       }
-      if (path === '/logout' && method === 'POST') {
-        await accounts.logout(ctx); res.setHeader('Set-Cookie', accounts.cookie('', 0)); return json(res, { ok: true });
+      if (path === '/invitation/preview' && method === 'POST') {
+        await accounts.db.limit(`invitation-preview:${address}`, 200, 3600);
+        return json(res, await accounts.invitationPreview(data.token));
+      }
+      if ((path === '/logout' || path === '/logout-all') && method === 'POST') {
+        if (path === '/logout-all') await accounts.logoutAll(ctx);
+        else await accounts.logout(ctx);
+        res.setHeader('Set-Cookie', accounts.cookie('', 0)); return json(res, { ok: true });
       }
       if (path.startsWith('/reports/source/') && method === 'GET') return json(res, { app: await accounts.source(path.slice('/reports/source/'.length)) });
       if (path === '/reports' && method === 'POST') {
@@ -145,7 +158,7 @@ export function createAccountServer(accounts: Accounts) {
           left join accounts.entitlements e on e.app_id=a.app_id and e.user_id=$1
           left join core.app_access m on m.app_id=a.app_id and m.user_id=$1
           where a.published and c.deleted_at is null order by c.sort_order,c.name`, [user.id]);
-        return json(res, { apps });
+        return json(res, { apps: apps.map(catalogApp) });
       }
       if (path === '/profile' && method === 'PATCH') {
         const name = text(data.displayName, 100, true), lang = language(data.language);

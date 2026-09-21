@@ -311,10 +311,10 @@ test('isolated browser cross-site SSO, host-only cookies and central logout', {
       directLoginPassed = true;
     });
     if (!directLoginPassed) return;
-    await t.test('central logout denies the still-present separate app cookie on its next API request', async () => {
+    await t.test('explicit all-device central logout denies the still-present separate app cookie on its next API request', async () => {
       await page.getByRole('link', { name: 'DevelopED', exact: true }).click();
       await page.getByRole('heading', { name: 'Your apps', exact: true }).waitFor();
-      await page.locator('summary').click();
+      await page.goto(`${centralOrigin}/security`);
       await page.getByRole('button', { name: 'Log out of all apps and devices', exact: true }).click();
       await page.getByRole('dialog').getByRole('button', { name: 'Confirm', exact: true }).click();
       await page.waitForURL(`${centralOrigin}/login`);

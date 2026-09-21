@@ -15,6 +15,7 @@ test('browser account and report flows retain safe state and render user text in
     const asset = path.startsWith('/account-assets/') ? path.slice('/account-assets/'.length) : 'index.html';
     if (!['index.html', 'app.js', 'i18n.js', 'app.css'].includes(asset)) { res.writeHead(404).end(); return; }
     const content = await readFile(new URL(`../public/${asset}`, import.meta.url));
+    res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
     res.setHeader('Content-Type', asset.endsWith('.js') ? 'text/javascript' : asset.endsWith('.css') ? 'text/css' : 'text/html');
     res.end(content);
   });
@@ -38,10 +39,14 @@ test('browser account and report flows retain safe state and render user text in
       let status = 200;
       let result = {};
       if (path === '/session') result = { csrfToken: 'test-csrf', user: authenticated ? user : null, registrationMode };
-      else if (path === '/register') { registrationAttempts++; if (registrationAttempts === 1) { status = 503; result = { error: { code: 'unavailable' } }; } else result = { ok: true }; }
+      else if (path === '/invitation/preview') result = { email: 'invited@example.test' };
+      else if (path === '/register') { registrationAttempts++; if (registrationAttempts === 1) { status = 503; result = { error: { code: 'unavailable' } }; } else result = { ok: true, emailVerified: Boolean(body.invitation) }; }
       else if (path === '/resend-verification') result = { ok: true };
       else if (path === '/login') { authenticated = true; result = { user }; }
-      else if (path === '/apps') result = { apps: launchCatalog.apps.map(app => ({ ...app, id: app.appId, available: true, plan: 'free' })) };
+      else if (path === '/apps' || path === '/catalog') result = { apps: launchCatalog.apps.map(app => ({ ...app, id: app.appId, available: true, plan: 'free' })) };
+      else if (path === '/logout' || path === '/logout-all') { authenticated = false; result = { ok: true }; }
+      else if (path === '/security') result = { sessions: [] };
+      else if (path === '/mfa') result = { enabled: true };
       else if (path === '/reports/source/mega-music') result = { app: { id: 'music', slug: 'mega-music', name: 'Mega Music' } };
       else if (path === '/reports/source/unknown') { status = 404; result = { error: { code: 'not_found' } }; }
       else if (path === '/reports') { reportAttempts++; if (reportAttempts === 1) { status = 503; result = { error: { code: 'unavailable' } }; } else result = { reference: 'DEV-42' }; }
@@ -81,9 +86,23 @@ test('browser account and report flows retain safe state and render user text in
     assert.equal(requests.find(request => request.path === '/resend-verification').body.email, 'new@example.test');
     registrationMode = 'invitation';
     await page.goto(`${base}/register#invitation=private-invitation-code`);
-    await page.getByLabel('Invitation code').waitFor();
+    await page.getByLabel('Email', { exact: true }).waitFor();
     assert.equal(new URL(page.url()).hash, '');
-    assert.equal(await page.getByLabel('Invitation code').inputValue(), 'private-invitation-code');
+    assert.equal(await page.getByLabel('Invitation code').count(), 0);
+    assert.equal(await page.getByLabel('Email', { exact: true }).inputValue(), 'invited@example.test');
+    assert.equal(await page.getByLabel('Email', { exact: true }).evaluate(input => input.readOnly), true);
+    await page.getByLabel('Name', { exact: true }).fill('Invited Fixture');
+    await page.getByLabel('Password', { exact: true }).fill('long-test-password-only');
+    // Even changing the readonly DOM value cannot change this request mailbox.
+    await page.getByLabel('Email', { exact: true }).evaluate(input => { input.value = 'other@example.test'; });
+    await page.getByRole('button', { name: 'Create account', exact: true }).click();
+    await page.getByRole('heading', { name: 'Your account is ready', exact: true }).waitFor();
+    assert.equal(requests.filter(request => request.path === '/register').at(-1).body.email, 'invited@example.test');
+    assert.equal(requests.filter(request => request.path === '/register').at(-1).body.invitation, 'private-invitation-code');
+    assert.equal(await page.getByRole('button', { name: 'Resend confirmation' }).count(), 0);
+    await page.goto(`${base}/register`);
+    await page.getByText('An invitation is required to create an account.').waitFor();
+    assert.equal(await page.locator('main form').count(), 0);
     registrationMode = 'closed';
     await page.goto(`${base}/register`);
     await page.getByText('Registration is currently closed. Existing accounts can still sign in.').waitFor();
@@ -124,6 +143,18 @@ test('browser account and report flows retain safe state and render user text in
     await page.getByRole('button', { name: /Mega Music/ }).waitFor();
     assert.equal(await page.locator('.avatar').innerText(), 'ON');
     assert.equal(await page.locator('.app-tile').count(), 7);
+    await page.waitForFunction(() => [...document.querySelectorAll('.app-tile img')].length === 7 && [...document.querySelectorAll('.app-tile img')].every(image => image.complete && image.naturalWidth > 0));
+    await page.locator('.apps-menu summary').click();
+    assert.equal(await page.locator('.apps-menu-items img').count(), 7);
+    assert.equal(await page.locator('.apps-menu-items img').evaluateAll(images => images.every(image => image.complete && image.naturalWidth > 0)), true);
+    if (process.env.UI_SCREENSHOT_DIR) {
+      await page.screenshot({ path: `${process.env.UI_SCREENSHOT_DIR}/portal-desktop.png`, fullPage: true });
+      await page.setViewportSize({ width: 375, height: 812 });
+      await page.screenshot({ path: `${process.env.UI_SCREENSHOT_DIR}/portal-mobile.png`, fullPage: true });
+      await page.setViewportSize({ width: 1280, height: 720 });
+    }
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('.apps-menu').evaluate(menu => menu.open), false);
     for (const app of launchCatalog.apps) {
       await page.getByRole('button', { name: new RegExp(app.name) }).click();
       await page.getByRole('heading', { name: 'Launch fixture', exact: true }).waitFor();
@@ -146,6 +177,19 @@ test('browser account and report flows retain safe state and render user text in
     await page.getByText('Please change your password before opening an app.').waitFor();
     assert.equal(new URL(page.url()).pathname, '/profile');
     user.requirePasswordChange = false;
+    await page.goto(`${base}/security`);
+    await page.getByRole('button', { name: 'Log out here', exact: true }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Confirm', exact: true }).click();
+    await page.waitForURL('**/login');
+    assert.equal(requests.filter(request => request.path === '/logout').length, 1);
+    assert.equal(requests.filter(request => request.path === '/logout-all').length, 0);
+    authenticated = true;
+    await page.goto(`${base}/security`);
+    await page.getByRole('button', { name: 'Log out of all apps and devices', exact: true }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Confirm', exact: true }).click();
+    await page.waitForURL('**/login');
+    assert.equal(requests.filter(request => request.path === '/logout-all').length, 1);
+    authenticated = true;
     await page.goto(`${base}/account/authorize?authorization_id=0123456789abcdef0123456789abcdef`);
     await page.getByRole('heading', { name: 'App signed in' }).waitFor();
     assert.equal(requests.filter(request => request.path === '/authorize' && request.body?.approve === true).length, 1);

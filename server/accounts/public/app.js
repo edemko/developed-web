@@ -22,6 +22,18 @@ export function safeHttpsUrl(value, origin) {
   } catch { return null; }
 }
 
+// Registry images are first-party only, matching the account page's strict CSP.
+// Relative URLs also work in the isolated loopback browser test environment.
+export function safeIconUrl(value, origin) {
+  if (typeof value !== 'string' || !value) return null;
+  try {
+    const url = new URL(value, origin);
+    return url.origin === origin && !url.username && !url.password
+      && /^\/assets\/projects\/[a-z0-9.-]+\.(svg|webp|png)$/.test(url.pathname)
+      && !url.search && !url.hash ? url.href : null;
+  } catch { return null; }
+}
+
 // Only authorization responses may open the registered native KešTrek callback.
 // Tiles, login continuations, avatars and every other link remain HTTPS-only.
 export function safeAuthorizationUrl(value, origin) {
@@ -75,6 +87,7 @@ async function start() {
   let session = null;
   let pageVersion = 0;
   let chromeController = new AbortController();
+  let appCatalog = null;
   const t = key => translate(language, key);
   const el = (tag, text, className) => {
     const node = document.createElement(tag);
@@ -104,6 +117,8 @@ async function start() {
     node.textContent = message;
   };
   const errorMessage = error => {
+    if (error?.code === 'invalid_invitation') return t('invalidInvitation');
+    if (error?.code === 'account_exists') return t('accountExists');
     if (error?.code === 'invalid_mfa_code') return t('mfaInvalid');
     if (error?.code === 'mfa_operation_pending') return t('mfaPending');
     if (error?.code === 'mfa_enrollment_pending') return t('mfaResume');
@@ -133,6 +148,7 @@ async function start() {
 
   async function bootstrap() {
     session = await api('/session');
+    appCatalog = null;
     if (session.user?.language) language = normaliseLanguage(session.user.language);
     renderChrome();
   }
@@ -251,14 +267,55 @@ async function start() {
       menu.addEventListener('keydown', event => { if (event.key === 'Escape') { menu.open = false; summary.focus(); } });
       document.addEventListener('click', event => { if (!menu.contains(event.target)) menu.open = false; }, { signal: chromeController?.signal });
       navigation.append(menu);
-    } else navigation.append(link(t('login'), '/login'));
+    } else navigation.append(link(t('login'), '/login', 'login-link'), link(t('register'), '/register', 'button register-link'));
+    renderAppMenu();
     footer.replaceChildren(link('DevelopED', '/'), link(t('reportBug'), '/report-bug'), link('info@developed.sk', 'mailto:info@developed.sk'));
   }
 
-  async function logout() {
-    if (!await confirmDialog(t('logoutConfirm'), t('deviceNote'))) return;
-    try { await api('/logout', 'POST', {}); location.assign('/login'); }
+  async function logout(all = false) {
+    if (!await confirmDialog(t(all ? 'logoutAllConfirm' : 'logoutConfirm'), t(all ? 'deviceNote' : 'logoutLocalNote'))) return;
+    try { await api(all ? '/logout-all' : '/logout', 'POST', {}); location.assign('/login'); }
     catch (error) { const notice = el('div'); feedback(notice, errorMessage(error), 'error'); main.prepend(notice); }
+  }
+
+  function appIcon(app, className = 'app-icon') {
+    const fallback = el('span', initials(app.name), className);
+    fallback.setAttribute('aria-hidden', 'true');
+    const url = safeIconUrl(app.icon, location.origin);
+    if (!url) return fallback;
+    const icon = el('img', undefined, className);
+    icon.src = url; icon.alt = ''; icon.width = 56; icon.height = 56;
+    icon.referrerPolicy = 'no-referrer';
+    icon.addEventListener('error', () => icon.replaceWith(fallback), { once: true });
+    return icon;
+  }
+
+  async function availableApps() {
+    if (!appCatalog) appCatalog = api(session?.user ? '/apps' : '/catalog').catch(error => { appCatalog = null; throw error; });
+    return (await appCatalog).apps;
+  }
+
+  function renderAppMenu() {
+    const host = document.querySelector('#app-navigation');
+    if (!host) return;
+    const menu = el('details', undefined, 'apps-menu');
+    const summary = el('summary', t('appsMenu'));
+    const items = el('div', undefined, 'apps-menu-items');
+    items.append(el('p', t('loading'), 'muted'));
+    menu.append(summary, items); host.replaceChildren(menu);
+    menu.addEventListener('keydown', event => { if (event.key === 'Escape') { menu.open = false; summary.focus(); } });
+    document.addEventListener('click', event => { if (!menu.contains(event.target)) menu.open = false; }, { signal: chromeController.signal });
+    availableApps().then(apps => {
+      if (!menu.isConnected) return;
+      items.replaceChildren();
+      for (const app of apps) {
+        const launch = safeHttpsUrl(app.launchUrl, location.origin);
+        if (!launch) continue;
+        const item = link('', session?.user && app.available === false ? '/apps' : launch);
+        item.append(appIcon(app), el('span', app.name)); items.append(item);
+      }
+      items.append(link(t('apps'), '/apps', 'all-apps'));
+    }).catch(() => { if (menu.isConnected) items.replaceChildren(link(t('apps'), '/apps')); });
   }
 
   function confirmDialog(title, description, configure) {
@@ -331,25 +388,35 @@ async function start() {
     main.append(links);
   }
 
-  function registerPage() {
-    heading(t('register'), t('registerIntro'), true);
+  async function registerPage() {
+    heading(t('register'), t(invitationToken ? 'invitedIntro' : 'registerIntro'), true);
     const continuation = safeContinuation(new URLSearchParams(location.search).get('next'), location.origin);
     const loginUrl = `/login?next=${encodeURIComponent(continuation)}`;
     if (session.registrationMode === 'closed') { main.append(el('p', t('registrationClosed'), 'notice'), link(t('login'), loginUrl)); return; }
+    if (session.registrationMode === 'invitation' && !invitationToken) {
+      main.append(el('p', t('invitationOnly'), 'notice'), link(t('login'), loginUrl)); return;
+    }
+    const invitationEmail = invitationToken ? (await api('/invitation/preview', 'POST', { token: invitationToken })).email : null;
     const form = el('form');
     if (session.registrationMode === 'invitation') form.append(el('p', t('invitationOnly'), 'notice'));
     const name = field(form, 'name', { required: true, autocomplete: 'name', maxLength: 100 });
-    const email = field(form, 'email', { type: 'email', required: true, autocomplete: 'email', maxLength: 254 });
+    const email = field(form, 'email', { type: 'email', required: true, autocomplete: 'email', maxLength: 254, value: invitationEmail || '' });
+    if (invitationEmail) { email.readOnly = true; email.setAttribute('aria-readonly', 'true'); form.append(el('small', t('invitedEmailHelp'))); }
     const password = field(form, 'password', { type: 'password', required: true, autocomplete: 'new-password', minLength: 15, maxLength: 128 });
     form.append(el('small', t('passwordHelp')));
-    const invitation = session.registrationMode === 'invitation' || invitationToken
-      ? field(form, 'invitation', { required: session.registrationMode === 'invitation', value: invitationToken, maxLength: 100 }) : null;
     const card = panel();
     bindForm(form, t('register'), async () => {
-      const address = email.value.trim();
-      await api('/register', 'POST', { email: address, password: password.value, displayName: name.value.trim(), language, ...(invitation?.value.trim() ? { invitation: invitation.value.trim() } : {}), ...(continuation.startsWith('/account/authorize?') ? { continuation } : {}) });
+      // The preview binds display and request to the invited mailbox. The server
+      // independently checks the invitation; DOM/readOnly is not authorization.
+      const address = invitationEmail || email.value.trim();
+      const result = await api('/register', 'POST', { email: address, password: password.value, displayName: name.value.trim(), language, ...(invitationToken ? { invitation: invitationToken } : {}), ...(continuation.startsWith('/account/authorize?') ? { continuation } : {}) });
       password.value = '';
       invitationToken = '';
+      if (result.emailVerified === true) {
+        const title = el('h2', t('accountCreated')); title.tabIndex = -1;
+        card.replaceChildren(title, el('p', t('invitedComplete'), 'notice success'), link(t('login'), loginUrl, 'button'));
+        title.focus(); return;
+      }
       const title = el('h2', t('checkInbox'));
       title.tabIndex = -1;
       const notice = el('p', t('mailbox'), 'notice');
@@ -430,16 +497,13 @@ async function start() {
       main.append(el('p', t('requiredPassword'), 'notice'), link(t('changePassword'), '/profile', 'button'));
       return;
     }
-    const { apps } = await api('/apps');
+    const apps = await availableApps();
     const grid = el('div', undefined, 'app-grid');
     for (const app of apps) {
       const launch = safeHttpsUrl(app.launchUrl, location.origin);
       const tile = button('', () => { if (launch) location.assign(launch); }, 'app-tile');
       tile.disabled = !app.available || !launch;
-      const iconUrl = safeHttpsUrl(app.icon, location.origin);
-      const icon = iconUrl ? el('img', undefined, 'app-icon') : el('span', initials(app.name), 'app-icon');
-      if (iconUrl) { icon.src = iconUrl; icon.alt = ''; icon.loading = 'lazy'; icon.referrerPolicy = 'no-referrer'; }
-      tile.append(icon, el('strong', app.name), el('p', app.description || ''), el('span', !app.available ? t('unavailable') : app.plan === 'free' ? t('free') : app.plan || t('continue'), 'badge'));
+      tile.append(appIcon(app), el('strong', app.name), el('p', app.description || ''), el('span', !app.available ? t('unavailable') : app.plan === 'free' ? t('free') : app.plan || t('continue'), 'badge'));
       grid.append(tile);
     }
     main.append(apps.length ? grid : el('p', t('noApps'), 'empty'));
@@ -498,7 +562,9 @@ async function start() {
     const section = panel(t('sessions'));
     const table = tableShell(['created', 'expires', 'state']);
     for (const item of sessions) table.body.append(row([date(item.createdAt), date(item.expiresAt), item.current ? t('current') : '—']));
-    section.append(sessions.length ? table.container : el('p', t('noSessions'), 'empty'), button(t('logout'), logout, 'danger'));
+    const actions = el('div', undefined, 'actions');
+    actions.append(button(t('logout'), () => logout()), button(t('logoutAll'), () => logout(true), 'danger'));
+    section.append(sessions.length ? table.container : el('p', t('noSessions'), 'empty'), actions);
   }
 
   function mfaCode(form) {

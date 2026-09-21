@@ -41,6 +41,24 @@ continues its existing Slovak/English routing. The support address is
 `info@developed.sk` (Zoho); Mailjet transactional messages use
 `noreply@developed.sk` with Reply-To `info@developed.sk`.
 
+Invitation signup is email-bound on the server. Its POST-only, CSRF-protected
+preview prepopulates a read-only address; signup atomically consumes the invite,
+rejects an overridden address and creates that identity already email-confirmed.
+It sends no redundant verification email. Ordinary open signup and later email
+changes still require confirmation. Existing identities are never confirmed or
+password-changed by accepting a signup invite. A failed/ambiguous provider create
+leaves the invite consumed: inspect that exact operation/account before issuing a
+replacement, never reset a consumed token. If identity creation succeeded but the
+following central transaction failed, the confirmed account may already exist;
+reconcile its central state instead of attempting a second account creation.
+
+The anonymous header catalog exposes only published, active app metadata, not
+membership/entitlement information. Known historical registry component names
+are mapped to reviewed first-party icon assets by `src/catalog.ts`; unknown
+apps accept only project-asset paths. Do not broaden image CSP to fix missing
+icons. Marketing and portal navigation use this catalog/current user app list,
+so publication stays an administrator-controlled database setting.
+
 Transactional messages use the version-controlled templates in
 `src/mail-templates.ts`: branded HTML plus plain text in EN/SK/CS/UK for email
 confirmation, password recovery, email changes, invitations, security notices,
@@ -76,8 +94,12 @@ provider JWT has not expired. Integrated products must perform their own
 central access checks and client-aware data authorization; hiding a tile is not
 an access-control mechanism.
 
-The central logout action means **all apps and devices** for interactive human
-sessions. Local app logout removes that product session. Child-device and MCP/
+The default central logout ends **this browser's DevelopED portal session**;
+other devices and independently signed-in product sessions remain active.
+The separate, explicit **all apps and devices** action revokes all interactive
+human sessions. Local app logout removes that product session. Provider OAuth
+sessions have no browser-family lineage, so portal-only logout must not be
+presented as logging out every app on this computer. Child-device and MCP/
 integration credentials are separate and must retain their intended lifecycle;
 do not delete them as a browser-session cleanup shortcut.
 
@@ -154,8 +176,12 @@ variables skip the test in the default suite.
 
 The acceptance covers central sign-in → app tile → logged-in app, cross-site
 host-only Secure/HttpOnly/Lax cookies, empty browser token storage, free-tier
-membership, return-to-picker, direct app SSO and central logout denying a still-
-present app cookie. Product rendering/provisioning is a minimal fixture, not a
+membership, return-to-picker, direct app SSO and explicit all-device central
+logout denying a still-present app cookie. The separate opt-in
+`test/logout-database.test.mjs` qualifies portal-local versus global logout with
+two independent central sessions, two real delegated OAuth sessions and RLS
+checks. It uses the same labeled fixture opt-in and never sends email.
+Product rendering/provisioning is a minimal fixture, not a
 full player/native acceptance. An ephemeral loopback HTTPS forwarder and
 browser-process DNS mapping preserve real redirects and cookie handling without
 changing host DNS or production proxy configuration. Only the isolated

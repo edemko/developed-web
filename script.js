@@ -6,6 +6,48 @@ document.addEventListener("DOMContentLoaded", () => {
     const menuToggle = document.querySelector("[data-menu-toggle]");
     const navigationLinks = Array.from(document.querySelectorAll(".nav-link"));
     const isSlovak = document.documentElement.lang === "sk";
+    const appsMenu = document.querySelector("[data-apps-menu]");
+    const appsList = document.querySelector("[data-apps-list]");
+
+    if (appsMenu && appsList) {
+        // The public registry is filtered by the owner's publication settings.
+        // A launch still passes through the app's normal server-side auth gate.
+        fetch("/api/account/catalog", { credentials: "omit", cache: "no-store", redirect: "error", headers: { Accept: "application/json" } })
+            .then(response => { if (!response.ok) throw new Error("catalog unavailable"); return response.json(); })
+            .then(({ apps }) => {
+                if (!Array.isArray(apps)) return;
+                const entries = [];
+                for (const app of apps) {
+                    let launch;
+                    try { launch = new URL(app.launchUrl); } catch { continue; }
+                    if (launch.protocol !== "https:" || launch.username || launch.password) continue;
+                    const item = document.createElement("a");
+                    item.href = launch.href;
+                    const fallback = document.createElement("span");
+                    fallback.className = "app-thumbnail";
+                    fallback.textContent = String(app.name || "?").trim().split(/\s+/u).slice(0, 2).map(part => [...part][0] || "").join("");
+                    fallback.setAttribute("aria-hidden", "true");
+                    let icon;
+                    try { icon = new URL(app.icon, location.origin); } catch { /* use initials */ }
+                    if (icon?.origin === location.origin && /^\/assets\/projects\/[a-z0-9.-]+\.(svg|webp|png)$/.test(icon.pathname) && !icon.search && !icon.hash) {
+                        const image = document.createElement("img");
+                        image.className = "app-thumbnail"; image.src = icon.href; image.alt = "";
+                        image.width = 36; image.height = 36; image.referrerPolicy = "no-referrer";
+                        image.addEventListener("error", () => image.replaceWith(fallback), { once: true });
+                        item.append(image);
+                    } else item.append(fallback);
+                    const name = document.createElement("span"); name.textContent = app.name; item.append(name);
+                    entries.push(item);
+                }
+                const all = document.createElement("a"); all.href = "/apps"; all.className = "all-apps";
+                all.textContent = isSlovak ? "Všetky aplikácie" : "All apps";
+                appsList.replaceChildren(...entries, all);
+            }).catch(() => { /* Keep the server-rendered picker link usable. */ });
+        appsMenu.addEventListener("keydown", event => {
+            if (event.key === "Escape") { event.stopPropagation(); appsMenu.open = false; appsMenu.querySelector("summary").focus(); }
+        });
+        document.addEventListener("click", event => { if (!appsMenu.contains(event.target)) appsMenu.open = false; });
+    }
 
     const updateNavbar = () => {
         navbar?.classList.toggle("scrolled", window.scrollY > 12);

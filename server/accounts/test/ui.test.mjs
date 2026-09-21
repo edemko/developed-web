@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { diagnosticHints, initials, safeAuthorizationUrl, safeContinuation, safeHttpsUrl, takeFragmentToken } from '../public/app.js';
+import { diagnosticHints, initials, safeAuthorizationUrl, safeContinuation, safeHttpsUrl, safeIconUrl, takeFragmentToken } from '../public/app.js';
 import { languages, messages, normaliseLanguage, translate } from '../public/i18n.js';
 
 test('all account messages are translated for every supported language', () => {
@@ -28,6 +28,13 @@ test('navigation and icon URLs reject script, cleartext and credential URLs', ()
   assert.equal(safeHttpsUrl('/assets/app.svg', origin), `${origin}/assets/app.svg`);
   assert.equal(safeHttpsUrl('https://kestrek.sk/auth/login', origin), 'https://kestrek.sk/auth/login');
   for (const value of ['javascript:alert(1)', 'data:text/html,test', 'http://kestrek.sk', 'https://user:password@kestrek.sk', null]) assert.equal(safeHttpsUrl(value, origin), null);
+});
+
+test('catalog icons use real same-origin image paths, never legacy symbolic names or remote URLs', () => {
+  const origin = 'https://www.developed.sk';
+  assert.equal(safeIconUrl('/assets/projects/kestrek.svg', origin), origin + '/assets/projects/kestrek.svg');
+  assert.equal(safeIconUrl('/assets/projects/kestrek.svg', 'http://127.0.0.1:1234'), 'http://127.0.0.1:1234/assets/projects/kestrek.svg');
+  for (const value of ['Wallet', 'MM', null, 'https://other.test/assets/projects/kestrek.svg', '/assets/projects/x.svg?token=secret', '/api/account/session', '//evil.test/x.svg', 'data:image/svg+xml,x']) assert.equal(safeIconUrl(value, origin), null);
 });
 
 test('only bounded safe diagnostic hints are collected', () => {

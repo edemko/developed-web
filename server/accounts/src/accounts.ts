@@ -175,11 +175,31 @@ export class Accounts {
     await query(`update accounts.credentials set consumed_at=now() where user_id=$1 and consumed_at is null and purpose in ('recovery','email_change')`, [userId]);
   }
   async logout(ctx: Context) {
-    if (ctx.user) {
-      const access = await this.providerToken(ctx).catch(() => null);
-      await this.db.tx(async q => { await this.revoke(q, ctx.user!.id); await this.db.audit(q, ctx.user!.id, ctx.user!.id, 'logout_all', 'succeeded'); });
-      if (access) await this.provider.logout(access).catch(() => {});
-    } else await this.db.query('update accounts.sessions set revoked_at=now() where id=$1', [ctx.session.id]);
+    // Portal-local logout: delegated OAuth sessions have independent provider
+    // IDs, not a trustworthy browser-family relationship. Do not revoke them
+    // by guessing from timestamps/client IDs, or invalidate another device.
+    let access: string | null = ctx.user ? await this.providerToken(ctx).catch(() => null) : null;
+    const user = ctx.user || ctx.candidate;
+    if (!access && user && ctx.session.provider_tokens) {
+      try {
+        const auth = unseal<ProviderSession>(ctx.session.provider_tokens, this.config.encryptionKey, `session:${ctx.session.id}`);
+        const parsed = claims(auth.access_token);
+        if (parsed.sub === user.id && parsed.session_id === ctx.session.provider_session_id && !parsed.client_id) access = auth.access_token;
+      } catch { /* A corrupt/expired provider bundle must not prevent local logout. */ }
+    }
+    await this.db.tx(async q => {
+      await q('update accounts.sessions set revoked_at=now() where id=$1 and revoked_at is null', [ctx.session.id]);
+      if (user) await this.db.audit(q, user.id, user.id, 'logout_local', 'succeeded');
+    });
+    // The opaque central session is already denied even during provider outage.
+    if (access) await this.provider.logout(access, 'local').catch(() => {});
+  }
+  async logoutAll(ctx: Context) {
+    // A password-only pending-MFA cookie must not revoke another device.
+    const user = this.requireUser(ctx, true);
+    const access = await this.providerToken(ctx).catch(() => null);
+    await this.db.tx(async q => { await this.revoke(q, user.id); await this.db.audit(q, user.id, user.id, 'logout_all', 'succeeded'); });
+    if (access) await this.provider.logout(access, 'global').catch(() => {});
   }
   async credential(query: Query, user: Row | null, address: string, purpose: string, lang = 'en', returnAppId: string | null = null) {
     const raw = token();
@@ -190,8 +210,23 @@ export class Accounts {
     const fragment = purpose === 'invitation' ? 'invitation' : 'token';
     await queueMail(query, this.config, credentialMail(address, purpose, `${this.config.origin}${route}#${fragment}=${raw}`, lang, this.config));
   }
+  async invitationPreview(input: unknown) {
+    if (typeof input !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(input)) return fail(400, 'invalid_invitation');
+    const [invitation] = await this.db.query(`select email from accounts.credentials where token_hash=$1
+      and purpose='invitation' and consumed_at is null and user_id is null and expires_at>now()`, [hash(input)]);
+    if (!invitation) return fail(400, 'invalid_invitation');
+    // Possession of the high-entropy emailed credential permits this preview.
+    // Never consume on preview: mail scanners and a page reload are not signup.
+    return { email: invitation.email as string };
+  }
   async register(body: Row) {
-    const address = email(body.email), secret = password(body.password), name = text(body.displayName, 100, true), lang = language(body.language);
+    const secret = password(body.password), name = text(body.displayName, 100, true), lang = language(body.language);
+    const invited = body.invitation !== undefined && body.invitation !== '';
+    const preview = invited ? await this.invitationPreview(body.invitation) : null;
+    const address = preview ? preview.email : email(body.email);
+    // The invitation, never the submitted address or a client confirmation flag,
+    // chooses the identity. Explicit mismatches also fail for direct API callers.
+    if (preview && body.email !== undefined && email(body.email) !== address) return fail(400, 'invitation_email_mismatch');
     const returnAppId = await this.registrationContinuation(body.continuation);
     let invitationHash: string | null = null;
     await this.db.limit(`register:${address}`, 3, 3600);
@@ -201,10 +236,10 @@ export class Accounts {
     await this.db.tx(async q => {
       const [settings] = await q('select registration_mode from accounts.settings where singleton for share');
       if (settings!.registration_mode === 'closed') return fail(403, 'registration_closed');
-      if (settings!.registration_mode === 'invitation') {
-        const invitation = text(body.invitation, 100, true);
-        const [valid] = await q(`update accounts.credentials set consumed_at=coalesce(consumed_at,now()) where token_hash=$1 and purpose='invitation'
-          and email=$2 and expires_at>now() and (consumed_at is null or user_id is null) returning token_hash`, [hash(invitation), address]);
+      if (settings!.registration_mode === 'invitation' && !invited) return fail(400, 'invalid_invitation');
+      if (invited) {
+        const [valid] = await q(`update accounts.credentials set consumed_at=now() where token_hash=$1 and purpose='invitation'
+          and email=$2 and expires_at>now() and consumed_at is null and user_id is null returning token_hash`, [hash(body.invitation), address]);
         if (!valid) return fail(400, 'invalid_invitation');
         invitationHash = valid.token_hash;
       }
@@ -212,19 +247,30 @@ export class Accounts {
     const [existing] = await this.db.query('select id from auth.users where lower(email)=$1', [address]);
     if (existing) {
       if (invitationHash) await this.db.query('update accounts.credentials set user_id=$2 where token_hash=$1 and user_id is null', [invitationHash, existing.id]);
-      return;
+      // Never verify an existing account or replace its password through signup.
+      if (invitationHash) return fail(409, 'account_exists');
+      return { accepted: true, emailVerified: false };
     }
     let created;
-    try { created = await this.provider.create(address, secret, name); }
-    catch (error) { if (error instanceof HttpError && error.status === 400) return; throw error; }
-    // An interruption leaves a recoverable unverified account, never app access.
+    try { created = await this.provider.create(address, secret, name, Boolean(invitationHash)); }
+    catch (error) {
+      if (error instanceof HttpError && error.status === 400) {
+        if (invitationHash) return fail(400, 'registration_failed');
+        return { accepted: true, emailVerified: false };
+      }
+      throw error;
+    }
+    // Invitation consumption commits before the remote call: failure is closed,
+    // never replayable. An ambiguous create must be reconciled, not retried with
+    // the same invite. Ordinary registration remains unverified until its email.
     await this.db.tx(async q => {
       await q(`insert into accounts.security_state(user_id,language) values($1,$2) on conflict do nothing`, [created.id, lang]);
       await q('update core.profiles set display_name=$2,updated_at=now() where id=$1', [created.id, name]);
-      await this.credential(q, { id: created.id, security_version: 1 }, address, 'verification', lang, returnAppId);
+      if (!invitationHash) await this.credential(q, { id: created.id, security_version: 1 }, address, 'verification', lang, returnAppId);
       if (invitationHash) await q('update accounts.credentials set user_id=$2 where token_hash=$1 and user_id is null', [invitationHash, created.id]);
       await this.db.audit(q, null, created.id, 'registration', 'succeeded');
     });
+    return { accepted: true, emailVerified: Boolean(invitationHash) };
   }
   async sendCredential(addressInput: unknown, recovery: boolean) {
     const address = email(addressInput);

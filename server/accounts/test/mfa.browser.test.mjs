@@ -56,6 +56,7 @@ test('browser MFA enrollment, challenge, recovery copy and password+TOTP step-up
     await page.getByText('JBSWY3DPEHPK3PXP', { exact: true }).waitFor();
     assert.equal(await page.locator('.mfa-qr').evaluate(node => getComputedStyle(node).backgroundColor), 'rgb(255, 255, 255)');
     await page.getByLabel('Six-digit authenticator code').fill('006734');
+    assert.equal(await page.getByLabel('Remember this browser for 14 days').isChecked(), false);
     await page.getByRole('button', { name: 'Confirm', exact: true }).click();
     await page.getByRole('alert').waitFor(); assert.equal(appReads, 0);
     await page.getByRole('button', { name: 'Confirm', exact: true }).click();
@@ -63,14 +64,17 @@ test('browser MFA enrollment, challenge, recovery copy and password+TOTP step-up
     assert.equal(await page.getByText('JBSWY3DPEHPK3PXP').count(), 0);
     assert.deepEqual(await page.evaluate(() => [Object.keys(localStorage), Object.keys(sessionStorage)]), [[], []]);
     assert.equal(requests.find(item => item.path === '/mfa/verify').body.code, '006734');
+    assert.equal(requests.find(item => item.path === '/mfa/verify').body.rememberBrowser, false);
     phase = 'challenge';
     const readsBefore = appReads;
     await page.goto(base + '/apps');
     await page.getByLabel('Six-digit authenticator code').waitFor();
     assert.equal(appReads, readsBefore); assert.equal(await page.getByRole('button', { name: 'Set up authenticator' }).count(), 0);
+    await page.getByLabel('Remember this browser for 14 days').check();
     await page.getByLabel('Six-digit authenticator code').fill('006734');
     await page.getByRole('button', { name: 'Confirm', exact: true }).click();
     await page.getByRole('heading', { name: 'Your apps', exact: true }).waitFor();
+    assert.equal(requests.filter(item => item.path === '/mfa/verify').at(-1).body.rememberBrowser, true);
     await page.goto(base + '/profile');
     const passwordForm = page.locator('form').filter({ has: page.getByRole('button', { name: 'Change password', exact: true }) });
     await passwordForm.getByLabel('Current password', { exact: true }).fill('fixture long password');

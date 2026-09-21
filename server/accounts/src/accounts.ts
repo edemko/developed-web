@@ -5,18 +5,22 @@ import { Provider, type ProviderSession } from './provider.js';
 import { claims, diagnostics, email, equal, fail, hash, HttpError, language, password, passwordInput, seal, text, token, unseal, uuid, exactHttps, oauthCallback } from './security.js';
 import { credentialMail, credentialLifetime, queueMail, securityMail, reportMail } from './mail.js';
 
-export interface Context { session: Row; user: Row | null; cookie?: string; candidate?: Row; mfa?: { mode: 'enroll' | 'challenge' } }
+export interface Context { session: Row; user: Row | null; cookie?: string; trustCookie?: string; candidate?: Row; mfa?: { mode: 'enroll' | 'challenge' } }
 export class Accounts {
   constructor(readonly db: Database, readonly provider: Provider, readonly config: Config) {}
   csrf(session: Row) { return createHmac('sha256', this.config.encryptionKey).update(`csrf:${session.id}`).digest('base64url'); }
   cookie(raw: string, age = 604800) {
     return `${this.config.insecureLocal ? 'developed_local' : '__Host-developed_session'}=${raw}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${age}${this.config.insecureLocal ? '' : '; Secure'}`;
   }
+  trustCookie(raw: string, age = 1209600) {
+    return `${this.config.insecureLocal ? 'developed_trust_local' : '__Host-developed_mfa_trust'}=${raw}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${this.config.insecureLocal ? '' : '; Secure'}`;
+  }
   async bootstrap(rawCookie?: string): Promise<Context> {
     let session: Row | undefined;
     if (rawCookie && /^[A-Za-z0-9_-]{43}$/.test(rawCookie)) {
       [session] = await this.db.query(`select s.* from accounts.sessions s where token_hash=$1 and revoked_at is null
-        and expires_at>now() and last_seen_at>now()-interval '24 hours'
+        and expires_at>now() and (mfa_remember_until>now() or last_seen_at>now()-interval '24 hours')
+        and (s.mfa_trust_id is null or accounts.browser_trust_valid(s.mfa_trust_id,s.user_id,s.security_version))
         and (s.user_id is null or exists(select 1 from accounts.browser_families f
           where f.id=s.browser_family_id and f.user_id=s.user_id and f.revoked_at is null))`, [hash(rawCookie)]);
     }
@@ -40,12 +44,15 @@ export class Accounts {
         return this.bootstrap();
       }
       session.aal = providerSession.aal;
+      // Only the private SQL-validated binding establishes remembered MFA.
+      // Do not modify or misrepresent the provider's actual assurance level.
+      session.browser_trusted = Boolean(session.mfa_trust_id);
     }
     await this.db.query(`update accounts.sessions set last_seen_at=now() where id=$1 and last_seen_at<now()-interval '5 minutes'`, [session.id]);
     return this.context(session, user);
   }
   context(session: Row, user: Row | null, cookie?: string): Context {
-    const required = user && (session.mfa_pending || (user.role === 'SUPERADMIN' && !user.hasMfa) || ((user.hasMfa || user.role === 'SUPERADMIN') && session.aal !== 'aal2'));
+    const required = user && (session.mfa_pending || (user.role === 'SUPERADMIN' && !user.hasMfa) || ((user.hasMfa || user.role === 'SUPERADMIN') && session.aal !== 'aal2' && !session.browser_trusted));
     return required ? { session, user: null, candidate: user!, mfa: { mode: user!.hasMfa || session.mfa_pending === 'challenge' ? 'challenge' : 'enroll' }, cookie } : { session, user, cookie };
   }
   async userById(id: string): Promise<Row | null> {
@@ -71,8 +78,8 @@ export class Accounts {
   requireAdmin(ctx: Context, fresh = false) {
     const user = this.requireUser(ctx);
     if (user.role !== 'SUPERADMIN') return fail(403, 'forbidden');
-    if (!user.hasMfa || ctx.session.aal !== 'aal2') return fail(403, 'mfa_required');
-    if (fresh && (!ctx.session.authenticated_at || Date.now() - new Date(ctx.session.authenticated_at).getTime() > 300_000)) return fail(428, 'reauthentication_required');
+    if (!user.hasMfa || (ctx.session.aal !== 'aal2' && !ctx.session.browser_trusted)) return fail(403, 'mfa_required');
+    if (fresh && (ctx.session.aal !== 'aal2' || !ctx.session.authenticated_at || Date.now() - new Date(ctx.session.authenticated_at).getTime() > 300_000)) return fail(428, 'reauthentication_required');
     return user;
   }
   async checkPassword(user: Row, input: unknown, code?: unknown, factorId?: unknown): Promise<ProviderSession> {
@@ -99,14 +106,48 @@ export class Accounts {
     }
     return result;
   }
-  async newSession(ctx: Context, auth: ProviderSession, user: Row, options: { enroll?: boolean; fence?: string; newFamily?: boolean } = {}): Promise<Context> {
+  async newSession(ctx: Context, auth: ProviderSession, user: Row, options: { enroll?: boolean; fence?: string; newFamily?: boolean; rememberMfa?: boolean; factorId?: string; trustCookie?: string } = {}): Promise<Context> {
     const parsed = claims(auth.access_token), raw = token(), id = randomUUID();
     if (parsed.sub !== user.id || parsed.client_id) return fail(401, 'invalid_session');
-    const pending = options.enroll ? 'enroll' : parsed.aal !== 'aal2' && (user.hasMfa || auth.user.factors?.some(f => f.status === 'verified') || user.role === 'SUPERADMIN') ? user.hasMfa || auth.user.factors?.some(f => f.status === 'verified') ? 'challenge' : 'enroll' : null;
+    let pending = options.enroll ? 'enroll' : parsed.aal !== 'aal2' && (user.hasMfa || auth.user.factors?.some(f => f.status === 'verified') || user.role === 'SUPERADMIN') ? user.hasMfa || auth.user.factors?.some(f => f.status === 'verified') ? 'challenge' : 'enroll' : null;
+    // Only an actual AAL2 verification can opt in. A fresh step-up may retain,
+    // but never slide, the original deadline for this same browser/user.
+    const remaining = ctx.session.user_id === user.id && ctx.session.browser_family_id && !options.newFamily && (ctx.session.aal === 'aal2' || ctx.session.browser_trusted)
+      ? Math.floor((new Date(ctx.session.mfa_remember_until || 0).getTime() - Date.now()) / 1000) : 0;
+    let remembered = !pending && parsed.aal === 'aal2'
+      ? options.rememberMfa === true ? 1209600 : options.rememberMfa === undefined ? Math.max(0, Math.min(1209600, remaining)) : 0 : 0;
+    let lifetime = pending ? 600 : remembered || 604800;
+    let trustCookie: string | undefined, trustId: string | null = null, trustedLogin = false;
     const [created] = await this.db.tx(async q => {
       await q('insert into accounts.security_state(user_id) values($1) on conflict do nothing', [user.id]);
       const [state] = await q('select * from accounts.security_state where user_id=$1 for update', [user.id]);
       if (state!.locked || state!.operation_id) return fail(403, 'account_unavailable');
+      if (state!.require_password_change) remembered = 0;
+      if (remembered && options.rememberMfa === true) {
+        // Called only after real factor verification; confirm ownership/status
+        // again under the account-state lock before issuing a separate credential.
+        const [factor] = await q("select id from auth.mfa_factors where id=$1 and user_id=$2 and status='verified' and factor_type='totp'", [options.factorId, user.id]);
+        if (!factor) return fail(401, 'invalid_session');
+        const rawTrust = token(); trustId = randomUUID();
+        await q(`insert into accounts.browser_trust(id,token_hash,user_id,factor_id,security_version,expires_at)
+          values($1,$2,$3,$4,$5,now()+interval '14 days')`, [trustId, hash(rawTrust), user.id, options.factorId, state!.security_version]);
+        trustCookie = this.trustCookie(rawTrust);
+      } else if (pending === 'challenge' && options.trustCookie && /^[A-Za-z0-9_-]{43}$/.test(options.trustCookie)) {
+        const [trust] = await q(`select t.id,floor(extract(epoch from t.expires_at-now()))::integer as remaining from accounts.browser_trust t
+          where t.token_hash=$1 and accounts.browser_trust_valid(t.id,$2,$3) for update`, [hash(options.trustCookie), user.id, state!.security_version]);
+        if (trust && trust.remaining > 0) {
+          const rawTrust = token(); trustId = trust.id; remembered = Math.min(1209600, trust.remaining);
+          await q('update accounts.browser_trust set token_hash=$2 where id=$1', [trustId, hash(rawTrust)]);
+          trustCookie = this.trustCookie(rawTrust, remembered);
+          trustedLogin = true; pending = null;
+          await this.db.audit(q, user.id, user.id, 'mfa_remembered_login', 'succeeded');
+        }
+      } else if (remembered && ctx.session.mfa_trust_id) {
+        const [validTrust] = await q('select id from accounts.browser_trust where id=$1 and accounts.browser_trust_valid(id,$2,$3)', [ctx.session.mfa_trust_id, user.id, state!.security_version]);
+        if (validTrust) trustId = validTrust.id; else remembered = 0;
+      }
+      if (remembered && !trustId) remembered = 0;
+      lifetime = pending ? 600 : remembered || 604800;
       // A fresh browser starts a new family; password re-login, reauthentication
       // and MFA rotation retain an existing, validated same-user browser family.
       const carryFamily = !options.newFamily && ctx.session.user_id === user.id && ctx.session.browser_family_id;
@@ -124,14 +165,15 @@ export class Accounts {
       const [valid] = await q('select id from auth.sessions where id=$1 and user_id=$2 and created_at>$3', [parsed.session_id, user.id, state!.revoked_before]);
       if (!valid) return fail(401, 'invalid_session');
       await q('update accounts.sessions set revoked_at=now() where id=$1', [ctx.session.id]);
-      return q(`insert into accounts.sessions(id,token_hash,csrf_hash,user_id,provider_session_id,provider_tokens,security_version,authenticated_at,expires_at,mfa_pending,browser_family_id)
-        values($1,$2,$3,$4,$5,$6,$7,case when $8::text is null then now() else null end,now()+$9*interval '1 second',$8,$10) returning *`,
-      [id, hash(raw), hash(this.csrf({ id })), user.id, parsed.session_id, seal(auth, this.config.encryptionKey, `session:${id}`), state!.security_version, pending, pending ? 600 : 604800, familyId]);
+      return q(`insert into accounts.sessions(id,token_hash,csrf_hash,user_id,provider_session_id,provider_tokens,security_version,authenticated_at,expires_at,mfa_pending,browser_family_id,mfa_remember_until,mfa_trust_id)
+        values($1,$2,$3,$4,$5,$6,$7,case when $8::text is null and not $13::boolean then now() else null end,now()+$9*interval '1 second',$8,$10,case when $11::boolean then now()+$9*interval '1 second' else null end,$12) returning *`,
+      [id, hash(raw), hash(this.csrf({ id })), user.id, parsed.session_id, seal(auth, this.config.encryptionKey, `session:${id}`), state!.security_version, pending, lifetime, familyId, remembered > 0, trustId, trustedLogin]);
     });
     created!.aal = parsed.aal || 'aal1';
-    return this.context(created!, user, this.cookie(raw, pending ? 600 : 604800));
+    created!.browser_trusted = Boolean(trustId);
+    return { ...this.context(created!, user, this.cookie(raw, lifetime)), ...(trustCookie ? { trustCookie } : {}) };
   }
-  async login(ctx: Context, body: Row): Promise<Context> {
+  async login(ctx: Context, body: Row, trustCookie?: string): Promise<Context> {
     const address = email(body.email), current = passwordInput(body.password);
     await this.db.limit(`login:email:${address}`, 10, 900);
     let auth: ProviderSession;
@@ -141,7 +183,7 @@ export class Accounts {
     if (!user || !auth.user.email_confirmed_at || user.locked || user.operation_id) {
       await this.provider.logout(auth.access_token, 'local').catch(() => {}); return fail(403, 'account_unavailable');
     }
-    const next = await this.newSession(ctx, auth, user);
+    const next = await this.newSession(ctx, auth, user, { trustCookie });
     await this.db.audit(this.db.query, user.id, user.id, 'login', next.mfa ? 'pending' : 'succeeded'); return next;
   }
   async providerToken(ctx: Context): Promise<string> {
@@ -446,7 +488,8 @@ export class Accounts {
       const [binding] = await this.db.query(`select d.user_id,d.client_id,f.user_id as family_user_id,f.revoked_at,
         exists(select 1 from accounts.sessions cs join auth.sessions ps on ps.id=cs.provider_session_id and ps.user_id=cs.user_id
           where cs.browser_family_id=f.id and cs.user_id=f.user_id and cs.mfa_pending is null
-          and cs.revoked_at is null and cs.expires_at>now() and cs.last_seen_at>now()-interval '24 hours'
+          and cs.revoked_at is null and cs.expires_at>now() and (cs.mfa_remember_until>now() or cs.last_seen_at>now()-interval '24 hours')
+          and (cs.mfa_trust_id is null or accounts.browser_trust_valid(cs.mfa_trust_id,cs.user_id,cs.security_version))
           and (ps.not_after is null or ps.not_after>now())) as active
         from accounts.browser_delegations d join accounts.browser_families f on f.id=d.browser_family_id where d.provider_session_id=$1`, [parsed.session_id]);
       if (binding) {
@@ -476,7 +519,9 @@ export class Accounts {
         if (!family) return fail(401, 'invalid_session');
         const [active] = await q(`select cs.id from accounts.sessions cs join auth.sessions ps on ps.id=cs.provider_session_id and ps.user_id=cs.user_id
           where cs.browser_family_id=$1 and cs.user_id=$2 and cs.mfa_pending is null and cs.revoked_at is null
-          and cs.expires_at>now() and cs.last_seen_at>now()-interval '24 hours' and (ps.not_after is null or ps.not_after>now()) limit 1`, [family.id, user.id]);
+          and cs.expires_at>now() and (cs.mfa_remember_until>now() or cs.last_seen_at>now()-interval '24 hours')
+          and (cs.mfa_trust_id is null or accounts.browser_trust_valid(cs.mfa_trust_id,cs.user_id,cs.security_version))
+          and (ps.not_after is null or ps.not_after>now()) limit 1`, [family.id, user.id]);
         if (!active) return fail(401, 'invalid_session');
       } else if (binding.browser_family_id !== null) return fail(401, 'invalid_session');
       const [valid] = await q(`select id from auth.sessions where id=$1 and user_id=$2 and oauth_client_id=$3

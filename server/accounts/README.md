@@ -392,11 +392,26 @@ blanket account-delete cron.
 ## Central authenticator policy
 
 Central TOTP is mandatory for SUPERADMIN and opt-in from `/security` for ordinary
-users. Password-only admin/enrolled-user login creates a restricted ten-minute
+users. Without valid remembered-browser trust, password-only admin/enrolled-user login creates a restricted ten-minute
 cookie, not access to apps, profile, admin data or consent. Successful verification
 promotes the actual provider session to AAL2 and rotates the opaque central cookie
 and CSRF value. Identity changes and sensitive admin actions require fresh
-password-plus-TOTP confirmation. There is no public factor-removal/bypass route.
+password-plus-TOTP confirmation. There is no public factor-removal route.
+
+The verification screen's optional **Remember this browser for 14 days** issues a
+separate host-only, Secure, HttpOnly browser-trust cookie after actual TOTP verification.
+It defaults off. Normal logout ends access but preserves this trust: the next login
+still requires the correct password, then skips OTP until the fixed deadline.
+The cookie alone never grants access; its private SQL hash is user/factor/security-
+version bound and rotates on successful use. Remembered password login remains
+provider AAL1, tracked separately from actual AAL2. Sensitive actions still require
+fresh password plus TOTP. All-device logout, locks, password/security changes and
+factor removal invalidate trust. Other devices are unchanged by normal logout.
+Remembered sessions also survive the usual 24-hour inactivity boundary, but neither
+activity nor step-up extends the original fourteen-day deadline.
+This requires the additive `20260921141121_developed_mfa_remember_browser.sql`
+migration **before** deploying the new backend; it has not been applied to production
+by this implementation. See the MFA document for scoped test evidence and limits.
 
 Apply `20260920125511_developed_totp_sessions.sql` with the reviewed central
 migrations before using this build. The runtime can read factor ID/type/status,

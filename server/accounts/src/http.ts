@@ -105,7 +105,11 @@ export function createAccountServer(accounts: Accounts) {
         return json(res, { apps: apps.map(catalogApp) });
       }
       let ctx = await accounts.bootstrap(cookieValue(req, accounts.config.insecureLocal ? 'developed_local' : '__Host-developed_session'));
-      const setContext = (next: Context) => { ctx = next; if (ctx.cookie) res.setHeader('Set-Cookie', ctx.cookie); };
+      const setContext = (next: Context) => {
+        ctx = next;
+        const cookies = [ctx.cookie, ctx.trustCookie].filter((value): value is string => Boolean(value));
+        if (cookies.length) res.setHeader('Set-Cookie', cookies);
+      };
       setContext(ctx);
       let data: Row = {};
       if (!['GET', 'HEAD'].includes(method)) {
@@ -123,14 +127,14 @@ export function createAccountServer(accounts: Accounts) {
         return json(res, result.enrollment);
       }
       if (path === '/mfa/verify' && method === 'POST') {
-        setContext(await mfa.verify(ctx, data.factorId, data.code));
+        setContext(await mfa.verify(ctx, data.factorId, data.code, data.rememberBrowser));
         const redirectUrl = await accounts.launchAfterLogin(ctx, data.appSlug);
         return json(res, { user: accounts.publicUser(ctx.user), ...(redirectUrl ? { redirectUrl } : {}) });
       }
       if (method === 'POST' && ['/login', '/register', '/resend-verification', '/forgot-password', '/reset-password', '/verify-email', '/reauthenticate'].includes(path)) {
         await accounts.db.limit(`sensitive:${address}`, 200, 3600);
         if (path === '/login') {
-          setContext(await accounts.login(ctx, data));
+          setContext(await accounts.login(ctx, data, cookieValue(req, accounts.config.insecureLocal ? 'developed_trust_local' : '__Host-developed_mfa_trust')));
           const redirectUrl = ctx.user ? await accounts.launchAfterLogin(ctx, data.appSlug) : undefined;
           return json(res, { user: accounts.publicUser(ctx.user), mfa: ctx.mfa || null, ...(redirectUrl ? { redirectUrl } : {}) });
         }
@@ -149,7 +153,7 @@ export function createAccountServer(accounts: Accounts) {
       if ((path === '/logout' || path === '/logout-all') && method === 'POST') {
         if (path === '/logout-all') await accounts.logoutAll(ctx);
         else await accounts.logout(ctx);
-        res.setHeader('Set-Cookie', accounts.cookie('', 0)); return json(res, { ok: true });
+        res.setHeader('Set-Cookie', path === '/logout-all' ? [accounts.cookie('', 0), accounts.trustCookie('', 0)] : accounts.cookie('', 0)); return json(res, { ok: true });
       }
       if (path.startsWith('/reports/source/') && method === 'GET') return json(res, { app: await accounts.source(path.slice('/reports/source/'.length)) });
       if (path === '/reports' && method === 'POST') {

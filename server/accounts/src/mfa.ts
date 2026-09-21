@@ -60,9 +60,10 @@ export class Mfa {
       throw error;
     }
   }
-  async verify(ctx: Context, factorInput: unknown, code: unknown) {
+  async verify(ctx: Context, factorInput: unknown, code: unknown, rememberBrowser: unknown = false) {
     const accounts = this.accounts, user = this.candidate(ctx), factorId = uuid(factorInput);
     if (!ctx.mfa) return fail(409, 'mfa_not_pending');
+    if (typeof rememberBrowser !== 'boolean') return fail(400, 'invalid_request');
     if (typeof code !== 'string' || !/^\d{6}$/.test(code)) return fail(400, 'invalid_mfa_code');
     await accounts.db.limit(`mfa:verify:${user.id}`, 8, 900);
     const [factor] = await accounts.db.query('select id,status,factor_type from auth.mfa_factors where id=$1 and user_id=$2', [factorId, user.id]);
@@ -82,7 +83,7 @@ export class Mfa {
       if (upgraded.user.id !== user.id || parsed.sub !== user.id || parsed.session_id !== ctx.session.provider_session_id || parsed.aal !== 'aal2' || parsed.client_id) return fail(401, 'invalid_session');
       const freshUser = await accounts.userById(user.id);
       if (!freshUser?.hasMfa) return fail(401, 'invalid_session');
-      const next = await accounts.newSession(ctx, upgraded, freshUser, { fence: operation });
+      const next = await accounts.newSession(ctx, upgraded, freshUser, { fence: operation, rememberMfa: rememberBrowser, factorId });
       if (next.mfa) return fail(401, 'invalid_session');
       await accounts.db.tx(async q => {
         await accounts.db.audit(q, user.id, user.id, enrollment ? 'mfa_enabled' : 'mfa_challenge', 'succeeded');

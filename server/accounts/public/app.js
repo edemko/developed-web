@@ -642,9 +642,11 @@ async function start() {
       const factors = state.factors || [];
       const factor = !factorId ? factorPicker(form, factors) : null;
       const code = mfaCode(form);
+      const remember = checkbox(form, 'mfaRemember');
+      form.append(el('p', t('mfaRememberHint'), 'muted'));
       bindForm(form, t('confirm'), async () => {
         const appSlug = new URLSearchParams(location.search).get('app');
-        const result = await api('/mfa/verify', 'POST', { factorId: factorId || factor?.value || factors[0]?.id, code: code.value, ...(appSlug && /^[a-z0-9-]{1,64}$/.test(appSlug) ? { appSlug } : {}) });
+        const result = await api('/mfa/verify', 'POST', { factorId: factorId || factor?.value || factors[0]?.id, code: code.value, rememberBrowser: remember.checked, ...(appSlug && /^[a-z0-9-]{1,64}$/.test(appSlug) ? { appSlug } : {}) });
         code.value = ''; section.replaceChildren(el('p', t('working')));
         if (result.user?.requirePasswordChange) { location.assign('/profile'); return; }
         if (result.redirectUrl) {

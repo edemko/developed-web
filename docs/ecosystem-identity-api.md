@@ -5,7 +5,8 @@ are relative to `/api/account`. JSON responses use `{ error: { code, message } }
 on failure. No provider access/refresh token is returned to the browser.
 All mutations require exact configured Origin, JSON Content-Type, and
 `X-CSRF-Token` from GET `/session` (including signed-out flows). Cookies are
-opaque, host-only, HttpOnly, Secure, SameSite=Lax. Responses are no-store.
+opaque, host-only, HttpOnly, Secure; the session cookie is SameSite=Lax and the
+separate remembered-browser cookie is SameSite=Strict. Responses are no-store.
 
 ## Browser endpoints
 
@@ -14,15 +15,20 @@ opaque, host-only, HttpOnly, Secure, SameSite=Lax. Responses are no-store.
   supportEmail }`. Anonymous session bootstrap is allowed.
 - POST `/login` `{ email, password, appSlug? }`: `{ user, mfa, redirectUrl? }`. Pending MFA returns
   `user: null`; complete the restricted MFA flow before opening any authenticated page.
+  A valid `__Host-developed_mfa_trust` cookie may satisfy the ordinary MFA prompt
+  only after the password succeeds. Trust is never accepted from JSON. Successful
+  use rotates the trust cookie without extending its fourteen-day deadline.
   UI navigates to `/apps` unless
   a validated local authorization continuation was explicitly supplied.
 - POST `/logout`: **DevelopED and delegated web apps in this browser**, `{ ok: true }`.
   Other browser families and native mobile apps remain signed in. Allowed for
   anonymous and pending-MFA cookies too; requires the normal Origin/CSRF checks.
+  Preserves remembered-browser trust, but the next login must still supply a password.
 - POST `/logout-all`: explicit **all apps and devices** interactive logout,
   `{ ok: true }`; requires a fully authenticated central session. Product-local
   logout remains local. Browser-family code binding is described in
   [the session-family contract](ecosystem-browser-families.md).
+  Also invalidates remembered-browser trust on every device and clears this browser's trust cookie.
 - POST `/reauthenticate` `{ password, code?, factorId? }`: `{ ok: true }`, five-minute freshness.
   Enrolled users require password plus six-digit TOTP; no password-only step-up.
 - GET `/mfa`: `{ mode, enabled, required, factors: [{ id, type: 'totp' }], enrollmentId }`.
@@ -30,10 +36,14 @@ opaque, host-only, HttpOnly, Secure, SameSite=Lax. Responses are no-store.
 - POST `/mfa/enroll` `{ password? }`: `{ factorId, secret, qrCode }`. Optional enrollment
   requires the current password; mandatory superadmin setup uses the fresh restricted
   password-login cookie. QR/manual secret are shown once, never stored in browser storage.
-- POST `/mfa/verify` `{ factorId, code, appSlug? }`: `{ user, redirectUrl? }`.
+- POST `/mfa/verify` `{ factorId, code, rememberBrowser?: boolean, appSlug? }`: `{ user, redirectUrl? }`.
   Verifies only the current user's eligible factor and rotates cookie/CSRF after success.
+  `rememberBrowser` defaults false and rejects non-booleans. True issues a separate
+  fourteen-day trust credential only after actual provider AAL2 verification.
+  Password-plus-trust login remains actual provider AAL1 and never grants fresh
+  sensitive-action assurance; password-plus-TOTP step-up is unchanged.
   Incomplete sessions expire after ten minutes and cannot read protected profile/admin/app
-  data or approve consent. There is no factor-removal or MFA-bypass browser endpoint.
+  data or approve consent. There is no factor-removal or password-free trust-login endpoint.
 - POST `/register` `{ email, password, displayName, language, invitation?, continuation? }`:
   `{ accepted: true, emailVerified: boolean }`; creates no signed-in session.
   Ordinary signup still needs the confirmation email. A valid invitation proves
@@ -82,8 +92,9 @@ opaque, host-only, HttpOnly, Secure, SameSite=Lax. Responses are no-store.
 ## Superadmin endpoints
 
 Role is read from protected core profile, never metadata. Sensitive account and
-policy actions require recent password-plus-TOTP reauthentication. All admin routes,
-including GET/list, require a verified factor and actual central provider-session AAL2.
+policy actions require recent password-plus-TOTP reauthentication and actual central
+provider-session AAL2. Read-only admin routes require a verified factor and either
+actual AAL2 or live server-validated remembered-browser trust after password login.
 
 - GET `/admin/users?q=&limit=&offset=`: `{ users: [{ id, email, displayName,
   role, locked, createdAt }] }`.

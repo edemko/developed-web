@@ -1,5 +1,57 @@
 # Central TOTP: implementation and activation boundary
 
+## Remember this browser — 2026-09-21 (local implementation)
+
+The authenticator verification form offers an unchecked-by-default “Remember this
+browser for 14 days” checkbox in EN/SK/CS/UK. Only a successful real provider AAL2
+verification can issue a separate remembered-browser credential. Its host-only,
+Secure, HttpOnly, SameSite=Strict cookie (`__Host-developed_mfa_trust`) contains
+32 random bytes; only a SHA-256 hash is stored in the private, RLS-protected
+`accounts.browser_trust` table. It is bound to the user, verified TOTP factor and
+central security version, with a fixed fourteen-day expiry. It is not a login
+session and cannot bootstrap access, consent or account data by itself.
+Remembered sessions are exempt from the ordinary 24-hour inactivity limit; the
+seven-day absolute/24-hour idle policy is unchanged when the box is unchecked.
+After a **correct password** login, the server may accept this separate credential
+instead of prompting for TOTP again. It is read only from the protected cookie,
+never from the JSON body, and rotated atomically on use without sliding its expiry.
+A malformed, wrong-user, expired, revoked or already-rotated credential falls back
+to the normal authenticator challenge. Password rate limits still apply.
+
+Explicit browser logout ends the central provider/opaque sessions and the same
+browser's app family, **but leaves browser trust intact**. A subsequent login must
+use the password and creates a new provider session/family; it cannot resurrect
+logged-out app sessions. All-device logout, account locks and password/security
+changes invalidate browser trust through the central security version/cutoff.
+Removed/unverified factors also invalidate it. Provider-session and family
+revocation still deny the affected signed-in sessions.
+
+Remembered password login honestly remains provider **AAL1**. Central policy
+records validated browser trust separately and rechecks it in portal, delegated
+server checks and the existing RLS helper. It does not modify provider JWT claims,
+retain a logged-out AAL2 provider session, or pretend a fresh TOTP was entered.
+Sensitive operations still require fresh password plus TOTP/actual AAL2, including
+superadmin writes; remembered login leaves `authenticated_at` empty. Step-up
+preserves the original remembered deadline, never extending it on activity.
+Clearing cookies, expiry or signing in from a different browser requires a new
+login and code. Product sessions may expire earlier and then return through SSO.
+
+Apply only `20260921141121_developed_mfa_remember_browser.sql` through a reviewed
+operator procedure before deploying this backend. The nullable columns leave old
+sessions unchanged; the updated existing RLS helper keeps native-client and other
+authorization checks intact. Do not deploy the new backend against the old schema.
+No production migration or deployment is performed by this source change.
+
+Verification includes the standard backend suite, isolated Chromium checkbox/
+request tests, and a fresh disposable PostgreSQL/GoTrue pair: remembered versus
+ordinary inactivity, SQL lifetime bounds, absolute expiry, non-sliding step-up,
+delegated access through both the backend and RLS, browser logout revocation,
+password-required trust reuse, credential rotation/replay rejection, honest AAL1,
+mandatory sensitive-action step-up and all-device trust revocation.
+No real users, live credentials, email delivery or production databases are used.
+
+## Historical implementation qualification
+
 Status: source and isolated qualification only; no production factors, identities,
 mail, configuration or migrations were changed by this work. Production SSO remains
 off until the coordinated security cutover passes all other release gates.

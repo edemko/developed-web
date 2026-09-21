@@ -4,7 +4,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { Accounts } from '../dist/accounts.js';
 import { Mfa } from '../dist/mfa.js';
 import { Provider } from '../dist/provider.js';
-import { HttpError, seal } from '../dist/security.js';
+import { HttpError, seal, hash } from '../dist/security.js';
 
 function fixture({ enrolled = false, role = 'SUPERADMIN' } = {}) {
   const id = randomUUID(), providerId = randomUUID(), factorId = randomUUID(), key = randomBytes(32), queries = [], calls = [];
@@ -13,6 +13,7 @@ function fixture({ enrolled = false, role = 'SUPERADMIN' } = {}) {
   const session = { id: randomUUID(), user_id: id, provider_session_id: providerId, browser_family_id: randomUUID(), created_at: new Date(), expires_at: new Date(Date.now() + 600000), mfa_pending: enrolled ? 'challenge' : 'enroll', mfa_enrollment_id: enrolled ? null : factorId, aal: 'aal1' };
   session.provider_tokens = seal(auth(), key, `session:${session.id}`);
   const sessions = new Map([[session.id, session]]);
+  const trusts = new Map();
   let failure, failSave = false, failCleanup = false;
   const db = {
     limit: async () => {}, audit: async () => {}, tx: fn => fn(db.query),
@@ -23,6 +24,12 @@ function fixture({ enrolled = false, role = 'SUPERADMIN' } = {}) {
       if (sql.startsWith('select * from accounts.security_state')) return [{ security_version: 1 }];
       if (sql.startsWith('select id from accounts.browser_families')) return [{ id: session.browser_family_id }];
       if (sql.startsWith('insert into accounts.browser_families')) return [];
+      if (sql.startsWith('insert into accounts.browser_trust')) {
+        trusts.set(args[0], { id: args[0], token_hash: args[1], user_id: args[2], remaining: 1209600 }); return [];
+      }
+      if (sql.startsWith('select t.id,floor')) return [...trusts.values()].filter(t => t.token_hash === args[0] && t.user_id === args[1]);
+      if (sql.startsWith('select id from accounts.browser_trust')) return trusts.has(args[0]) ? [trusts.get(args[0])] : [];
+      if (sql.startsWith('update accounts.browser_trust')) { trusts.get(args[0]).token_hash = args[1]; return []; }
       if (sql.startsWith('select id from auth.sessions')) return [{ id: providerId }];
       if (sql.startsWith('select id from accounts.sessions')) { const row = sessions.get(args[0]); return row && !row.revoked_at && (!args[1] || row.refresh_id === args[1]) ? [{ id: row.id }] : []; }
       if (sql.startsWith('update accounts.sessions set refresh_id=$2')) {
@@ -36,7 +43,7 @@ function fixture({ enrolled = false, role = 'SUPERADMIN' } = {}) {
       }
       if (sql.startsWith('insert into accounts.sessions')) {
         if (failSave) throw new Error('save unavailable');
-        const row = { id: args[0], user_id: args[3], provider_session_id: args[4], provider_tokens: args[5], security_version: args[6], mfa_pending: args[7], expires_in: args[8], browser_family_id: args[9], created_at: new Date(), authenticated_at: args[7] ? null : new Date() };
+        const row = { id: args[0], user_id: args[3], provider_session_id: args[4], provider_tokens: args[5], security_version: args[6], mfa_pending: args[7], expires_in: args[8], browser_family_id: args[9], mfa_remember_until: args[10] ? new Date(Date.now() + args[8] * 1000) : null, mfa_trust_id: args[11], created_at: new Date(), authenticated_at: args[7] || args[12] ? null : new Date() };
         sessions.set(row.id, row); return [row];
       }
       if (sql.startsWith('insert into accounts.outbox')) return [];
@@ -50,7 +57,7 @@ function fixture({ enrolled = false, role = 'SUPERADMIN' } = {}) {
   const accounts = new Accounts(db, provider, { encryptionKey: key, insecureLocal: true, origin: 'https://www.developed.sk', supportEmail: 'info@developed.sk' });
   accounts.userById = async () => user;
   const ctx = () => accounts.context(session, user);
-  return { accounts, mfa: new Mfa(accounts), user, session, sessions, ctx, factorId, calls, queries, auth,
+  return { accounts, mfa: new Mfa(accounts), user, session, sessions, trusts, ctx, factorId, calls, queries, auth,
     fail: error => { failure = error; }, failSave: () => { failSave = true; }, failCleanup: () => { failCleanup = true; } };
 }
 
@@ -82,6 +89,78 @@ test('password-only pending cookies expire in ten minutes and do not inherit aut
   assert.equal(next.session.expires_in, 600); assert.equal(next.session.authenticated_at, null);
   assert.equal(next.user, null); assert.equal(next.mfa.mode, 'challenge');
   assert.match(next.cookie, /Max-Age=600(?:;|$)/);
+});
+
+test('remembered MFA is explicit, bounded to 14 days, and keeps real AAL2', async () => {
+  for (const remember of [false, true]) {
+    const f = fixture({ enrolled: true });
+    const next = await f.mfa.verify(f.ctx(), f.factorId, '123456', remember);
+    assert.equal(next.session.expires_in, remember ? 1209600 : 604800);
+    assert.equal(Boolean(next.session.mfa_remember_until), remember);
+    assert.equal(next.session.aal, 'aal2');
+    assert.match(next.cookie, new RegExp(`Max-Age=${remember ? 1209600 : 604800}(?:;|$)`));
+    next.session.authenticated_at = new Date(Date.now() - 301000);
+    assert.throws(() => f.accounts.requireAdmin(next, true), error => error.code === 'reauthentication_required');
+  }
+});
+
+test('remembering never bypasses verification or promotes a password-only session', async () => {
+  const f = fixture({ enrolled: true });
+  for (const value of ['true', 1, null, {}, []]) {
+    await assert.rejects(f.mfa.verify(f.ctx(), f.factorId, '123456', value), error => error.code === 'invalid_request');
+  }
+  assert.deepEqual(f.calls, []);
+  const pending = await f.accounts.newSession(f.ctx(), f.auth(), f.user, { rememberMfa: true });
+  assert.equal(pending.session.expires_in, 600);
+  assert.equal(pending.session.mfa_remember_until, null);
+  assert.equal(pending.user, null);
+  const wrong = fixture({ enrolled: true });
+  wrong.fail(new HttpError(400, 'provider_rejected'));
+  await assert.rejects(wrong.mfa.verify(wrong.ctx(), wrong.factorId, '123456', true));
+  assert.equal(wrong.sessions.size, 1);
+});
+
+test('fresh step-up preserves the original remembered deadline, never a sliding 14 days', async () => {
+  const f = fixture({ enrolled: true });
+  const next = await f.mfa.verify(f.ctx(), f.factorId, '123456', true);
+  next.session.mfa_remember_until = new Date(Date.now() + 3 * 86400000);
+  const again = await f.accounts.newSession(next, f.auth('aal2'), f.user);
+  assert.ok(again.session.expires_in <= 3 * 86400 && again.session.expires_in > 3 * 86400 - 5);
+  assert.ok(again.session.mfa_remember_until <= next.session.mfa_remember_until);
+  const other = fixture({ enrolled: true });
+  other.session.mfa_remember_until = new Date(Date.now() + 86400000);
+  other.session.aal = 'aal2';
+  const fresh = await other.accounts.newSession(other.ctx(), other.auth('aal2'), other.user, { newFamily: true });
+  assert.equal(fresh.session.mfa_remember_until, null);
+});
+
+test('correct password and separate rotating trust cookie skip OTP without claiming provider AAL2 or freshness', async () => {
+  const f = fixture({ enrolled: true });
+  const verified = await f.mfa.verify(f.ctx(), f.factorId, '123456', true);
+  const rawTrust = verified.trustCookie.split(';')[0].split('=')[1];
+  assert.equal(f.trusts.get(verified.session.mfa_trust_id).token_hash, hash(rawTrust));
+  const anonymous = { session: { id: randomUUID() }, user: null };
+  const login = await f.accounts.login(anonymous, { email: f.user.email, password: 'fixture password' }, rawTrust);
+  assert.equal(login.user.id, f.user.id); assert.equal(login.session.aal, 'aal1');
+  assert.equal(login.session.authenticated_at, null);
+  assert.notEqual(login.session.browser_family_id, verified.session.browser_family_id);
+  assert.notEqual(login.trustCookie, verified.trustCookie);
+  assert.equal(f.accounts.requireAdmin(login).id, f.user.id);
+  assert.throws(() => f.accounts.requireAdmin(login, true), error => error.code === 'reauthentication_required');
+  const replay = await f.accounts.login(anonymous, { email: f.user.email, password: 'fixture password' }, rawTrust);
+  assert.equal(replay.user, null); assert.equal(replay.mfa.mode, 'challenge');
+  const forged = await f.accounts.login(anonymous, { email: f.user.email, password: 'fixture password', trustCookie: rawTrust, rememberBrowser: true });
+  assert.equal(forged.user, null);
+  f.accounts.provider.login = async () => { throw new HttpError(400, 'provider_rejected'); };
+  await assert.rejects(f.accounts.login(anonymous, { email: f.user.email, password: 'wrong' }, login.trustCookie.split(';')[0].split('=')[1]), error => error.code === 'invalid_credentials');
+});
+
+test('remembered-browser cookie is host-only, HttpOnly, Secure and never an authentication cookie', () => {
+  const f = fixture(); f.accounts.config.insecureLocal = false;
+  const cookie = f.accounts.trustCookie('fixture');
+  assert.match(cookie, /^__Host-developed_mfa_trust=/);
+  for (const value of ['Path=/', 'HttpOnly', 'Secure', 'SameSite=Strict', 'Max-Age=1209600']) assert.ok(cookie.includes(value));
+  assert.ok(!cookie.includes('Domain='));
 });
 
 test('provider verification cannot claim success without actual AAL2 on the same session', async () => {

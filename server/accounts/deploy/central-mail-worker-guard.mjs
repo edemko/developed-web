@@ -16,9 +16,12 @@ export const moduleHashes = {
   'security.js': 'ab5a02646d6785d453af5b8924f47476d3964f8cf84151941dfe46655f2f73fc',
   'mail-templates.js': '7ffdc9b61ec8ae3810aaeae58ea640757725b75b5273c82b8fbea89d9e976567',
 };
+export const musicLogoSha256 = '1a8bf49fa5273b64f503768fd7c9dbfabb75442ae81acc8bdd2203df5f23676f';
 export function checkModules(release = RELEASE) {
   assert.ok(release === RELEASE || release === API_RELEASE, 'Unapproved mail-compatible release');
   trusted(release); trusted(NODE);
+  const logo = `${release}/public/music-logo.png`; trusted(logo);
+  assert.equal(createHash('sha256').update(readFileSync(logo)).digest('hex'), musicLogoSha256, 'Immutable music mail logo changed');
   for (const [file, expected] of Object.entries(moduleHashes)) {
     const path = `${release}/dist/${file}`; trusted(path);
     assert.equal(createHash('sha256').update(readFileSync(path)).digest('hex'), expected, 'Immutable mail module changed');
@@ -36,7 +39,7 @@ function apiProcess(pid) {
 }
 async function apiHealth(timeout) {
   const response = await fetch('http://127.0.0.1:3140/health', {
-    method: 'GET', redirect: 'error', signal: AbortSignal.timeout(timeout),
+    method: 'GET', headers: { Host: 'www.developed.sk' }, redirect: 'error', signal: AbortSignal.timeout(timeout),
   });
   void response.body?.cancel().catch(() => {});
   return response.status === 200;

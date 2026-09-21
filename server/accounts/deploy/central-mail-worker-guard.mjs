@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { request as httpRequest } from 'node:http';
 import { readFileSync, readdirSync, readlinkSync, realpathSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
@@ -37,12 +38,17 @@ function apiProcess(pid) {
   return { exe: readlinkSync(`/proc/${pid}/exe`), cwd: readlinkSync(`/proc/${pid}/cwd`),
     argumentCount: args.length, main: args.length === 2 ? realpathSync(args[1]) : null };
 }
-async function apiHealth(timeout) {
-  const response = await fetch('http://127.0.0.1:3140/health', {
-    method: 'GET', headers: { Host: 'www.developed.sk' }, redirect: 'error', signal: AbortSignal.timeout(timeout),
+export function apiHealth(timeout, request = httpRequest) {
+  // Node fetch does not preserve an overridden Host on this pinned runtime.
+  // Keep the connection on loopback while selecting the canonical API surface.
+  return new Promise(resolve => {
+    const req = request({ hostname: '127.0.0.1', port: 3140, path: '/health',
+      method: 'GET', headers: { Host: 'www.developed.sk' } }, response => {
+      response.resume(); resolve(response.statusCode === 200);
+    });
+    req.setTimeout(timeout, () => { req.destroy(); resolve(false); });
+    req.on('error', () => resolve(false)); req.end();
   });
-  void response.body?.cancel().catch(() => {});
-  return response.status === 200;
 }
 export async function waitForCentralReadiness({ state = apiState, processEvidence = apiProcess,
   health = apiHealth, now = () => performance.now(), sleep = pause, timeoutMs = 5000 } = {}) {

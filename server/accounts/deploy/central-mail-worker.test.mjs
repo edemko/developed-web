@@ -1,11 +1,12 @@
 import test from 'node:test';
+import { createServer, request as httpRequest } from 'node:http';
 import assert from 'node:assert/strict';
 import { mkdtempSync, lstatSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { selectInput, parseEnvironment, validateInput, writeProtectedInput, keys } from './central-mail-worker-input.mjs';
-import { assertCentralEvidence, assertWorkerProcesses, RELEASE, API_RELEASE, NODE, checkModules, waitForCentralReadiness } from './central-mail-worker-guard.mjs';
+import { assertCentralEvidence, assertWorkerProcesses, RELEASE, API_RELEASE, NODE, checkModules, waitForCentralReadiness, apiHealth } from './central-mail-worker-guard.mjs';
 import { mailConfig, assertRole, ROLE_SQL, startLoop } from './central-mail-worker.mjs';
 const fixtureEnv = () => ({
   ACCOUNTS_DATABASE_URL: 'postgresql://developed_accounts:fixture-password@172.18.0.12:5432/postgres',
@@ -149,4 +150,12 @@ test('unit syntax validates in a disposable fixture without installing or starti
     const result = spawnSync('/usr/bin/systemd-analyze', ['verify', path], { encoding: 'utf8', timeout: 15000 });
     assert.equal(result.status, 0, 'Disposable unit syntax verification failed; diagnostics withheld');
   } finally { rmSync(directory, { recursive: true }); }
+});
+
+
+test('readiness preserves canonical Host over an actual loopback HTTP connection',async t=>{
+  const server=createServer((req,res)=>{assert.equal(req.url,'/health');res.writeHead(req.headers.host==='www.developed.sk'?200:421);res.end();});
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>server.close());
+  const request=(options,callback)=>httpRequest({...options,port:server.address().port},callback);
+  assert.equal(await apiHealth(1000,request),true);
 });

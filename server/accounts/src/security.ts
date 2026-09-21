@@ -84,7 +84,7 @@ export function oauthCallback(value: string, kind: string, allowLoopback = false
   if (kind === 'web') return exactHttps(value, allowLoopback);
   // v1 native callback is deliberately exact, not an arbitrary URI scheme.
   const url = new URL(value);
-  if (kind !== 'native' || url.protocol !== 'sk.kestrek:' || url.hostname !== 'oauth'
+  if (kind !== 'native' || !['sk.kestrek:','sk.developed.megamusic:'].includes(url.protocol) || url.hostname !== 'oauth'
     || url.pathname !== '/callback' || url.port || url.username || url.password || url.hash) {
     throw new Error('Invalid native callback');
   }

@@ -50,7 +50,7 @@ export function safeAuthorizationUrl(value, origin) {
   if (typeof value !== 'string') return null;
   try {
     const url = new URL(value);
-    if (url.protocol !== 'sk.kestrek:' || url.hostname !== 'oauth' || url.pathname !== '/callback'
+    if (!['sk.kestrek:','sk.developed.megamusic:'].includes(url.protocol) || url.hostname !== 'oauth' || url.pathname !== '/callback'
       || url.port || url.username || url.password || url.hash || url.href !== value) return null;
     const keys = [...url.searchParams.keys()];
     if (keys.some(key => !['code', 'state', 'error'].includes(key)) || new Set(keys).size !== keys.length) return null;
@@ -233,7 +233,7 @@ async function start() {
     main.classList.toggle('narrow', narrow);
     main.replaceChildren(el('p', t('account'), 'eyebrow'), el('h1', title));
     if (intro) main.append(el('p', intro, 'lede'));
-    document.title = `${title} — DevelopED`;
+    document.title = `${title} — ${document.documentElement.dataset.product === 'mega-music' ? 'Mega Music' : 'DevelopED'}`;
   }
 
   function panel(title, parent = main) {
@@ -243,6 +243,13 @@ async function start() {
     return section;
   }
 
+  const musicSurface = document.documentElement.dataset.product === 'mega-music';
+  const ecosystemNotice = () => ({
+    en:'You are creating a DevelopED ecosystem account, which you can use across participating apps. Learn more at developed.sk.',
+    sk:'Vytváraš si účet v ekosystéme DevelopED, ktorý môžeš používať v zapojených aplikáciách. Viac na developed.sk.',
+    cs:'Vytváříš si účet v ekosystému DevelopED, který můžeš používat v zapojených aplikacích. Více na developed.sk.',
+    uk:'Ви створюєте обліковий запис екосистеми DevelopED для використання в її застосунках. Докладніше на developed.sk.',
+  }[language]);
   function renderChrome() {
     chromeController.abort();
     chromeController = new AbortController();
@@ -260,15 +267,15 @@ async function start() {
       summary.append(avatar);
       const items = el('div', undefined, 'menu-items');
       items.append(link(t('apps'), '/apps'), link(t('profile'), '/profile'), link(t('security'), '/security'));
-      if (session.user.role === 'SUPERADMIN') items.append(link(t('adminApps'), '/admin/apps'), link(t('adminUsers'), '/admin/users'), link(t('adminReports'), '/admin/reports'));
+      if (!musicSurface && session.user.role === 'SUPERADMIN') items.append(link(t('adminApps'), '/admin/apps'), link(t('adminUsers'), '/admin/users'), link(t('adminReports'), '/admin/reports'));
       items.append(button(t('logout'), () => logout()));
       menu.append(summary, items);
       menu.addEventListener('keydown', event => { if (event.key === 'Escape') { menu.open = false; summary.focus(); } });
       document.addEventListener('click', event => { if (!menu.contains(event.target)) menu.open = false; }, { signal: chromeController?.signal });
       navigation.append(menu);
     } else navigation.append(link(t('login'), '/login', 'login-link'), link(t('register'), '/register', 'button register-link'));
-    renderAppMenu();
-    footer.replaceChildren(link('DevelopED', '/'), link(t('reportBug'), '/report-bug'), link('info@developed.sk', 'mailto:info@developed.sk'));
+    if (!musicSurface) renderAppMenu();
+    footer.replaceChildren(link('DevelopED', musicSurface ? 'https://www.developed.sk/' : '/'), link(t('reportBug'), musicSurface ? 'https://www.developed.sk/report-bug/mega-music' : '/report-bug'), link('info@developed.sk', 'mailto:info@developed.sk'));
   }
 
   function languageMenu() {
@@ -352,7 +359,8 @@ async function start() {
       if (!menu.isConnected) return;
       items.replaceChildren();
       for (const app of apps) {
-        const launch = safeHttpsUrl(app.launchUrl, location.origin);
+        let launch = safeHttpsUrl(app.launchUrl, location.origin);
+        if (launch && !musicSurface && app.id === 'app_mega_music') {const target=new URL(launch);target.searchParams.set('portal','1');launch=target.href;}
         if (!launch) continue;
         const item = link('', session?.user && app.available === false ? '/apps' : launch);
         item.append(appIcon(app), el('span', app.name)); items.append(item);
@@ -433,6 +441,7 @@ async function start() {
 
   async function registerPage() {
     heading(t('register'), t(invitationToken ? 'invitedIntro' : 'registerIntro'), true);
+    if (musicSurface) {const note=el('p',ecosystemNotice());note.append(' ',link('developed.sk','https://www.developed.sk/'));main.append(note);}
     const continuation = safeContinuation(new URLSearchParams(location.search).get('next'), location.origin);
     const loginUrl = `/login?next=${encodeURIComponent(continuation)}`;
     if (session.registrationMode === 'closed') { main.append(el('p', t('registrationClosed'), 'notice'), link(t('login'), loginUrl)); return; }
@@ -543,7 +552,8 @@ async function start() {
     const apps = await availableApps();
     const grid = el('div', undefined, 'app-grid');
     for (const app of apps) {
-      const launch = safeHttpsUrl(app.launchUrl, location.origin);
+      let launch = safeHttpsUrl(app.launchUrl, location.origin);
+        if (launch && !musicSurface && app.id === 'app_mega_music') {const target=new URL(launch);target.searchParams.set('portal','1');launch=target.href;}
       const tile = button('', () => { if (launch) location.assign(launch); }, 'app-tile');
       tile.disabled = !app.available || !launch;
       tile.append(appIcon(app), el('strong', app.name), el('p', app.description || ''), el('span', !app.available ? t('unavailable') : app.plan === 'free' ? t('free') : app.plan || t('continue'), 'badge'));

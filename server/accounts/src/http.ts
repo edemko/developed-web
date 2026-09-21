@@ -11,7 +11,7 @@ import { oauthBroker } from './oauth-broker.js';
 
 const assets = new Map<string, [string, string]>([
   ['app.js', ['app.js', 'text/javascript']], ['i18n.js', ['i18n.js', 'text/javascript']],
-  ['app.css', ['app.css', 'text/css']], ['logo.svg', ['logo.svg', 'image/svg+xml']],
+  ['app.css', ['app.css', 'text/css']], ['music.css', ['music.css','text/css']], ['music-logo.png',['music-logo.png','image/png']], ['logo.svg', ['logo.svg', 'image/svg+xml']],
 ]);
 async function body(req: IncomingMessage): Promise<Row> {
   if (req.headers['content-type']?.split(';')[0]?.trim() !== 'application/json') return fail(415, 'json_required');
@@ -43,7 +43,7 @@ export function marketingPolicy(html: string) {
     .map(match => `'sha256-${createHash('sha256').update(match[2]!).digest('base64')}'`);
   return `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'none'; script-src 'self' ${hashes.join(' ')}; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src 'none'`;
 }
-export function createAccountServer(accounts: Accounts) {
+function createSingleAccountServer(accounts: Accounts) {
   const publicRoot = fileURLToPath(new URL('../public/', import.meta.url));
   const mfa = new Mfa(accounts);
   return createServer(async (req, res) => {
@@ -56,6 +56,24 @@ export function createAccountServer(accounts: Accounts) {
     try {
       const url = new URL(req.url || '/', accounts.config.origin), method = req.method || 'GET';
       if (url.origin !== accounts.config.origin) return fail(400, 'invalid_request');
+      if (accounts.config.surfaceAppId) {
+        if (url.pathname === '/oauth/authorize' && method === 'GET') {
+          const app = await accounts.appForClient(url.searchParams.get('client_id') || '');
+          if (app.app_id !== accounts.config.surfaceAppId || url.searchParams.get('redirect_uri') !== app.registered_callback
+            || url.searchParams.get('response_type') !== 'code' || url.searchParams.get('code_challenge_method') !== 'S256') return fail(400,'invalid_authorization');
+          const response = await fetch(`${accounts.config.providerUrl}/oauth/authorize${url.search}`, {
+            redirect:'manual', signal:AbortSignal.timeout(10000)});
+          const location = response.headers.get('location');
+          if (![302,303].includes(response.status) || !location) return fail(503,'provider_unavailable');
+          const next = new URL(location);
+          if (next.pathname !== '/account/authorize' || !/^[a-zA-Z0-9]{32}$/.test(next.searchParams.get('authorization_id') || '')) return fail(503,'provider_unavailable');
+          res.writeHead(303,{Location:`/account/authorize?authorization_id=${next.searchParams.get('authorization_id')}`});return res.end();
+        }
+        const allowed = /^(?:\/(?:login|register|verify-email|forgot-password|reset-password|profile|security|account\/authorize)|\/account-assets\/[a-z0-9.-]+|\/api\/account\/(?:session|login|register|logout|logout-all|resend-verification|forgot-password|reset-password|verify-email|reauthenticate|invitation\/preview|mfa(?:\/(?:enroll|verify))?|profile(?:\/(?:password|email))?|security|authorize|catalog))$/;
+        if (url.pathname === '/apps') {res.writeHead(303,{Location:'/api/music/auth/start'});return res.end();}
+        if (!allowed.test(url.pathname)) return fail(404,'not_found');
+      }
+
       // Only the issuer's exact OAuth routes are mapped here by the gateway.
       // These standard back-channel endpoints never bootstrap browser cookies,
       // trust a portal cookie, or expose a generic provider proxy.
@@ -84,7 +102,13 @@ export function createAccountServer(accounts: Accounts) {
         }
         if (!/^\/(apps|login|register|verify-email|forgot-password|reset-password|profile|security|account\/authorize|admin\/(apps|users|reports)|report-bug(?:\/[a-z0-9-]+)?)$/.test(url.pathname)) return fail(404, 'not_found');
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        return res.end(method === 'HEAD' ? undefined : await readFile(`${publicRoot}index.html`));
+        let html = await readFile(`${publicRoot}index.html`,'utf8');
+        if (accounts.config.surfaceAppId) html = html.replace('<html lang="sk">','<html lang="sk" data-product="mega-music">')
+          .replace('</head>','<link rel="stylesheet" href="/account-assets/music.css"></head>')
+          .replace('DevelopED — Account','Mega Music — Account')
+          .replace('href="/favicon.png"','href="/account-assets/music-logo.png"')
+          .replace('aria-label="DevelopED">Develop<span>ED</span>','aria-label="Mega Music"><img src="/account-assets/music-logo.png" alt="Mega Music" width="72" height="72">');
+        return res.end(method === 'HEAD' ? undefined : html);
       }
       const path = url.pathname.slice('/api/account'.length);
       // Service is loopback bound. No caller-supplied Forwarded header is trusted.
@@ -134,7 +158,7 @@ export function createAccountServer(accounts: Accounts) {
       if (method === 'POST' && ['/login', '/register', '/resend-verification', '/forgot-password', '/reset-password', '/verify-email', '/reauthenticate'].includes(path)) {
         await accounts.db.limit(`sensitive:${address}`, 200, 3600);
         if (path === '/login') {
-          setContext(await accounts.login(ctx, data, cookieValue(req, accounts.config.insecureLocal ? 'developed_trust_local' : '__Host-developed_mfa_trust')));
+          setContext(await accounts.login(ctx, data, accounts.readSurfaceCookie(cookieValue(req, accounts.config.insecureLocal ? 'developed_trust_local' : '__Host-developed_mfa_trust'),'trust')));
           const redirectUrl = ctx.user ? await accounts.launchAfterLogin(ctx, data.appSlug) : undefined;
           return json(res, { user: accounts.publicUser(ctx.user), mfa: ctx.mfa || null, ...(redirectUrl ? { redirectUrl } : {}) });
         }
@@ -304,5 +328,21 @@ export function createAccountServer(accounts: Accounts) {
       if (!res.headersSent) json(res, { error: { code: expected ? error.code : 'service_unavailable', message: expected ? error.code : 'Service temporarily unavailable' } }, expected ? error.status : 503);
       else res.end();
     }
+  });
+}
+
+/** Fixed operator-approved origins only; never derive provider/admin routes from Host. */
+export function createAccountServer(accounts: Accounts) {
+  const primary = createSingleAccountServer(accounts);
+  if (!accounts.config.musicOrigin) return primary;
+  if (accounts.config.musicOrigin !== 'https://megamusic.developed.sk') throw new Error('Unregistered music origin');
+  const music = createSingleAccountServer(new Accounts(accounts.db,accounts.provider,{
+    ...accounts.config,origin:accounts.config.musicOrigin,surfaceAppId:'app_mega_music',mailBrand:'mega-music',
+  }));
+  return createServer((req,res)=>{
+    const host=req.headers.host;
+    const handler=host===new URL(accounts.config.origin).host ? primary : host===new URL(accounts.config.musicOrigin!).host ? music : null;
+    if(!handler){res.writeHead(421);res.end();return;}
+    handler.emit('request',req,res);
   });
 }

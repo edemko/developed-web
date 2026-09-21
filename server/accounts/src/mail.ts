@@ -23,10 +23,11 @@ export class MailWorker {
       const mail = unseal<Mail>(job.payload, this.config.encryptionKey, `mail:${job.id}`);
       const response = await this.request('https://api.mailjet.com/v3.1/send', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Basic ${Buffer.from(`${this.config.mailjetKey}:${this.config.mailjetSecret}`).toString('base64')}` },
-        body: JSON.stringify({ Messages: [{ From: { Email: 'noreply@developed.sk', Name: 'DevelopED' },
+        body: JSON.stringify({ Messages: [{ From: { Email: 'noreply@developed.sk', Name: mail.brand === 'mega-music' ? 'Mega Music · DevelopED' : 'DevelopED' },
           ReplyTo: { Email: this.config.supportEmail, Name: 'DevelopED support' }, To: [{ Email: mail.to }],
           Subject: mail.subject, TextPart: mail.text, HTMLPart: mail.html || legacyMailHtml(mail, this.config),
-          TrackOpens: 'disabled', TrackClicks: 'disabled', CustomID: job.id }] }),
+          TrackOpens: 'disabled', TrackClicks: 'disabled', CustomID: job.id,
+          ...(mail.brand === 'mega-music' && mail.inlineLogo ? {InlinedAttachments:[{ContentType:'image/png',Filename:'mega-music.png',ContentID:'mega-music-logo',Base64Content:mail.inlineLogo}]} : {}) }] }),
         signal: AbortSignal.timeout(15_000), redirect: 'error',
       });
       if (!response.ok) throw new Error('Mail provider rejected delivery');

@@ -9,13 +9,23 @@ export interface Context { session: Row; user: Row | null; cookie?: string; trus
 export class Accounts {
   constructor(readonly db: Database, readonly provider: Provider, readonly config: Config) {}
   csrf(session: Row) { return createHmac('sha256', this.config.encryptionKey).update(`csrf:${session.id}`).digest('base64url'); }
+  surfaceCookie(raw: string, kind: string) {
+    return raw && this.config.surfaceAppId ? seal(raw,this.config.encryptionKey,`surface:${this.config.origin}:${kind}`) : raw;
+  }
+  readSurfaceCookie(raw: string | undefined, kind: string): string | undefined {
+    if (!raw || !this.config.surfaceAppId) return raw;
+    try { return unseal<string>(raw,this.config.encryptionKey,`surface:${this.config.origin}:${kind}`); } catch { return undefined; }
+  }
   cookie(raw: string, age = 604800) {
+    raw = this.surfaceCookie(raw,'session');
     return `${this.config.insecureLocal ? 'developed_local' : '__Host-developed_session'}=${raw}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${age}${this.config.insecureLocal ? '' : '; Secure'}`;
   }
   trustCookie(raw: string, age = 1209600) {
+    raw = this.surfaceCookie(raw,'trust');
     return `${this.config.insecureLocal ? 'developed_trust_local' : '__Host-developed_mfa_trust'}=${raw}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${this.config.insecureLocal ? '' : '; Secure'}`;
   }
   async bootstrap(rawCookie?: string): Promise<Context> {
+    rawCookie = this.readSurfaceCookie(rawCookie,'session');
     let session: Row | undefined;
     if (rawCookie && /^[A-Za-z0-9_-]{43}$/.test(rawCookie)) {
       [session] = await this.db.query(`select s.* from accounts.sessions s where token_hash=$1 and revoked_at is null
@@ -283,7 +293,7 @@ export class Accounts {
     // The invitation, never the submitted address or a client confirmation flag,
     // chooses the identity. Explicit mismatches also fail for direct API callers.
     if (preview && body.email !== undefined && email(body.email) !== address) return fail(400, 'invitation_email_mismatch');
-    const returnAppId = await this.registrationContinuation(body.continuation);
+    const returnAppId = this.config.surfaceAppId || await this.registrationContinuation(body.continuation);
     let invitationHash: string | null = null;
     await this.db.limit(`register:${address}`, 3, 3600);
     await this.db.limit('register:aggregate', this.config.hourlyRegistrationLimit, 3600);
@@ -324,6 +334,7 @@ export class Accounts {
       await q('update core.profiles set display_name=$2,updated_at=now() where id=$1', [created.id, name]);
       if (!invitationHash) await this.credential(q, { id: created.id, security_version: 1 }, address, 'verification', lang, returnAppId);
       if (invitationHash) await q('update accounts.credentials set user_id=$2 where token_hash=$1 and user_id is null', [invitationHash, created.id]);
+      if (this.config.surfaceAppId) await q('insert into accounts.product_registrations(user_id,app_id) values($1,$2) on conflict do nothing',[created.id,this.config.surfaceAppId]);
       await this.db.audit(q, null, created.id, 'registration', 'succeeded');
     });
     return { accepted: true, emailVerified: Boolean(invitationHash) };
@@ -463,12 +474,14 @@ export class Accounts {
     const checked = await this.oauthContext(text(accessToken, 12000, true));
     if (checked.app.app_id !== app.app_id) return fail(401, 'invalid_session');
     const plan = await this.ensureAccess(checked.user, checked.app);
-    return { user: this.publicUser(checked.user), app: { id: app.app_id, plan }, client: { id: checked.client.client_id, kind: checked.client.client_kind }, securityVersion: checked.user.security_version };
+    const activationRequested = this.config.musicOrigin && app.app_id==='app_mega_music'
+      ? Boolean((await this.db.query('select user_id from accounts.product_registrations where user_id=$1 and app_id=$2',[checked.user.id,app.app_id])).length) : false;
+    return { user: this.publicUser(checked.user), app: { id: app.app_id, plan, activationRequested, unlimitedStorage: checked.user.role === 'SUPERADMIN' }, client: { id: checked.client.client_id, kind: checked.client.client_kind }, securityVersion: checked.user.security_version };
   }
   async validateOAuthAccess(accessToken: string, expectedClientId?: string) {
     const { user, app, client } = await this.oauthContext(accessToken, expectedClientId);
     const plan = await this.ensureAccess(user, app);
-    return { user: this.publicUser(user), app: { id: app.app_id, plan }, client: { id: client.client_id, kind: client.client_kind }, securityVersion: user.security_version };
+    return { user: this.publicUser(user), app: { id: app.app_id, plan, unlimitedStorage: user.role === 'SUPERADMIN' }, client: { id: client.client_id, kind: client.client_kind }, securityVersion: user.security_version };
   }
   private async oauthContext(accessToken: string, expectedClientId?: string, requireBinding = true) {
     const access = text(accessToken, 12000, true);
@@ -548,7 +561,7 @@ export class Accounts {
     const [member] = await this.db.query('select user_id from core.app_access where user_id=$1 and app_id=$2', [user.id, app.app_id]);
     if (!member) return fail(403, 'app_access_denied');
     const plan = await this.ensureAccess(user, app);
-    return { user: this.publicUser(user), app: { id: app.app_id, plan }, securityVersion: user.security_version };
+    return { user: this.publicUser(user), app: { id: app.app_id, plan, unlimitedStorage: user.role === 'SUPERADMIN' }, securityVersion: user.security_version };
   }
   async authorize(ctx: Context, authorizationId: unknown, approve?: boolean) {
     const user = this.requireUser(ctx), id = text(authorizationId, 100, true);
@@ -557,6 +570,7 @@ export class Accounts {
       from auth.oauth_authorizations where authorization_id=$1`, [id]);
     if (!authorization || new Date(authorization.expires_at).getTime() <= Date.now() || authorization.status !== 'pending' || (authorization.user_id && authorization.user_id !== user.id)) return fail(400, 'invalid_authorization');
     const app = await this.appForClient(authorization.client_id);
+    if (this.config.surfaceAppId && app.app_id !== this.config.surfaceAppId) return fail(403,'wrong_app_surface');
     const scopes = authorization.scope.split(' ').filter(Boolean) as string[];
     if (authorization.redirect_uri !== app.registered_callback || authorization.code_challenge_method !== 's256' || !authorization.nonce
       || !scopes.includes('openid') || scopes.some(scope => !['openid','email','profile'].includes(scope))) return fail(400, 'invalid_authorization');

@@ -10,10 +10,13 @@ import { oauthCallback, uuid } from './security.js';
 export function validateNativeConfiguration(input: unknown) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Expected native client configuration');
   const data = input as Record<string, unknown>;
-  if (Object.keys(data).some(key => !['appId', 'clientId', 'callbackUrl'].includes(key))) throw new Error('Unexpected field');
-  if (data.appId !== 'app_kestrek' || data.callbackUrl !== 'sk.kestrek://oauth/callback') throw new Error('Unsupported native app/callback');
-  oauthCallback(data.callbackUrl, 'native');
-  return { appId: data.appId, clientId: uuid(data.clientId), callbackUrl: data.callbackUrl };
+  if (Object.keys(data).some(key => !['appId', 'clientId', 'callbackUrl', 'platform'].includes(key))) throw new Error('Unexpected field');
+  if (!(data.appId === 'app_kestrek' && data.callbackUrl === 'sk.kestrek://oauth/callback')
+    && !(data.appId === 'app_mega_music' && data.callbackUrl === 'sk.developed.megamusic://oauth/callback')) throw new Error('Unsupported native app/callback');
+  const platform = data.platform ?? 'android';
+  if (!['android','macos','ios'].includes(platform as string)) throw new Error('Invalid native platform');
+  oauthCallback(data.callbackUrl as string, 'native');
+  return { appId: data.appId as string, clientId: uuid(data.clientId), callbackUrl: data.callbackUrl as string, platform: platform as string };
 }
 
 export function validateNativeProviderRegistration(client: ReturnType<typeof validateNativeConfiguration>,
@@ -39,12 +42,12 @@ async function main() {
       if (role?.name !== 'developed_accounts') throw new Error('Scoped central role required');
       const [app] = await q('select app_id from accounts.app_settings where app_id=$1 for update', [client.appId]);
       if (!app) throw new Error('Configure the product web client first');
-      const previous = await q("select client_id from accounts.oauth_clients where app_id=$1 and client_kind='native'", [client.appId]);
+      const previous = await q("select client_id from accounts.oauth_clients where app_id=$1 and client_kind='native' and platform=$2", [client.appId,client.platform]);
       if (previous.length && !args.includes('--replace')) throw new Error('Replacement requires explicit --replace');
-      await q("update accounts.oauth_clients set enabled=false where app_id=$1 and client_kind='native'", [client.appId]);
-      const [saved] = await q(`insert into accounts.oauth_clients(client_id,app_id,client_kind,callback_url)
-        values($1,$2,'native',$3) on conflict(client_id) do update set callback_url=$3,enabled=true
-        where oauth_clients.app_id=$2 and oauth_clients.client_kind='native' returning client_id`, [client.clientId, client.appId, client.callbackUrl]);
+      await q("update accounts.oauth_clients set enabled=false where app_id=$1 and client_kind='native' and platform=$2", [client.appId,client.platform]);
+      const [saved] = await q(`insert into accounts.oauth_clients(client_id,app_id,client_kind,callback_url,platform)
+        values($1,$2,'native',$3,$4) on conflict(client_id) do update set callback_url=$3,enabled=true
+        where oauth_clients.app_id=$2 and oauth_clients.client_kind='native' and oauth_clients.platform=$4 returning client_id`, [client.clientId, client.appId, client.callbackUrl,client.platform]);
       if (!saved) throw new Error('Client already belongs to another app/platform');
       await db.audit(q, null, null, 'operator_native_configuration', 'succeeded', { appId: client.appId, replaced: previous.length > 0 });
     });

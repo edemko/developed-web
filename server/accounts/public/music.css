@@ -1,0 +1,7 @@
+:root { --bg:#121212; --surface:#1f1f1f; --accent:#d90007; --text:#fff; --muted:#b3b3b3; }
+body {background:#121212;color:#fff;}
+.site-header, .panel, .card {background:#1f1f1f;border-color:#671d28;}
+a {color:#ff737c;}
+button,.button {background:#d90007;color:#fff;}
+.brand img {object-fit:contain;vertical-align:middle;}
+#app-navigation {display:none;}

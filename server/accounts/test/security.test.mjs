@@ -43,7 +43,7 @@ test('native callbacks allow only the exact registered KešTrek protocol and pat
 });
 test('native operator accepts only the intended public-client configuration', () => {
   const input = { appId: 'app_kestrek', clientId: '11111111-1111-4111-8111-111111111111', callbackUrl: 'sk.kestrek://oauth/callback' };
-  assert.deepEqual(validateNativeConfiguration(input), input);
+  assert.deepEqual(validateNativeConfiguration(input), {...input,platform:'android'});
   assert.throws(() => validateNativeConfiguration({ ...input, clientSecret: 'must-not-exist' }));
   assert.throws(() => validateNativeConfiguration({ ...input, appId: 'app_mega_music' }));
   assert.throws(() => validateNativeConfiguration({ ...input, callbackUrl: `${input.callbackUrl}?next=evil` }));

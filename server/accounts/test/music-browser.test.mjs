@@ -1,0 +1,35 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createServer} from 'node:http';
+import {Accounts} from '../dist/accounts.js';
+import {createAccountServer} from '../dist/http.js';
+const playwrightModule=process.env.PLAYWRIGHT_MODULE;
+test('branded registration follows the central invitation/open/closed switch',{skip:!playwrightModule,timeout:30000},async t=>{
+ let mode='invitation';
+ const db={limit:async()=>{},query:async sql=>{
+  if(sql.includes('insert into accounts.sessions'))return [{id:'anonymous-fixture'}];
+  if(sql.includes('select registration_mode'))return [{registration_mode:mode}];
+  return [];
+ }};
+ const config={origin:'https://www.developed.sk',musicOrigin:'https://megamusic.developed.sk',encryptionKey:Buffer.alloc(32,9),supportEmail:'info@developed.sk'};
+ const application=createAccountServer(new Accounts(db,{},config));
+ const server=createServer((req,res)=>{req.headers.host='megamusic.developed.sk';application.emit('request',req,res);});
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>server.close());
+ const {chromium}=await import(playwrightModule);
+ const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_BIN,args:['--no-sandbox']});t.after(()=>browser.close());
+ const page=await browser.newPage({locale:'en-US'}),errors=[];page.on('pageerror',error=>errors.push(error.message));
+ page.setDefaultTimeout(8000);
+ const url=`http://127.0.0.1:${server.address().port}/register`;
+ await page.goto(url);await page.getByText(/An invitation is required/i).first().waitFor();
+ assert.equal(await page.locator('input[type="password"]').count(),0);
+ assert.equal(await page.evaluate(()=>document.documentElement.dataset.product),'mega-music');
+ mode='open';await page.reload();await page.locator('input[type="password"]').waitFor();
+ assert.equal(await page.locator('input[type="password"]').getAttribute('minlength'),'15');
+ assert.equal(await page.locator('input[type="email"]').count(),1);
+ await page.getByText(/creating a DevelopED ecosystem account/).waitFor();
+ assert.equal(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor),'rgb(18, 18, 18)');
+ mode='closed';await page.reload();await page.getByText(/registration.*closed|signups.*closed/i).first().waitFor();
+ assert.equal(await page.locator('input[type="password"]').count(),0);
+ assert.equal(new URL(page.url()).pathname,'/register');
+ assert.deepEqual(errors,[]);
+});

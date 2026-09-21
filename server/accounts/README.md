@@ -1,5 +1,11 @@
 # DevelopED central account service
 
+The opt-in Mega Music branded identity surface uses `ACCOUNTS_MUSIC_ORIGIN`,
+requires `20260921163940_mega_music_native_clients.sql`, and shares the existing
+registration-mode switch and sole mail worker. It is source preparation, not
+a production activation. See `../../docs/mega-music-surface.md` for the contract.
+
+
 This directory contains the new Node/TypeScript account backend and its vanilla
 browser UI. It is **not deployed by creating these files**. Registration starts
 closed and transactional email starts disabled. Existing static Slovak/English

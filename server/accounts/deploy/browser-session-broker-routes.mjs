@@ -32,18 +32,22 @@ const userinfoBlock = `    @oauth_userinfo {
     }
     handle @oauth_userinfo {
       uri strip_prefix /auth/v1
-      reverse_proxy ${brokerDial}
+      reverse_proxy ${brokerDial} {
+        header_up Host www.developed.sk
+      }
     }
 `;
+
+const brokerTokenBlock = tokenBlock.replace(`reverse_proxy ${providerDial}`, `reverse_proxy ${brokerDial} {\n        header_up Host www.developed.sk\n      }`);
 
 export function replaceReviewedBlocks(source) {
   assert.equal(source.split(protocolLine).length, 2, 'Expected one exact protocol read list');
   assert.equal(source.split(tokenBlock).length, 2, 'Expected one exact token handler');
   assert.ok(!source.includes('@oauth_userinfo'), 'Userinfo route already exists');
   const candidate = source.replace(protocolLine, `      path ${readPaths.slice(0, -1).join(' ')}\n`)
-    .replace(tokenBlock, userinfoBlock + tokenBlock.replace(providerDial, brokerDial));
+    .replace(tokenBlock, userinfoBlock + brokerTokenBlock);
   assert.equal(candidate.replace(userinfoBlock, '')
-    .replace(tokenBlock.replace(providerDial, brokerDial), tokenBlock)
+    .replace(brokerTokenBlock, tokenBlock)
     .replace(`      path ${readPaths.slice(0, -1).join(' ')}\n`, protocolLine), source,
   'Bytes outside the two broker routes changed');
   return candidate;
@@ -56,7 +60,7 @@ export function merge(source) {
 function proxyHandler(dial) {
   return [{ handler: 'subroute', routes: [{ handle: [
     { handler: 'rewrite', strip_path_prefix: '/auth/v1' },
-    { handler: 'reverse_proxy', upstreams: [{ dial }] },
+    { handler: 'reverse_proxy', ...(dial === brokerDial ? { headers: { request: { set: { Host: ['www.developed.sk'] } } } } : {}), upstreams: [{ dial }] },
   ] }] }];
 }
 function canonicalGroups(value) {

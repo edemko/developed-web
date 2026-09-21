@@ -68,6 +68,7 @@ test('read-only Caddy process baseline pins PID and healthy no-restart state', (
 test('disposable Caddy routes only token/userinfo to broker; protocol reads, data and human routes stay isolated', { timeout: 20000 }, async () => {
   const seen = [];
   const make = kind => createServer((req, res) => {
+    if (kind === 'broker' && req.headers.host !== 'www.developed.sk') { res.writeHead(421).end(); return; }
     seen.push({ kind, method: req.method, path: req.url }); res.writeHead(200).end(kind);
   });
   const provider = make('provider'), broker = make('broker'), data = make('data'), reserve = createServer();

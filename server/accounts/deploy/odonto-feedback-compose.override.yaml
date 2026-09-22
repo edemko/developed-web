@@ -1,0 +1,4 @@
+# Reviewed CSP release. Rebuilds retain this tag; API is unchanged.
+services:
+  web:
+    image: odonto-feedback-web:security-20260921

@@ -19,6 +19,7 @@ git archive "$release_sha" -- \
   robots.txt script.js sitemap.xml styles.css | tar -x -C "$release_dir"
 test -f "$release_dir/index.html"
 test -f "$release_dir/styles.css"
+/usr/local/bin/check-publication "$release_dir"
 # webroot contains only this application's static marketing release. Account
 # services, repositories, environment files and build dependencies never belong here.
 rsync -a --delete --chmod=D755,F644 "$release_dir/" "$webroot/"

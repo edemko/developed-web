@@ -1,0 +1,20 @@
+# Publication boundary: reviewed 2026-09-21. Imported only by hosted websites.
+(publication_security) {
+    header ?Strict-Transport-Security "max-age=31536000"
+    header ?X-Content-Type-Options "nosniff"
+    header ?Referrer-Policy "no-referrer"
+    header >X-Frame-Options "DENY"
+    header {
+        +Content-Security-Policy "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+        defer
+    }
+    # Matched handle runs before the fallback SPA handler; API/webhooks excluded.
+        @private_publication {
+            not path /api/* /hooks/*
+            path_regexp private_publication (?i)(^|/)(\.(env[^/]*|git|svn|hg|ssh|aws|npmrc|yarnrc|dockerignore|gitignore|openai)(/|$)|(?:package(?:-lock)?\.json|(?:pnpm-lock|yarn)\.(?:yaml|lock)|composer\.(?:json|lock)|Dockerfile|Caddyfile|AGENTS\.md|CLAUDE\.md|docker-compose[^/]*|compose\.ya?ml)$)|\.(sql|dump|sqlite3?|db|pem|key|p12|pfx|jks|keystore|bak|backup|old|orig|swp|log|map)(/|$)|~$
+        }
+    handle @private_publication {
+        header Cache-Control "no-store"
+        respond 404
+    }
+}

@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+/usr/local/bin/check-publication --caddy /etc/caddy/Caddyfile
+exec /usr/bin/caddy reload --config /etc/caddy/Caddyfile --force

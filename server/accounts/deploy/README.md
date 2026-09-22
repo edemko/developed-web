@@ -100,3 +100,27 @@ deployment; this is not permission to discard other dirty work.
   as part of this runtime deployment.
 
 Update this section from verified live state, not merely from intended steps.
+
+## Public-file security guard — 2026-09-21
+
+All ten public website blocks now import `/etc/caddy/publication-security.caddy`
+for anti-framing headers and sensitive-file rejection before SPA fallback.
+Existing application CSPs remain in force. The shared policy is additive and
+intentionally does not impose a generic script allowlist on every application.
+
+`check-publication.py` is installed root-owned as `/usr/local/bin/check-publication`.
+The marketing deploy hook runs it before rsync; Caddy's `publication-check.conf`
+drop-in and `reload-public-sites` wrapper scan the five static roots derived from
+the candidate Caddy config before start/reload. Use it on any other staged public
+output before publishing; do not run it on application server source directories.
+It rejects unsafe filenames, symlinks, unexpected extensions and known secrets,
+and inspects selected installer archive entries without executing binaries.
+
+Run `python3 server/accounts/deploy/test-publication.py` for regression tests.
+Check a release with `/usr/local/bin/check-publication /path/to/public-output`.
+Current websites and redirects passed public HTTP and browser checks. Keep the
+Caddy import and systemd drop-in when updating deployment configuration. This
+check does not replace authenticated application or database authorization tests.
+
+The [publication remediation record](published-file-security.md) includes the
+verified host state, rollback information, and exact Caddy/Odonto source patches.

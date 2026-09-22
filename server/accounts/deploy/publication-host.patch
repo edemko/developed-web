@@ -1,0 +1,99 @@
+--- a/etc/caddy/Caddyfile
++++ b/etc/caddy/Caddyfile
+@@ -1,3 +1,5 @@
++import /etc/caddy/publication-security.caddy
++
+ # Caddy vhost routing for apps served through the Cloudflare tunnel (sam-apps).
+ # Traffic arrives from cloudflared as plain HTTP on :80 with the original Host
+ # header; TLS terminates at Cloudflare's edge, so every site here is http://
+@@ -12,6 +14,7 @@
+ }
+ 
+ http://www.developed.sk, http://test.developed.sk {
++    import publication_security
+ # BEGIN DEVELOPED HUMAN PORTAL
+ # CANDIDATE ONLY. Import inside the existing shared www/test.developed.sk site.
+ # The host matcher prevents central routes/cookies from reaching the test alias.
+@@ -70,6 +73,7 @@
+ # (kestrek-prod user unit). Canonical host is the apex; www and the legacy
+ # kestrek.developed.sk URL redirect to it.
+ http://kestrek.sk, http://test.kestrek.sk {
++    import publication_security
+ 	handle /.well-known/oauth-* {
+ 		reverse_proxy 127.0.0.1:3164
+ 	}
+@@ -98,6 +102,7 @@
+ # Security headers mirror the app's former frontend/vercel.json (CSP hashes are
+ # for inline scripts in index.html — rebuild may change them).
+ http://myclinic.sk, http://test.myclinic.sk {
++    import publication_security
+ 	handle /api/* {
+ 		reverse_proxy 127.0.0.1:3155
+ 	}
+@@ -137,6 +142,7 @@
+ 
+ # BEGIN odonto-feedback
+ http://odonto.developed.sk {
++    import publication_security
+     @insecure not header X-Forwarded-Proto https
+     redir @insecure https://odonto.developed.sk{uri} 308
+     header Strict-Transport-Security "max-age=31536000"
+@@ -163,6 +169,7 @@
+ # public API hop. NextAuth needs the real Host + X-Forwarded-Proto https, or
+ # auth callbacks build http:// URLs and the login redirect loops.
+ http://vocabulum.developed.sk {
++    import publication_security
+ 	@insecure not header X-Forwarded-Proto https
+ 	redir @insecure https://vocabulum.developed.sk{uri} 308
+ 	header Strict-Transport-Security "max-age=31536000"
+@@ -183,6 +190,7 @@
+ # Otazkomat school Sections 1-2; immutable central-auth release 5faf3930ee22.
+ # Previous secure API3166 remains available for drain/rollback.
+ http://educatio.sk, http://test.educatio.sk {
++    import publication_security
+ 	handle /api/* {
+ 		reverse_proxy 127.0.0.1:3176 {
+ 			header_up X-Real-IP {http.request.header.Cf-Connecting-Ip}
+@@ -222,6 +230,7 @@
+ # `http://` is mandatory here: TLS terminates at Cloudflare's edge, and a bare
+ # hostname makes Caddy attempt a public ACME challenge it cannot satisfy.
+ http://screentime.developed.sk {
++    import publication_security
+ 	reverse_proxy 127.0.0.1:3167
+ 	encode gzip
+ 	header Strict-Transport-Security "max-age=31536000"
+@@ -233,6 +242,7 @@
+ # BEGIN jasom
+ # TLS terminates at the existing Cloudflare tunnel edge.
+ http://jasom.developed.sk {
++    import publication_security
+     @insecure not header X-Forwarded-Proto https
+     redir @insecure https://jasom.developed.sk{uri} 308
+     header Strict-Transport-Security "max-age=31536000"
+@@ -249,8 +259,18 @@
+ 
+ # BEGIN megamusic
+ http://megamusic.developed.sk {
++    import publication_security
+     @insecure not header X-Forwarded-Proto https
+     redir @insecure https://megamusic.developed.sk{uri} 308
++    # Only the currently supported public installers may be served.
++    route {
++        @retired_download {
++            path /downloads/*
++            not path /downloads/mega-music-1.0.8.apk /downloads/mega-music-1.0.5-2012-macos.zip
++        }
++        header @retired_download Cache-Control "no-store"
++        respond @retired_download "This release has been retired. Get the current version from https://megamusic.developed.sk/#downloads" 410
++    }
+     root * /var/www/megamusic.developed.sk
+     redir /app /app/ 308
+     @music_identity path /login /register /verify-email /forgot-password /reset-password /profile /security /account/authorize /apps /oauth/authorize /account-assets/* /api/account/session /api/account/login /api/account/register /api/account/logout /api/account/logout-all /api/account/resend-verification /api/account/forgot-password /api/account/reset-password /api/account/verify-email /api/account/reauthenticate /api/account/invitation/preview /api/account/mfa /api/account/mfa/enroll /api/account/mfa/verify /api/account/profile /api/account/profile/password /api/account/profile/email /api/account/security /api/account/authorize /api/account/catalog
+@@ -292,6 +312,7 @@
+ # `http://` is mandatory here: TLS terminates at Cloudflare's edge, and a
+ # bare hostname makes Caddy attempt a public ACME challenge it cannot satisfy.
+ http://amp.developed.sk {
++    import publication_security
+ 	reverse_proxy 127.0.0.1:3172
+ 	encode gzip
+ 	header Strict-Transport-Security "max-age=31536000"

@@ -1,0 +1,75 @@
+--- /dev/null
++++ b/apps/web/proxy.ts
+@@ -0,0 +1,33 @@
++import { randomBytes } from 'node:crypto';
++import { NextRequest, NextResponse } from 'next/server';
++
++// A new nonce is generated on the server for every rendered document. Never
++// reuse a nonce supplied by the caller or cache a document containing one.
++export function proxy(request: NextRequest) {
++  const nonce = randomBytes(24).toString('base64');
++  const development = process.env.NODE_ENV === 'development';
++  const policy = [
++    "default-src 'self'",
++    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${development ? " 'unsafe-eval'" : ''}`,
++    "script-src-attr 'none'",
++    "style-src 'self' 'unsafe-inline'",
++    "img-src 'self' data:",
++    "font-src 'self'",
++    "connect-src 'self'",
++    "object-src 'none'",
++    "frame-ancestors 'none'",
++    "base-uri 'self'",
++    "form-action 'self'",
++  ].join('; ');
++  const headers = new Headers(request.headers);
++  headers.set('x-nonce', nonce);
++  headers.set('Content-Security-Policy', policy);
++  const response = NextResponse.next({ request: { headers } });
++  response.headers.set('Content-Security-Policy', policy);
++  response.headers.set('Cache-Control', 'private, no-store');
++  return response;
++}
++
++export const config = {
++  matcher: ['/((?!api/|_next/static/|_next/image|favicon.ico).*)'],
++};
+--- a/apps/web/next.config.ts
++++ b/apps/web/next.config.ts
+@@ -9,7 +9,6 @@
+       {key:'X-Frame-Options',value:'DENY'},
+       {key:'Permissions-Policy',value:'camera=(), microphone=(), geolocation=()'},
+       {key:'Cache-Control',value:'no-store'},
+-      {key:'Content-Security-Policy',value:"default-src 'self'; script-src 'self' 'unsafe-inline'"+(process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : '')+"; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"}
+     ]}];
+   }
+ };
+--- a/apps/web/app/layout.tsx
++++ b/apps/web/app/layout.tsx
+@@ -1,5 +1,6 @@
+ import type { Metadata } from 'next';
++import { connection } from 'next/server';
+ import {DraftProvider} from '@/components/provider';
+ import './globals.css';
+ export const metadata:Metadata={title:'Skúsenosť zo skúšky | Exam experience',description:'Súkromný dobrovoľný záznam skúsenosti z doplňujúcej skúšky zubných lekárov.',robots:{index:false,follow:false}};
+-export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="sk" suppressHydrationWarning><body><DraftProvider>{children}</DraftProvider></body></html>}
++export default async function RootLayout({children}:{children:React.ReactNode}){await connection();return <html lang="sk" suppressHydrationWarning><body><DraftProvider>{children}</DraftProvider></body></html>}
+--- a/docs/deployment.md
++++ b/docs/deployment.md
+@@ -66,3 +66,16 @@
+ 
+ Pred skutočným zberom doplňte privacy údaje a podmienky v README, určte prístup/export/retenciu/zálohy, potom COLLECTION_MODE=live a LIVE_COLLECTION_ENABLED=true. Existujúce demo záznamy sa tým nemenia na live. Nasadenie neobsahovalo commit, push ani zmenu vetvy.
+ 
++## CSP security update — 2026-09-21
++
++The web service now runs image `odonto-feedback-web:security-20260921`, selected
++by `/opt/odonto-feedback/compose.override.yaml`, on the unchanged loopback3100.
++Only web was replaced; API/database configuration and submissions are unchanged.
++`apps/web/proxy.ts` generates a fresh per-response script nonce and no-store CSP;
++`app/layout.tsx` opts into request-time rendering. Keep these together on rebuild.
++The old blanket inline-script permission was removed from `next.config.ts`.
++SK/EN/UK browser hydration and an injected-script denial test passed. No test
++submission was written. The previous image is retained as
++`odonto-feedback-web:before-security-20260921` for rollback. Use a side-by-side web
++candidate and graceful Caddy switch for the next release; do not restart the API
++or shared database for a frontend-only update.

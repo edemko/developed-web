@@ -33,6 +33,7 @@ function fixture({ mode = 'invitation', expired = false, consumed = false, exist
   const accounts = new Accounts(db, provider, { hourlyRegistrationLimit: 20 });
   accounts.registrationContinuation = async () => null;
   accounts.credential = async (...args) => calls.push({ mailPurpose: args[3] });
+  accounts.notifySuperadmins = async (_query, registered, appId) => calls.push({ notification: registered, appId });
   return { accounts, calls, state };
 }
 
@@ -49,7 +50,10 @@ test('invitation preview is non-consuming and reveals only the bound address', a
 test('invited signup verifies the invite address and queues no second verification', async () => {
   const f = fixture();
   assert.deepEqual(await f.accounts.register(input), { accepted: true, emailVerified: true });
-  assert.deepEqual(f.calls, [[address, input.password, input.displayName, true]]);
+  assert.deepEqual(f.calls, [
+    [address, input.password, input.displayName, true],
+    { notification: { email: address, displayName: input.displayName }, appId: null },
+  ]);
   assert.equal(f.state.consumed, true); assert.equal(f.state.userId, 'new-user');
   await assert.rejects(f.accounts.register(input), error => error.code === 'invalid_invitation');
 });
@@ -78,7 +82,8 @@ test('one invitation admits at most one concurrent provider create', async () =>
   const f = fixture();
   const results = await Promise.allSettled([f.accounts.register(input), f.accounts.register(input)]);
   assert.equal(results.filter(result => result.status === 'fulfilled').length, 1);
-  assert.equal(f.calls.length, 1);
+  assert.equal(f.calls.filter(Array.isArray).length, 1);
+  assert.equal(f.calls.filter(call => call.notification).length, 1);
 });
 
 test('closed admission denies valid invites; open admission still validates supplied invites', async () => {
@@ -93,10 +98,16 @@ test('closed admission denies valid invites; open admission still validates supp
 
 test('ordinary signup cannot self-assert email verification', async () => {
   const f = fixture({ mode: 'open' });
-  assert.deepEqual(await f.accounts.register({ ...input, invitation: undefined, emailVerified: true, email_confirm: true }),
+  f.accounts.registrationContinuation = async value => {
+    assert.equal(value, '/account/authorize?authorization_id=fixture');
+    return 'app_fixture';
+  };
+  assert.deepEqual(await f.accounts.register({ ...input, invitation: undefined, emailVerified: true, email_confirm: true,
+    continuation: '/account/authorize?authorization_id=fixture' }),
     { accepted: true, emailVerified: false });
   assert.equal(f.calls[0][3], false);
   assert.deepEqual(f.calls[1], { mailPurpose: 'verification' });
+  assert.deepEqual(f.calls[2], { notification: { email: address, displayName: input.displayName }, appId: 'app_fixture' });
 });
 
 test('existing identity is not confirmed or modified through invitation signup', async () => {

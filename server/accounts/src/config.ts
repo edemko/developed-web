@@ -6,6 +6,7 @@ export interface Config {
   dailyEmailLimit: number; hourlyRegistrationLimit: number;
   marketingDir?: string;
   musicOrigin?: string;
+  portalOrigin?: string;
   surfaceAppId?: string;
   mailBrand?: 'mega-music';
 }
@@ -31,6 +32,7 @@ export function config(env = process.env): Config {
     mailEnabled: env.ACCOUNTS_MAIL_ENABLED === 'true', supportEmail: 'info@developed.sk',
     dailyEmailLimit: integer('ACCOUNTS_DAILY_EMAIL_LIMIT', 200),
     marketingDir: env.ACCOUNTS_MARKETING_DIR,
+    portalOrigin: origin.origin,
     musicOrigin: env.ACCOUNTS_MUSIC_ORIGIN ? exactHttps(env.ACCOUNTS_MUSIC_ORIGIN).origin : undefined,
     hourlyRegistrationLimit: integer('ACCOUNTS_HOURLY_REGISTRATION_LIMIT', 20) };
 }

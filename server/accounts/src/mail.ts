@@ -3,7 +3,7 @@ import type { Config } from './config.js';
 import type { Database, Query } from './db.js';
 import { HttpError, seal, unseal } from './security.js';
 import { legacyMailHtml, type Mail } from './mail-templates.js';
-export { credentialMail, credentialLifetime, securityMail, reportMail, type Mail } from './mail-templates.js';
+export { credentialMail, credentialLifetime, securityMail, reportMail, registrationMail, type Mail } from './mail-templates.js';
 export async function queueMail(query: Query, config: Config, mail: Mail): Promise<void> {
   const id = randomUUID();
   await query('insert into accounts.outbox(id,payload) values($1,$2)', [id, seal(mail, config.encryptionKey, `mail:${id}`)]);

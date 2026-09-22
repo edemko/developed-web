@@ -3,7 +3,7 @@ import type { Config } from './config.js';
 import { Database, type Query, type Row } from './db.js';
 import { Provider, type ProviderSession } from './provider.js';
 import { claims, diagnostics, email, equal, fail, hash, HttpError, language, password, passwordInput, seal, text, token, unseal, uuid, exactHttps, oauthCallback } from './security.js';
-import { credentialMail, credentialLifetime, queueMail, securityMail, reportMail } from './mail.js';
+import { credentialMail, credentialLifetime, queueMail, securityMail, reportMail, registrationMail } from './mail.js';
 
 export interface Context { session: Row; user: Row | null; cookie?: string; trustCookie?: string; candidate?: Row; mfa?: { mode: 'enroll' | 'challenge' } }
 export class Accounts {
@@ -285,6 +285,16 @@ export class Accounts {
     // Never consume on preview: mail scanners and a page reload are not signup.
     return { email: invitation.email as string };
   }
+  async notifySuperadmins(query: Query, registered: { email: string; displayName: string }, appId: string | null) {
+    const [app] = appId ? await query('select name from core.apps where id=$1 and deleted_at is null', [appId]) : [];
+    const appName = app?.name || (appId || 'DevelopED');
+    const admins = await query(`select u.email,coalesce(s.language,'en') as language from core.profiles p
+      join auth.users u on u.id=p.id left join accounts.security_state s on s.user_id=p.id
+      where p.role='SUPERADMIN' and u.email_confirmed_at is not null order by u.email`);
+    const options = { ...this.config, origin: this.config.portalOrigin || this.config.origin, mailBrand: undefined };
+    for (const admin of admins) await queueMail(query, this.config,
+      registrationMail(admin.email, registered.email, registered.displayName, appName, admin.language, options));
+  }
   async register(body: Row) {
     const secret = password(body.password), name = text(body.displayName, 100, true), lang = language(body.language);
     const invited = body.invitation !== undefined && body.invitation !== '';
@@ -335,6 +345,7 @@ export class Accounts {
       if (!invitationHash) await this.credential(q, { id: created.id, security_version: 1 }, address, 'verification', lang, returnAppId);
       if (invitationHash) await q('update accounts.credentials set user_id=$2 where token_hash=$1 and user_id is null', [invitationHash, created.id]);
       if (this.config.surfaceAppId) await q('insert into accounts.product_registrations(user_id,app_id) values($1,$2) on conflict do nothing',[created.id,this.config.surfaceAppId]);
+      await this.notifySuperadmins(q, { email: address, displayName: name }, returnAppId);
       await this.db.audit(q, null, created.id, 'registration', 'succeeded');
     });
     return { accepted: true, emailVerified: Boolean(invitationHash) };

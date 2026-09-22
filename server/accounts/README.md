@@ -70,7 +70,10 @@ so publication stays an administrator-controlled database setting.
 Transactional messages use the version-controlled templates in
 `src/mail-templates.ts`: branded HTML plus plain text in EN/SK/CS/UK for email
 confirmation, password recovery, email changes, invitations, security notices,
-and bug-report acknowledgements. Operator report alerts contain only the app,
+bug-report acknowledgements, and new-registration alerts. Every confirmed
+superadmin receives a registration alert naming the new account and the
+server-resolved originating app (or DevelopED for a portal registration), plus
+an authenticated admin-page link. Operator report alerts contain only the app,
 reference, and an authenticated admin-page link—not the report body. Mailjet
 open/click tracking is explicitly disabled, and templates load no remote assets.
 Credential links are limited to the configured portal origin and the correct

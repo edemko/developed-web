@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { credentialMail, credentialLifetime, securityMail, reportMail, legacyMailHtml } from '../dist/mail-templates.js';
+import { credentialMail, credentialLifetime, securityMail, reportMail, registrationMail, legacyMailHtml } from '../dist/mail-templates.js';
 
 const recipient = 'recipient@example.invalid';
 const origin = 'https://www.developed.sk';
@@ -19,7 +19,7 @@ for (const language of ['en', 'sk', 'cs', 'uk']) test(`all transactional kinds p
     assert.ok(mail.html.includes('info@developed.sk'));
     assert.doesNotMatch(mail.html, /<script|<img|<iframe|<link|<form|onerror=|url\(/i);
   }
-  for (const mail of [securityMail(recipient, language), securityMail(recipient, language, {}, 'verification'), reportMail(recipient, 'DEV-42', 'Mega Music', language, false), reportMail(recipient, 'DEV-42', 'Mega Music', language, true)]) {
+  for (const mail of [securityMail(recipient, language), securityMail(recipient, language, {}, 'verification'), reportMail(recipient, 'DEV-42', 'Mega Music', language, false), reportMail(recipient, 'DEV-42', 'Mega Music', language, true), registrationMail(recipient, 'new@example.test', 'New User', 'Mega Music', language)]) {
     assert.ok(mail.html.includes(mail.subject)); assert.ok(mail.text.includes('info@developed.sk'));
     assert.ok(mail.html.includes(`lang="${language}"`));
   }
@@ -53,6 +53,17 @@ test('report mail contains no report contents and renders app text inertly', () 
   const ack = reportMail(recipient, 'DEV-42', 'App', 'en', false);
   assert.ok(!ack.text.includes('/admin'));
   assert.ok(!ack.html.includes('/admin'));
+});
+
+test('registration alert identifies the user and trusted app with an admin link', () => {
+  const mail = registrationMail(recipient, 'new+user@example.test', '<New User>', '<App & name>', 'en');
+  assert.ok(mail.text.includes('new+user@example.test'));
+  assert.ok(mail.text.includes('<New User>'));
+  assert.ok(mail.text.includes('<App & name>'));
+  assert.ok(mail.text.includes(`${origin}/admin/users`));
+  assert.ok(mail.html.includes('&lt;New User&gt;'));
+  assert.ok(mail.html.includes('&lt;App &amp; name&gt;'));
+  assert.doesNotMatch(mail.html, /<New User>|<App/);
 });
 
 test('language fallback, configured support, verification notice and legacy outbox stay safe', () => {

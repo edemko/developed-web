@@ -22,7 +22,8 @@ const copy = {
     verified: ['Your DevelopED email is confirmed', 'Your email is confirmed. Sign in to open your available DevelopED apps.', 'Sign in'],
     report: ['Bug report received', 'We saved your bug report. Keep this reference when contacting our support team.'],
     alert: ['New bug report', 'A new bug report is waiting. Sign in to read its details.', 'Open bug reports'],
-    reference: 'Reference', app: 'Application',
+    registration: ['New user registration', 'A new user registered for the DevelopED ecosystem.', 'Open users'],
+    user: 'User', name: 'Name', reference: 'Reference', app: 'Application',
   },
   sk: {
     verification: ['Potvrďte svoj e-mail DevelopED', 'Potvrďte e-mail, dokončite vytvorenie účtu a získajte prístup k dostupným aplikáciám DevelopED.', 'Potvrdiť e-mail'],
@@ -37,7 +38,8 @@ const copy = {
     verified: ['Váš e-mail DevelopED je potvrdený', 'Váš e-mail je potvrdený. Prihláste sa a otvorte dostupné aplikácie DevelopED.', 'Prihlásiť sa'],
     report: ['Hlásenie chyby bolo prijaté', 'Vaše hlásenie chyby sme uložili. Pri komunikácii s podporou uveďte toto referenčné číslo.'],
     alert: ['Nové hlásenie chyby', 'Čaká na vás nové hlásenie chyby. Podrobnosti si prečítate po prihlásení.', 'Otvoriť hlásenia chýb'],
-    reference: 'Referencia', app: 'Aplikácia',
+    registration: ['Nová registrácia používateľa', 'V ekosystéme DevelopED sa zaregistroval nový používateľ.', 'Otvoriť používateľov'],
+    user: 'Používateľ', name: 'Meno', reference: 'Referencia', app: 'Aplikácia',
   },
   cs: {
     verification: ['Potvrďte svůj e-mail DevelopED', 'Potvrďte e-mail, dokončete vytvoření účtu a získejte přístup k dostupným aplikacím DevelopED.', 'Potvrdit e-mail'],
@@ -52,7 +54,8 @@ const copy = {
     verified: ['Váš e-mail DevelopED je potvrzen', 'Váš e-mail je potvrzen. Přihlaste se a otevřete dostupné aplikace DevelopED.', 'Přihlásit se'],
     report: ['Hlášení chyby bylo přijato', 'Vaše hlášení chyby jsme uložili. Při komunikaci s podporou uveďte toto referenční číslo.'],
     alert: ['Nové hlášení chyby', 'Čeká na vás nové hlášení chyby. Podrobnosti si přečtete po přihlášení.', 'Otevřít hlášení chyb'],
-    reference: 'Reference', app: 'Aplikace',
+    registration: ['Nová registrace uživatele', 'V ekosystému DevelopED se zaregistroval nový uživatel.', 'Otevřít uživatele'],
+    user: 'Uživatel', name: 'Jméno', reference: 'Reference', app: 'Aplikace',
   },
   uk: {
     verification: ['Підтвердьте електронну адресу DevelopED', 'Підтвердьте електронну адресу, щоб завершити створення облікового запису й отримати доступ до доступних застосунків DevelopED.', 'Підтвердити адресу'],
@@ -67,7 +70,8 @@ const copy = {
     verified: ['Вашу електронну адресу DevelopED підтверджено', 'Вашу електронну адресу підтверджено. Увійдіть, щоб відкрити доступні застосунки DevelopED.', 'Увійти'],
     report: ['Повідомлення про помилку отримано', 'Ми зберегли ваше повідомлення про помилку. Збережіть цей номер для листування зі службою підтримки.'],
     alert: ['Нове повідомлення про помилку', 'Надійшло нове повідомлення про помилку. Увійдіть, щоб прочитати подробиці.', 'Відкрити повідомлення'],
-    reference: 'Номер', app: 'Застосунок',
+    registration: ['Нова реєстрація користувача', 'В екосистемі DevelopED зареєструвався новий користувач.', 'Відкрити користувачів'],
+    user: 'Користувач', name: "Ім'я", reference: 'Номер', app: 'Застосунок',
   },
 } as const;
 type Language = keyof typeof copy;
@@ -120,6 +124,11 @@ export function reportMail(to: string, reference: string, appName: string, lang:
   // App names are body text only; never incorporate user-controlled text in headers.
   return render(to, `${message[0]} — ${reference}`, [message[1], `${local.reference}: ${reference}`, `${local.app}: ${appName}`], lang, options,
     operator ? { label: local.alert[2], url: `${settings(options).origin}/admin/reports` } : undefined);
+}
+export function registrationMail(to: string, userEmail: string, displayName: string, appName: string, lang: string, options: MailOptions = {}): Mail {
+  const local = copy[locale(lang)];
+  return render(to, local.registration[0], [local.registration[1], `${local.user}: ${userEmail}`, `${local.name}: ${displayName}`, `${local.app}: ${appName}`], lang, options,
+    { label: local.registration[2], url: `${settings(options).origin}/admin/users` });
 }
 /** Safely render older encrypted outbox entries during a rolling upgrade. */
 export function legacyMailHtml(mail: Mail, options: MailOptions = {}): string {

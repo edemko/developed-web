@@ -34,7 +34,5 @@ export class Database {
       where expires_at<now() or revoked_at<now()-interval '1 day' order by expires_at limit 1000)`);
     await this.query(`delete from accounts.rate_limits where bucket_hash in (select bucket_hash from accounts.rate_limits
       where expires_at<now() order by expires_at limit 1000)`);
-    await this.query(`delete from accounts.sms_challenges where id in (select id from accounts.sms_challenges
-      where created_at<now()-interval '30 days' order by created_at limit 1000)`);
   }
 }

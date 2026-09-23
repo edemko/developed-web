@@ -4,6 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { diagnostics, equal, password, passwordInput, email, seal, unseal, exactHttps, text, oauthCallback } from '../dist/security.js';
 import { config } from '../dist/config.js';
 import { Provider } from '../dist/provider.js';
+import { Accounts } from '../dist/accounts.js';
 import { validateAppConfiguration } from '../dist/operator.js';
 import { validateNativeConfiguration } from '../dist/native-operator.js';
 import { marketingPolicy } from '../dist/http.js';
@@ -54,6 +55,16 @@ test('configuration refuses insecure public hosting and malformed encryption key
   assert.equal(config(env).mailEnabled, false);
   assert.throws(() => config({ ...env, ACCOUNTS_INSECURE_LOCAL: 'true' }));
   assert.throws(() => config({ ...env, ACCOUNTS_ENCRYPTION_KEY: 'abc' }));
+});
+test('embedded registration is limited to the published app launch origin', async () => {
+  const db = { query: async (sql, args) => {
+    assert.match(sql, /a\.published/); assert.deepEqual(args, ['airsoft']);
+    return [{ app_id: 'app_airsoft', slug: 'airsoft', launch_url: 'https://amp.developed.sk/api/auth/ecosystem/login', name: 'Airsoft Marketplace' }];
+  } };
+  const accounts = new Accounts(db, {}, { insecureLocal: false });
+  assert.equal((await accounts.registrationSurface('airsoft', 'https://amp.developed.sk')).app_id, 'app_airsoft');
+  await assert.rejects(accounts.registrationSurface('airsoft', 'https://evil.invalid'), error => error.code === 'invalid_origin');
+  await assert.rejects(accounts.registrationSurface('airsoft', 'https://amp.developed.sk/path'), error => error.code === 'invalid_origin');
 });
 test('provider requests contain no browser redirects and hide upstream error payloads', async () => {
   const requests = [];

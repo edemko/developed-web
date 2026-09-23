@@ -43,7 +43,7 @@ function fixture({ enrolled = false, role = 'SUPERADMIN' } = {}) {
       }
       if (sql.startsWith('insert into accounts.sessions')) {
         if (failSave) throw new Error('save unavailable');
-        const row = { id: args[0], user_id: args[3], provider_session_id: args[4], provider_tokens: args[5], security_version: args[6], mfa_pending: args[7], expires_in: args[8], browser_family_id: args[9], mfa_remember_until: args[10] ? new Date(Date.now() + args[8] * 1000) : null, mfa_trust_id: args[11], created_at: new Date(), authenticated_at: args[7] || args[12] ? null : new Date() };
+        const row = { id: args[0], user_id: args[3], provider_session_id: args[4], provider_tokens: args[5], security_version: args[6], mfa_pending: args[7], expires_in: args[8], browser_family_id: args[9], mfa_remember_until: args[10] ? new Date(args[13] || Date.now() + args[8] * 1000) : null, mfa_trust_id: args[11], created_at: new Date(), authenticated_at: args[7] || args[12] ? null : new Date() };
         sessions.set(row.id, row); return [row];
       }
       if (sql.startsWith('insert into accounts.outbox')) return [];
@@ -124,9 +124,10 @@ test('fresh step-up preserves the original remembered deadline, never a sliding 
   const f = fixture({ enrolled: true });
   const next = await f.mfa.verify(f.ctx(), f.factorId, '123456', true);
   next.session.mfa_remember_until = new Date(Date.now() + 3 * 86400000);
+  const originalDeadline = next.session.mfa_remember_until.getTime();
   const again = await f.accounts.newSession(next, f.auth('aal2'), f.user);
   assert.ok(again.session.expires_in <= 3 * 86400 && again.session.expires_in > 3 * 86400 - 5);
-  assert.ok(again.session.mfa_remember_until <= next.session.mfa_remember_until);
+  assert.equal(again.session.mfa_remember_until.getTime(), originalDeadline);
   const other = fixture({ enrolled: true });
   other.session.mfa_remember_until = new Date(Date.now() + 86400000);
   other.session.aal = 'aal2';

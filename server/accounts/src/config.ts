@@ -4,6 +4,7 @@ export interface Config {
   encryptionKey: Buffer; port: number; insecureLocal: boolean; mailjetKey: string;
   mailjetSecret: string; supportEmail: string; mailEnabled: boolean;
   dailyEmailLimit: number; hourlyRegistrationLimit: number;
+  smsGateKey: string;
   marketingDir?: string;
   musicOrigin?: string;
   surfaceAppId?: string;
@@ -29,6 +30,7 @@ export function config(env = process.env): Config {
     databaseUrl: required('ACCOUNTS_DATABASE_URL'), encryptionKey, port: integer('ACCOUNTS_PORT', 3140),
     insecureLocal, mailjetKey: env.MAILJET_API_KEY || '', mailjetSecret: env.MAILJET_SECRET_KEY || '',
     mailEnabled: env.ACCOUNTS_MAIL_ENABLED === 'true', supportEmail: 'info@developed.sk',
+    smsGateKey: env.SMS_GATE_KEY || '',
     dailyEmailLimit: integer('ACCOUNTS_DAILY_EMAIL_LIMIT', 200),
     marketingDir: env.ACCOUNTS_MARKETING_DIR,
     musicOrigin: env.ACCOUNTS_MUSIC_ORIGIN ? exactHttps(env.ACCOUNTS_MUSIC_ORIGIN).origin : undefined,

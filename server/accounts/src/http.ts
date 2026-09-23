@@ -120,7 +120,7 @@ function createSingleAccountServer(accounts: Accounts) {
       // Production reverse proxy must also rate-limit clients before this boundary.
       const address = req.socket.remoteAddress || 'unknown';
       await accounts.db.limit(`requests:${address}`, 2000, 60);
-      const registrationPath = /^\/registration\/(session|invitation\/preview|register|resend-verification)$/.exec(path);
+      const registrationPath = /^\/registration\/(session|invitation\/preview|register|resend-verification|sms\/start|sms\/verify)$/.exec(path);
       if (registrationPath) {
         if (accounts.config.surfaceAppId) return fail(404, 'not_found');
         const requestOrigin = req.headers.origin;
@@ -152,11 +152,19 @@ function createSingleAccountServer(accounts: Accounts) {
           await accounts.db.limit(`invitation-preview:${address}`, 200, 3600);
           return json(res, await accounts.invitationPreview(data.token));
         }
+        if (registrationPath[1] === 'sms/start') {
+          await accounts.db.limit(`sms-send:${address}`, 5, 3600);
+          return json(res, await accounts.sms.start(ctx.session.id, app.app_id, data));
+        }
+        if (registrationPath[1] === 'sms/verify') {
+          await accounts.db.limit(`sms-verify:${address}`, 20, 3600);
+          return json(res, await accounts.sms.verify(ctx.session.id, app.app_id, data));
+        }
         await accounts.db.limit(`sensitive:${address}`, 200, 3600);
         if (registrationPath[1] === 'resend-verification') {
           await accounts.sendCredential(data.email, false); return json(res, { accepted: true });
         }
-        return json(res, await accounts.register(data, app.app_id));
+        return json(res, await accounts.register(data, app.app_id, ctx.session.id));
       }
       if (path === '/internal/session/check' || path === '/internal/user/check') {
         if (method !== 'POST') return fail(405, 'method_not_allowed');

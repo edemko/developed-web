@@ -4,9 +4,11 @@ import { Database, type Query, type Row } from './db.js';
 import { Provider, type ProviderSession } from './provider.js';
 import { claims, diagnostics, email, equal, fail, hash, HttpError, language, password, passwordInput, seal, text, token, unseal, uuid, exactHttps, oauthCallback } from './security.js';
 import { credentialMail, credentialLifetime, queueMail, securityMail, reportMail } from './mail.js';
+import { SmsVerification } from './sms.js';
 
 export interface Context { session: Row; user: Row | null; cookie?: string; trustCookie?: string; candidate?: Row; mfa?: { mode: 'enroll' | 'challenge' } }
 export class Accounts {
+  sms = new SmsVerification(this);
   constructor(readonly db: Database, readonly provider: Provider, readonly config: Config) {}
   csrf(session: Row) { return createHmac('sha256', this.config.encryptionKey).update(`csrf:${session.id}`).digest('base64url'); }
   surfaceCookie(raw: string, kind: string) {
@@ -297,7 +299,7 @@ export class Accounts {
     // Never consume on preview: mail scanners and a page reload are not signup.
     return { email: invitation.email as string };
   }
-  async register(body: Row, requestedAppId: string | null = null) {
+  async register(body: Row, requestedAppId: string | null = null, registrationSessionId: string | null = null) {
     const secret = password(body.password), name = text(body.displayName, 100, true), lang = language(body.language);
     const invited = body.invitation !== undefined && body.invitation !== '';
     const preview = invited ? await this.invitationPreview(body.invitation) : null;
@@ -307,6 +309,7 @@ export class Accounts {
     if (preview && body.email !== undefined && email(body.email) !== address) return fail(400, 'invitation_email_mismatch');
     const returnAppId = this.config.surfaceAppId || requestedAppId || await this.registrationContinuation(body.continuation);
     let invitationHash: string | null = null;
+    let phoneChallenge: Row | null = null;
     await this.db.limit(`register:${address}`, 3, 3600);
     await this.db.limit('register:aggregate', this.config.hourlyRegistrationLimit, 3600);
     // Admission is linearized here. Closing registration after this reservation
@@ -315,6 +318,10 @@ export class Accounts {
       const [settings] = await q('select registration_mode from accounts.settings where singleton for share');
       if (settings!.registration_mode === 'closed') return fail(403, 'registration_closed');
       if (settings!.registration_mode === 'invitation' && !invited) return fail(400, 'invalid_invitation');
+      if (requestedAppId === 'app_airsoft') {
+        if (!registrationSessionId) return fail(400, 'phone_verification_required');
+        phoneChallenge = await this.sms.consume(q, registrationSessionId, requestedAppId, body);
+      }
       if (invited) {
         const [valid] = await q(`update accounts.credentials set consumed_at=now() where token_hash=$1 and purpose='invitation'
           and email=$2 and expires_at>now() and consumed_at is null and user_id is null returning token_hash`, [hash(body.invitation), address]);
@@ -344,6 +351,7 @@ export class Accounts {
     await this.db.tx(async q => {
       await q(`insert into accounts.security_state(user_id,language) values($1,$2) on conflict do nothing`, [created.id, lang]);
       await q('update core.profiles set display_name=$2,updated_at=now() where id=$1', [created.id, name]);
+      if (phoneChallenge) await this.sms.attach(q, created.id, phoneChallenge);
       if (!invitationHash) await this.credential(q, { id: created.id, security_version: 1 }, address, 'verification', lang, returnAppId);
       if (invitationHash) await q('update accounts.credentials set user_id=$2 where token_hash=$1 and user_id is null', [invitationHash, created.id]);
       if (this.config.surfaceAppId) await q('insert into accounts.product_registrations(user_id,app_id) values($1,$2) on conflict do nothing',[created.id,this.config.surfaceAppId]);

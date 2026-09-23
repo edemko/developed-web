@@ -124,3 +124,26 @@ check does not replace authenticated application or database authorization tests
 
 The [publication remediation record](published-file-security.md) includes the
 verified host state, rollback information, and exact Caddy/Odonto source patches.
+
+
+## Airsoft SMS deployment — 2026-09-23
+
+The live central API now uses release
+`eda0addfb2ee05368ed9055654fb00d9a7536e22`, built from the actual previous
+serving revision `8ec21fef5826a0176eab016b8cdce4c41f97badf` plus the narrowly
+scoped Airsoft signup change. Phone proofs are optional at account creation;
+Airsoft enforces verification before posting a new listing. Invitation admission
+is unchanged. This is the release-worktree equivalent of main commit `298072f`;
+unrelated later main-branch changes were not included in the deployed release.
+
+The temporary HTTP-only candidate on3180 carried requests during the handoff.
+Caddy is back on3140, candidate stopped, temporary bind permission removed.
+The mail worker retains release `502a7048ac639fe61ba8b95b0834fdaeafe0cc8b` and
+its scoped inputs; only its API pin was updated under `mail-workers/eda0add...`.
+Mail, database, security and template module hashes remained unchanged. The
+single worker was drained/restarted and passed its startup guard.
+
+Release tests:141 passed,21 opt-in suites skipped. Public registration returned200.
+Airsoft's independent release/unit/config and unresolved gateway delivery test
+are documented in the Airsoft repository's `deploy/host-runtime.md`.
+Protected backup/route evidence is `/var/backups/airsoft-sms-20260923`.

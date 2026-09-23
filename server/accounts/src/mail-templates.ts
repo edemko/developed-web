@@ -1,7 +1,7 @@
 import {readFileSync} from 'node:fs';
 /** First-party transactional mail. No remote images, web fonts or tracking. */
 export interface Mail { to: string; subject: string; text: string; html?: string; brand?: 'mega-music'; inlineLogo?: string }
-export interface MailOptions { origin?: string; supportEmail?: string; insecureLocal?: boolean; mailBrand?: 'mega-music' }
+export interface MailOptions { origin?: string; supportEmail?: string; insecureLocal?: boolean; mailBrand?: 'mega-music'; invitationOrigin?: string; invitationPath?: string }
 type Purpose = 'verification' | 'recovery' | 'email_change' | 'invitation';
 const lifetimes: Record<Purpose, number> = { verification: 86400, recovery: 1800, email_change: 1800, invitation: 604800 };
 export function credentialLifetime(purpose: string): number {
@@ -102,8 +102,16 @@ function render(to: string, subject: string, paragraphs: readonly string[], lang
 }
 export function credentialMail(to: string, purpose: string, link: string, lang: string, options: MailOptions = {}): Mail {
   const lifetime = credentialLifetime(purpose), key = purpose as Purpose, local = copy[locale(lang)];
-  const url = new URL(link), expectedOrigin = settings(options).origin;
-  const route = key === 'invitation' ? '/register' : key === 'recovery' ? '/reset-password' : '/verify-email';
+  const url = new URL(link), centralOrigin = settings(options).origin;
+  let expectedOrigin = centralOrigin;
+  let route = key === 'invitation' ? '/register' : key === 'recovery' ? '/reset-password' : '/verify-email';
+  if (key === 'invitation' && options.invitationOrigin && options.invitationPath) {
+    const target = new URL(options.invitationOrigin);
+    if (target.protocol !== 'https:' || target.username || target.password || target.pathname !== '/' || target.search || target.hash
+      || target.origin !== options.invitationOrigin || !/^\/(?:en|sk|cs|uk)\/signup$/.test(options.invitationPath)) throw new Error('Unsafe credential link');
+    expectedOrigin = target.origin;
+    route = options.invitationPath;
+  } else if (options.invitationOrigin || options.invitationPath) throw new Error('Unsafe credential link');
   const fragment = key === 'invitation' ? 'invitation' : 'token';
   if (url.origin !== expectedOrigin || url.username || url.password || url.pathname !== route || url.search || !new RegExp(`^#${fragment}=[A-Za-z0-9_-]{8,100}$`).test(url.hash) || url.href !== link) throw new Error('Unsafe credential link');
   const [subject, intro, label] = local[key];

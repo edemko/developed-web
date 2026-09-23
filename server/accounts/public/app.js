@@ -795,7 +795,12 @@ async function start() {
     panel(t('registration')).append(policyForm);
     const inviteForm = el('form');
     const email = field(inviteForm, 'email', { type: 'email', required: true, maxLength: 254 });
-    bindForm(inviteForm, t('sendInvitation'), async notice => { await sensitive('/admin/invitations', 'POST', { email: email.value.trim() }); feedback(notice, t('mailbox')); });
+    const invitationTargets = [['', 'DevelopED'], ...apps.filter(app => app.slug === 'airsoft' && app.published && app.joinPolicy !== 'closed').map(app => [app.slug, app.name])];
+    const invitationTarget = select(inviteForm, 'invitationDestination', invitationTargets, '');
+    bindForm(inviteForm, t('sendInvitation'), async notice => {
+      await sensitive('/admin/invitations', 'POST', { email: email.value.trim(), ...(invitationTarget.value ? { app: invitationTarget.value } : {}) });
+      feedback(notice, t('mailbox'));
+    });
     panel(t('sendInvitation')).append(inviteForm);
     for (const app of apps) {
       const form = el('form');

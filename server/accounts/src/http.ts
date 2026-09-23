@@ -289,7 +289,10 @@ function createSingleAccountServer(accounts: Accounts) {
       }
       if (path === '/admin/invitations' && method === 'POST') {
         await accounts.db.limit(`invitations:${user.id}`, 20, 3600);
-        await accounts.db.tx(q => accounts.credential(q, null, email(data.email), 'invitation', user.language)); return json(res, { accepted: true });
+        const target = data.app === undefined || data.app === '' ? null : await accounts.registrationApp(data.app);
+        if (target && target.slug !== 'airsoft') return fail(400, 'invalid_invitation_target');
+        await accounts.db.tx(q => accounts.credential(q, null, email(data.email), 'invitation', user.language, target?.app_id || null));
+        return json(res, { accepted: true });
       }
       if (path === '/admin/apps' && method === 'GET') {
         const apps = await accounts.db.query(`select a.app_id as id,a.slug,c.name,c.description,c.icon,a.launch_url as "launchUrl",

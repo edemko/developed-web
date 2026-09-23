@@ -271,13 +271,22 @@ export class Accounts {
     if (access) await this.provider.logout(access, 'global').catch(() => {});
   }
   async credential(query: Query, user: Row | null, address: string, purpose: string, lang = 'en', returnAppId: string | null = null) {
+    let actionOrigin = this.config.origin;
+    let route = purpose === 'recovery' ? '/reset-password' : purpose === 'invitation' ? '/register' : '/verify-email';
+    if (purpose === 'invitation' && returnAppId) {
+      const [app] = await query(`select a.slug,a.launch_url from accounts.app_settings a join core.apps c on c.id=a.app_id
+        where a.app_id=$1 and a.published and a.join_policy<>'closed' and c.status='ACTIVE' and c.deleted_at is null`, [returnAppId]);
+      if (!app || app.slug !== 'airsoft') return fail(400, 'invalid_invitation_target');
+      actionOrigin = exactHttps(app.launch_url, this.config.insecureLocal).origin;
+      route = `/${language(lang)}/signup`;
+    }
     const raw = token();
     if (user) await query(`update accounts.credentials set consumed_at=now() where user_id=$1 and purpose=$2 and consumed_at is null`, [user.id, purpose]);
     await query(`insert into accounts.credentials(token_hash,purpose,user_id,email,security_version,expires_at,return_app_id)
       values($1,$2,$3,$4,$5,now()+$6*interval '1 second',$7)`, [hash(raw), purpose, user?.id || null, address, user?.security_version || 1, credentialLifetime(purpose), returnAppId]);
-    const route = purpose === 'recovery' ? '/reset-password' : purpose === 'invitation' ? '/register' : '/verify-email';
     const fragment = purpose === 'invitation' ? 'invitation' : 'token';
-    await queueMail(query, this.config, credentialMail(address, purpose, `${this.config.origin}${route}#${fragment}=${raw}`, lang, this.config));
+    const mailOptions = actionOrigin === this.config.origin ? this.config : { ...this.config, invitationOrigin: actionOrigin, invitationPath: route };
+    await queueMail(query, this.config, credentialMail(address, purpose, `${actionOrigin}${route}#${fragment}=${raw}`, lang, mailOptions));
   }
   async invitationPreview(input: unknown) {
     if (typeof input !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(input)) return fail(400, 'invalid_invitation');
@@ -425,8 +434,15 @@ export class Accounts {
       where o.authorization_id=$1 and o.expires_at>now() and o.status='pending' and o.redirect_uri=oc.callback_url and a.published`, [id]);
     return app?.app_id || null;
   }
-  async registrationSurface(slugInput: unknown, originInput: unknown): Promise<Row> {
+  async registrationApp(slugInput: unknown): Promise<Row> {
     const slug = text(slugInput, 80, true);
+    const [app] = await this.db.query(`select a.app_id,a.slug,a.launch_url,c.name from accounts.app_settings a
+      join core.apps c on c.id=a.app_id where a.slug=$1 and a.published and a.join_policy<>'closed'
+      and c.status='ACTIVE' and c.deleted_at is null`, [slug]);
+    if (!app) return fail(403, 'registration_unavailable');
+    return app;
+  }
+  async registrationSurface(slugInput: unknown, originInput: unknown): Promise<Row> {
     if (typeof originInput !== 'string') return fail(403, 'invalid_origin');
     let origin: URL;
     try {
@@ -436,10 +452,7 @@ export class Accounts {
       if (error instanceof HttpError) throw error;
       return fail(403, 'invalid_origin');
     }
-    const [app] = await this.db.query(`select a.app_id,a.slug,a.launch_url,c.name from accounts.app_settings a
-      join core.apps c on c.id=a.app_id where a.slug=$1 and a.published and a.join_policy<>'closed'
-      and c.status='ACTIVE' and c.deleted_at is null`, [slug]);
-    if (!app) return fail(403, 'registration_unavailable');
+    const app = await this.registrationApp(slugInput);
     let launchOrigin: string;
     try { launchOrigin = exactHttps(app.launch_url, this.config.insecureLocal).origin; }
     catch { return fail(403, 'registration_unavailable'); }

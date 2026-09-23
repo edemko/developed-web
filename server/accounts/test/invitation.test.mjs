@@ -133,3 +133,11 @@ test('provider creation defaults unconfirmed and sends explicit invite-only conf
   await provider.create(address, input.password, input.displayName, true);
   assert.equal(requests[0].email_confirm, false); assert.equal(requests[1].email_confirm, true);
 });
+
+test('Airsoft signup no longer requires a phone proof; invitation admission remains enforced', async () => {
+  const f=fixture();
+  f.accounts.sms.consume=async () => { throw new Error('signup must not require SMS'); };
+  assert.deepEqual(await f.accounts.register(input,'app_airsoft','anonymous-session'), {accepted:true,emailVerified:true});
+  const denied=fixture();
+  await assert.rejects(denied.accounts.register({...input,invitation:undefined},'app_airsoft','anonymous-session'), error=>error.code==='invalid_invitation');
+});

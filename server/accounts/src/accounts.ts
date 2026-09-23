@@ -328,7 +328,9 @@ export class Accounts {
       const [settings] = await q('select registration_mode from accounts.settings where singleton for share');
       if (settings!.registration_mode === 'closed') return fail(403, 'registration_closed');
       if (settings!.registration_mode === 'invitation' && !invited) return fail(400, 'invalid_invitation');
-      if (requestedAppId === 'app_airsoft') {
+      // Airsoft verifies phone ownership before posting, not during account creation.
+      // Consume optional proofs from an older signup page during rolling deployment.
+      if (requestedAppId === 'app_airsoft' && body.phoneChallenge) {
         if (!registrationSessionId) return fail(400, 'phone_verification_required');
         phoneChallenge = await this.sms.consume(q, registrationSessionId, requestedAppId, body);
       }

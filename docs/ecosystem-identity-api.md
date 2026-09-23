@@ -52,6 +52,14 @@ separate remembered-browser cookie is SameSite=Strict. Responses are no-store.
   is rejected, including direct API requests. Invites are single-use and checked
   even when open registration is enabled. Existing accounts are never confirmed
   or password-changed through this flow.
+- A registered product may render this flow on its own origin through
+  `/registration/session`, `/registration/invitation/preview`,
+  `/registration/register` and `/registration/resend-verification`, each with
+  `?app=<registered-slug>`. CORS is returned only when the exact request Origin
+  matches that published app's registered HTTPS launch origin. These endpoints
+  retain the central opaque cookie, CSRF, admission, rate-limit, invitation and
+  email rules; they expose no signed-in user data and grant no provider or
+  database credential to the product.
 - POST `/invitation/preview` `{ token }`: `{ email }` for a valid unconsumed invite.
   Normal Origin/CSRF/no-store controls apply. This does not consume the invite;
   the browser shows its address read-only and keeps the fragment token in memory.

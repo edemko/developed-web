@@ -26,6 +26,11 @@ async function body(req: IncomingMessage): Promise<Row> {
 function json(res: ServerResponse, data: unknown, status = 200) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(data));
 }
+function registrationCors(res: ServerResponse, origin: string) {
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Vary', 'Origin');
+}
 function integer(value: string | null, fallback: number, max: number) {
   if (value === null) return fallback;
   if (!/^\d+$/.test(value) || Number(value) > max) return fail(400, 'invalid_pagination');
@@ -115,6 +120,44 @@ function createSingleAccountServer(accounts: Accounts) {
       // Production reverse proxy must also rate-limit clients before this boundary.
       const address = req.socket.remoteAddress || 'unknown';
       await accounts.db.limit(`requests:${address}`, 2000, 60);
+      const registrationPath = /^\/registration\/(session|invitation\/preview|register|resend-verification)$/.exec(path);
+      if (registrationPath) {
+        if (accounts.config.surfaceAppId) return fail(404, 'not_found');
+        const requestOrigin = req.headers.origin;
+        const app = await accounts.registrationSurface(url.searchParams.get('app'), requestOrigin);
+        registrationCors(res, requestOrigin!);
+        if (method === 'OPTIONS') {
+          const requestedMethod = req.headers['access-control-request-method'];
+          const requestedHeaders = String(req.headers['access-control-request-headers'] || '')
+            .split(',').map(value => value.trim().toLowerCase()).filter(Boolean);
+          if (!['GET', 'POST'].includes(String(requestedMethod))
+            || requestedHeaders.some(value => !['accept', 'content-type', 'x-csrf-token'].includes(value))) {
+            return fail(400, 'invalid_preflight');
+          }
+          res.writeHead(204, { 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Accept, Content-Type, X-CSRF-Token', 'Access-Control-Max-Age': '600' });
+          return res.end();
+        }
+        const ctx = await accounts.bootstrap(cookieValue(req, accounts.config.insecureLocal ? 'developed_local' : '__Host-developed_session'));
+        if (ctx.cookie) res.setHeader('Set-Cookie', ctx.cookie);
+        if (registrationPath[1] === 'session' && method === 'GET') {
+          const [settings] = await accounts.db.query('select registration_mode from accounts.settings where singleton');
+          return json(res, { csrfToken: accounts.csrf(ctx.session), registrationMode: settings!.registration_mode });
+        }
+        if (method !== 'POST') return fail(405, 'method_not_allowed');
+        if (req.headers['sec-fetch-site'] === 'cross-site'
+          || !equal(req.headers['x-csrf-token'], accounts.csrf(ctx.session))) return fail(403, 'invalid_csrf');
+        const data = await body(req);
+        if (registrationPath[1] === 'invitation/preview') {
+          await accounts.db.limit(`invitation-preview:${address}`, 200, 3600);
+          return json(res, await accounts.invitationPreview(data.token));
+        }
+        await accounts.db.limit(`sensitive:${address}`, 200, 3600);
+        if (registrationPath[1] === 'resend-verification') {
+          await accounts.sendCredential(data.email, false); return json(res, { accepted: true });
+        }
+        return json(res, await accounts.register(data, app.app_id));
+      }
       if (path === '/internal/session/check' || path === '/internal/user/check') {
         if (method !== 'POST') return fail(405, 'method_not_allowed');
         const auth = req.headers.authorization || '';

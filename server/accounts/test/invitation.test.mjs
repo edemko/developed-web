@@ -48,7 +48,7 @@ test('invitation preview is non-consuming and reveals only the bound address', a
 
 test('invited signup verifies the invite address and queues no second verification', async () => {
   const f = fixture();
-  assert.deepEqual(await f.accounts.register(input), { accepted: true, emailVerified: true });
+  assert.deepEqual(await f.accounts.register(input, 'app_airsoft'), { accepted: true, emailVerified: true });
   assert.deepEqual(f.calls, [[address, input.password, input.displayName, true]]);
   assert.equal(f.state.consumed, true); assert.equal(f.state.userId, 'new-user');
   await assert.rejects(f.accounts.register(input), error => error.code === 'invalid_invitation');

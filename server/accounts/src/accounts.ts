@@ -126,13 +126,15 @@ export class Accounts {
       ? Math.floor((new Date(ctx.session.mfa_remember_until || 0).getTime() - Date.now()) / 1000) : 0;
     let remembered = !pending && parsed.aal === 'aal2'
       ? options.rememberMfa === true ? 1209600 : options.rememberMfa === undefined ? Math.max(0, Math.min(1209600, remaining)) : 0 : 0;
+    let carriedRememberUntil = remembered && options.rememberMfa === undefined && ctx.session.mfa_remember_until
+      ? new Date(ctx.session.mfa_remember_until) : null;
     let lifetime = pending ? 600 : remembered || 604800;
     let trustCookie: string | undefined, trustId: string | null = null, trustedLogin = false;
     const [created] = await this.db.tx(async q => {
       await q('insert into accounts.security_state(user_id) values($1) on conflict do nothing', [user.id]);
       const [state] = await q('select * from accounts.security_state where user_id=$1 for update', [user.id]);
       if (state!.locked || state!.operation_id) return fail(403, 'account_unavailable');
-      if (state!.require_password_change) remembered = 0;
+      if (state!.require_password_change) { remembered = 0; carriedRememberUntil = null; }
       if (remembered && options.rememberMfa === true) {
         // Called only after real factor verification; confirm ownership/status
         // again under the account-state lock before issuing a separate credential.
@@ -154,9 +156,9 @@ export class Accounts {
         }
       } else if (remembered && ctx.session.mfa_trust_id) {
         const [validTrust] = await q('select id from accounts.browser_trust where id=$1 and accounts.browser_trust_valid(id,$2,$3)', [ctx.session.mfa_trust_id, user.id, state!.security_version]);
-        if (validTrust) trustId = validTrust.id; else remembered = 0;
+        if (validTrust) trustId = validTrust.id; else { remembered = 0; carriedRememberUntil = null; }
       }
-      if (remembered && !trustId) remembered = 0;
+      if (remembered && !trustId) { remembered = 0; carriedRememberUntil = null; }
       lifetime = pending ? 600 : remembered || 604800;
       // A fresh browser starts a new family; password re-login, reauthentication
       // and MFA rotation retain an existing, validated same-user browser family.
@@ -176,8 +178,9 @@ export class Accounts {
       if (!valid) return fail(401, 'invalid_session');
       await q('update accounts.sessions set revoked_at=now() where id=$1', [ctx.session.id]);
       return q(`insert into accounts.sessions(id,token_hash,csrf_hash,user_id,provider_session_id,provider_tokens,security_version,authenticated_at,expires_at,mfa_pending,browser_family_id,mfa_remember_until,mfa_trust_id)
-        values($1,$2,$3,$4,$5,$6,$7,case when $8::text is null and not $13::boolean then now() else null end,now()+$9*interval '1 second',$8,$10,case when $11::boolean then now()+$9*interval '1 second' else null end,$12) returning *`,
-      [id, hash(raw), hash(this.csrf({ id })), user.id, parsed.session_id, seal(auth, this.config.encryptionKey, `session:${id}`), state!.security_version, pending, lifetime, familyId, remembered > 0, trustId, trustedLogin]);
+        values($1,$2,$3,$4,$5,$6,$7,case when $8::text is null and not $13::boolean then now() else null end,now()+$9*interval '1 second',$8,$10,
+          case when $11::boolean then coalesce($14::timestamptz,now()+$9*interval '1 second') else null end,$12) returning *`,
+      [id, hash(raw), hash(this.csrf({ id })), user.id, parsed.session_id, seal(auth, this.config.encryptionKey, `session:${id}`), state!.security_version, pending, lifetime, familyId, remembered > 0, trustId, trustedLogin, carriedRememberUntil]);
     });
     created!.aal = parsed.aal || 'aal1';
     created!.browser_trusted = Boolean(trustId);
@@ -285,7 +288,7 @@ export class Accounts {
     // Never consume on preview: mail scanners and a page reload are not signup.
     return { email: invitation.email as string };
   }
-  async register(body: Row) {
+  async register(body: Row, requestedAppId: string | null = null) {
     const secret = password(body.password), name = text(body.displayName, 100, true), lang = language(body.language);
     const invited = body.invitation !== undefined && body.invitation !== '';
     const preview = invited ? await this.invitationPreview(body.invitation) : null;
@@ -293,7 +296,7 @@ export class Accounts {
     // The invitation, never the submitted address or a client confirmation flag,
     // chooses the identity. Explicit mismatches also fail for direct API callers.
     if (preview && body.email !== undefined && email(body.email) !== address) return fail(400, 'invitation_email_mismatch');
-    const returnAppId = this.config.surfaceAppId || await this.registrationContinuation(body.continuation);
+    const returnAppId = this.config.surfaceAppId || requestedAppId || await this.registrationContinuation(body.continuation);
     let invitationHash: string | null = null;
     await this.db.limit(`register:${address}`, 3, 3600);
     await this.db.limit('register:aggregate', this.config.hourlyRegistrationLimit, 3600);
@@ -410,6 +413,27 @@ export class Accounts {
       join auth.oauth_authorizations o on o.client_id=oc.client_id
       where o.authorization_id=$1 and o.expires_at>now() and o.status='pending' and o.redirect_uri=oc.callback_url and a.published`, [id]);
     return app?.app_id || null;
+  }
+  async registrationSurface(slugInput: unknown, originInput: unknown): Promise<Row> {
+    const slug = text(slugInput, 80, true);
+    if (typeof originInput !== 'string') return fail(403, 'invalid_origin');
+    let origin: URL;
+    try {
+      origin = exactHttps(originInput, this.config.insecureLocal);
+      if (origin.pathname !== '/' || origin.search) return fail(403, 'invalid_origin');
+    } catch (error) {
+      if (error instanceof HttpError) throw error;
+      return fail(403, 'invalid_origin');
+    }
+    const [app] = await this.db.query(`select a.app_id,a.slug,a.launch_url,c.name from accounts.app_settings a
+      join core.apps c on c.id=a.app_id where a.slug=$1 and a.published and a.join_policy<>'closed'
+      and c.status='ACTIVE' and c.deleted_at is null`, [slug]);
+    if (!app) return fail(403, 'registration_unavailable');
+    let launchOrigin: string;
+    try { launchOrigin = exactHttps(app.launch_url, this.config.insecureLocal).origin; }
+    catch { return fail(403, 'registration_unavailable'); }
+    if (launchOrigin !== origin.origin) return fail(403, 'invalid_origin');
+    return app;
   }
   async launchAfterLogin(ctx: Context, slug: unknown): Promise<string | undefined> {
     if (!slug || ctx.user?.requirePasswordChange) return undefined;

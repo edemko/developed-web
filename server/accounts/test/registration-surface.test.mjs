@@ -21,6 +21,10 @@ test('product registration CORS exposes only the bounded anonymous flow', async 
     invitationPreview: async token => token === 'invite' ? { email: 'invited@example.test' } : (() => { throw new HttpError(400, 'invalid_invitation'); })(),
     register: async (body, appId) => { calls.push({ body, appId }); return { accepted: true, emailVerified: Boolean(body.invitation) }; },
     sendCredential: async email => calls.push({ resend: email }),
+    sms: {
+      start: async (sessionId, appId, body) => { calls.push({ smsStart: { sessionId, appId, body } }); return { challengeId: '11111111-1111-4111-8111-111111111111' }; },
+      verify: async (sessionId, appId, body) => { calls.push({ smsVerify: { sessionId, appId, body } }); return { verified: true }; },
+    },
   };
   const server = createAccountServer(accounts);
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -51,6 +55,19 @@ test('product registration CORS exposes only the bounded anonymous flow', async 
   }, body: JSON.stringify({ email: 'invited@example.test', password: 'long-enough-password', displayName: 'Fixture', invitation: 'invite' }) });
   assert.equal(submit.status, 200); assert.deepEqual(await submit.json(), { accepted: true, emailVerified: true });
   assert.deepEqual(calls[0].appId, 'app_airsoft');
+
+  const smsStart = await fetch(`${endpoint}/sms/start?app=airsoft`, { method: 'POST', headers: {
+    Origin: productOrigin, Cookie: 'developed_local=fixture', 'Content-Type': 'application/json',
+    'X-CSRF-Token': state.csrfToken, 'Sec-Fetch-Site': 'same-site',
+  }, body: JSON.stringify({ phone: '+421900000001', invitation: 'invite' }) });
+  assert.equal(smsStart.status, 200);
+  const smsVerify = await fetch(`${endpoint}/sms/verify?app=airsoft`, { method: 'POST', headers: {
+    Origin: productOrigin, Cookie: 'developed_local=fixture', 'Content-Type': 'application/json',
+    'X-CSRF-Token': state.csrfToken, 'Sec-Fetch-Site': 'same-site',
+  }, body: JSON.stringify({ challengeId: '11111111-1111-4111-8111-111111111111', code: '123456' }) });
+  assert.equal(smsVerify.status, 200);
+  assert.deepEqual(calls[1].smsStart, { sessionId: 'anonymous-session', appId: 'app_airsoft', body: { phone: '+421900000001', invitation: 'invite' } });
+  assert.deepEqual(calls[2].smsVerify, { sessionId: 'anonymous-session', appId: 'app_airsoft', body: { challengeId: '11111111-1111-4111-8111-111111111111', code: '123456' } });
 
   const blocked = await fetch(`${endpoint}/register?app=airsoft`, { method: 'POST', headers: {
     Origin: productOrigin, Cookie: 'developed_local=fixture', 'Content-Type': 'application/json',

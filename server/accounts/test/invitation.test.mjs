@@ -31,6 +31,7 @@ function fixture({ mode = 'invitation', expired = false, consumed = false, exist
     return { id: 'new-user', email: args[0] };
   } };
   const accounts = new Accounts(db, provider, { hourlyRegistrationLimit: 20 });
+  accounts.sms = { consume: async () => ({ id: 'verified-phone' }), attach: async () => {} };
   accounts.registrationContinuation = async () => null;
   accounts.credential = async (...args) => calls.push({ mailPurpose: args[3] });
   accounts.notifySuperadmins = async (_query, registered, appId) => calls.push({ notification: registered, appId });
@@ -49,7 +50,7 @@ test('invitation preview is non-consuming and reveals only the bound address', a
 
 test('invited signup verifies the invite address and queues no second verification', async () => {
   const f = fixture();
-  assert.deepEqual(await f.accounts.register(input, 'app_airsoft'), { accepted: true, emailVerified: true });
+  assert.deepEqual(await f.accounts.register({ ...input, phoneChallenge: '11111111-1111-4111-8111-111111111111' }, 'app_airsoft', 'anonymous-session'), { accepted: true, emailVerified: true });
   assert.deepEqual(f.calls, [
     [address, input.password, input.displayName, true],
     { notification: { email: address, displayName: input.displayName }, appId: 'app_airsoft' },

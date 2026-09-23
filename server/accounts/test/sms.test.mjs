@@ -30,6 +30,7 @@ test('SMS Gate transport uses a bounded POST and accepts only a concrete message
 test('OTP challenge is session, app and invitation bound and becomes single-use', async () => {
   const rows = new Map(), key = randomBytes(32), sent = [];
   const query = async (sql, args = []) => {
+    if (sql.startsWith('select registration_mode')) return [{ registration_mode: 'invitation' }];
     if (sql.startsWith('select pg_advisory')) return [];
     if (sql.includes('count(*)::integer as hourly')) return [{ hourly: 0, latest: null }];
     if (sql.startsWith('insert into accounts.sms_challenges')) {
@@ -70,6 +71,7 @@ test('OTP challenge is session, app and invitation bound and becomes single-use'
   };
   try {
     const service = new SmsVerification(accounts), invitation = 'a'.repeat(43);
+    await assert.rejects(service.start('session-a', 'app_airsoft', { phone: '0911 327 715', email: 'invited@example.test' }), error => error.code === 'invalid_invitation');
     const started = await service.start('session-a', 'app_airsoft', { phone: '0911 327 715', invitation });
     assert.equal(sent[0].phone, '+421911327715');
     await assert.rejects(service.verify('session-b', 'app_airsoft', { challengeId: started.challengeId, code: sent[0].code }), error => error.code === 'invalid_sms_code');

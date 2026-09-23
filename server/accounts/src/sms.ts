@@ -73,6 +73,9 @@ export class SmsVerification {
 
   async start(sessionId: string, appId: string, body: Row) {
     if (appId !== AIRSOFT_APP_ID) return fail(404, 'not_found');
+    const [settings] = await this.accounts.db.query('select registration_mode from accounts.settings where singleton');
+    if (!settings || settings.registration_mode === 'closed') return fail(403, 'registration_closed');
+    if (settings.registration_mode === 'invitation' && !body.invitation) return fail(400, 'invalid_invitation');
     const binding = this.binding(body);
     if (body.invitation) await this.accounts.invitationPreview(body.invitation);
     const phone = normalizeSlovakMobile(body.phone), phoneLookup = keyed(this.accounts, 'phone', phone);

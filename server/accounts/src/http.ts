@@ -8,6 +8,7 @@ import type { Row } from './db.js';
 import { Mfa } from './mfa.js';
 import { catalogApp } from './catalog.js';
 import { oauthBroker } from './oauth-broker.js';
+import { ProductProfile } from './product-profile.js';
 
 const assets = new Map<string, [string, string]>([
   ['app.js', ['app.js', 'text/javascript']], ['i18n.js', ['i18n.js', 'text/javascript']],
@@ -165,6 +166,13 @@ function createSingleAccountServer(accounts: Accounts) {
           await accounts.sendCredential(data.email, false); return json(res, { accepted: true });
         }
         return json(res, await accounts.register(data, app.app_id, ctx.session.id));
+      }
+      const productProfile = path.match(/^\/internal\/profile\/(details|profile|password|email|phone-start|phone-verify)$/);
+      if (productProfile) {
+        if (method !== 'POST') return fail(405, 'method_not_allowed');
+        const auth = req.headers.authorization || '';
+        if (!auth.startsWith('Bearer ')) return fail(401, 'invalid_app_credentials');
+        return json(res, await new ProductProfile(accounts).handle(auth.slice(7), productProfile[1]!, await body(req)));
       }
       if (path === '/internal/session/check' || path === '/internal/user/check') {
         if (method !== 'POST') return fail(405, 'method_not_allowed');

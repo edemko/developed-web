@@ -144,3 +144,31 @@ The caller must derive userId from its verified credential, not request input.
 This contract does not claim legacy raw-token APIs have already been closed;
 that is a separate cutover acceptance gate, including product RLS and other
 holders of shared admin credentials.
+
+## AMP account editing
+
+The server-authenticated `/internal/profile/:action` POST endpoints allow the
+registered `app_airsoft` **web** client to render account controls within AMP.
+Each request contains `accessToken` and uses the existing app-key Authorization
+header. The same internal session gate verifies subject, app/client, browser
+family, membership and central security state. No caller-supplied user ID is used.
+
+- `details` → `{ user, phones: [{ id, phone, verifiedAt }] }`.
+- `profile` `{ displayName }` updates the shared display name (1–60 characters).
+- `password` `{ currentPassword, password, code?, factorId? }` uses central
+  password mutation/revocation → `{ ok: true, loginRequired: true }`.
+- `email` `{ currentPassword, email, code?, factorId? }` queues central confirmation
+  → `{ accepted: true }`. The old address remains until the existing email token
+  consumer replaces it; successful confirmation continues to AMP sign-in.
+- `phone-start` `{ phone, replaceId? }` → `{ challengeId, expiresIn: 300,
+  resendAfter: 60 }`. Omit `replaceId` to add a number (maximum three verified
+  contacts). International E.164 numbers and Slovak domestic mobile input work.
+- `phone-verify` `{ challengeId, code }` atomically adds/replaces a number and
+  returns `{ phones }`. Five failed attempts lock the challenge. Expiry, replay,
+  subject/security-version mismatch and concurrent fourth-number creation fail.
+
+Requires `20260924194706_account_profile_contacts.sql`. Existing central phone
+ciphertexts remain compatible and occupy slot 1. Profile-phone challenges have
+separate private storage, user/destination cooldowns, quotas, and housekeeping.
+Only central sends SMS; products receive neither OTP hashes nor provider tokens.
+This source addition does not deploy or activate endpoints on the live service.

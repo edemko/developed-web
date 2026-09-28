@@ -19,7 +19,9 @@ const timer = setInterval(async () => {
   if (running) return; running = true;
   try {
     await worker.tick();
-    if (Date.now() - lastMaintenance > 60_000) { await db.housekeeping(); lastMaintenance = Date.now(); }
+    if (Date.now() - lastMaintenance > 60_000) { await db.housekeeping();
+      await db.query(`delete from accounts.profile_phone_challenges where id in (select id from accounts.profile_phone_challenges where created_at<now()-interval '30 days' limit 1000)`);
+      lastMaintenance = Date.now(); }
   } catch { process.stderr.write('accounts: background maintenance unavailable\n'); }
   finally { running = false; }
 }, 5000);

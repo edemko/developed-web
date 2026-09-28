@@ -171,4 +171,6 @@ Requires `20260924194706_account_profile_contacts.sql`. Existing central phone
 ciphertexts remain compatible and occupy slot 1. Profile-phone challenges have
 separate private storage, user/destination cooldowns, quotas, and housekeeping.
 Only central sends SMS; products receive neither OTP hashes nor provider tokens.
-This source addition does not deploy or activate endpoints on the live service.
+Deployed on 2026-09-28 in scoped release `ec2da85` with the required migration.
+See [the deployment checkpoint](../server/accounts/deploy/amp-profile-checkpoint-20260928.md)
+for live pins, verification and delivery acceptance limits.

@@ -1,6 +1,11 @@
 # DevelopED deployment and runtime separation
 
-Current central status (2026-09-21): all seven apps are enabled, admission is
+Current API release (2026-09-28): `ec2da85`, unit `developed-accounts.service`,
+loopback 3140. AMP profile account controls and both migrations are deployed.
+See [the AMP profile checkpoint](amp-profile-checkpoint-20260928.md) for exact
+API/mail-worker pins, delivery limits, validation and rollback.
+
+Central activation status (2026-09-21): all seven apps are enabled, admission is
 invitation-only, and browser-family logout enforcement is active. See the
 [portal upgrade checkpoint](portal-upgrade-checkpoint-20260921.md). The dated
 2026-09-20 inventory below is retained historical evidence, not a current claim

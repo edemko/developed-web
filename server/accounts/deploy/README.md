@@ -1,3 +1,5 @@
+> Current September30 production state: [Supabase optimization deployment](../../../docs/audits/2026-09-30-supabase-deployment.md). This checkpoint supersedes the earlier runtime versions below.
+
 # DevelopED deployment and runtime separation
 
 Current API release (2026-09-28): `ec2da85`, unit `developed-accounts.service`,

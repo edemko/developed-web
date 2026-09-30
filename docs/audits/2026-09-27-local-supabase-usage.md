@@ -127,3 +127,8 @@ Changing that requires a coordinated client release and the existing 90-second
 staleness contract; server changes here do not eliminate it. No change to its
 cadence is justified by this sample. Other production DB/index work, deployments
 and expanded diagnostics remain outside this local implementation.
+
+## Deployment follow-up
+
+Released on September30; see [deployment checkpoint](2026-09-30-supabase-deployment.md).
+The no-deployment statements above describe the original audit date.

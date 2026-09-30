@@ -30,7 +30,8 @@ export class Accounts {
     rawCookie = this.readSurfaceCookie(rawCookie,'session');
     let session: Row | undefined;
     if (rawCookie && /^[A-Za-z0-9_-]{43}$/.test(rawCookie)) {
-      [session] = await this.db.query(`select s.* from accounts.sessions s where token_hash=$1 and revoked_at is null
+      [session] = await this.db.query(`select s.*,s.last_seen_at<now()-interval '5 minutes' as activity_due
+        from accounts.sessions s where token_hash=$1 and revoked_at is null
         and expires_at>now() and (mfa_remember_until>now() or last_seen_at>now()-interval '24 hours')
         and (s.mfa_trust_id is null or accounts.browser_trust_valid(s.mfa_trust_id,s.user_id,s.security_version))
         and (s.user_id is null or exists(select 1 from accounts.browser_families f
@@ -60,7 +61,12 @@ export class Accounts {
       // Do not modify or misrepresent the provider's actual assurance level.
       session.browser_trusted = Boolean(session.mfa_trust_id);
     }
-    await this.db.query(`update accounts.sessions set last_seen_at=now() where id=$1 and last_seen_at<now()-interval '5 minutes'`, [session.id]);
+    // Reuse the fresh DB-clock decision, never a process/shared authorization
+    // cache. The predicate still arbitrates concurrent requests/instances.
+    if (session.activity_due !== false) {
+      await this.db.query(`update accounts.sessions set last_seen_at=now() where id=$1 and last_seen_at<now()-interval '5 minutes'`, [session.id]);
+    }
+    delete session.activity_due;
     return this.context(session, user);
   }
   context(session: Row, user: Row | null, cookie?: string): Context {

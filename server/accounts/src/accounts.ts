@@ -2,7 +2,7 @@ import { createHmac, randomUUID } from 'node:crypto';
 import type { Config } from './config.js';
 import { Database, type Query, type Row } from './db.js';
 import { Provider, type ProviderSession } from './provider.js';
-import { claims, diagnostics, email, equal, fail, hash, HttpError, language, password, passwordInput, seal, text, token, unseal, uuid, exactHttps, oauthCallback } from './security.js';
+import { claims, diagnostics, email, equal, fail, hash, HttpError, language, line, password, passwordInput, seal, text, token, unseal, uuid, exactHttps, oauthCallback } from './security.js';
 import { credentialMail, credentialLifetime, queueMail, securityMail, reportMail } from './mail.js';
 import { SmsVerification } from './sms.js';
 
@@ -306,7 +306,7 @@ export class Accounts {
     return { email: invitation.email as string };
   }
   async register(body: Row, requestedAppId: string | null = null, registrationSessionId: string | null = null) {
-    const secret = password(body.password), name = text(body.displayName, 100, true), lang = language(body.language);
+    const secret = password(body.password), name = line(body.displayName, 100, true), lang = language(body.language);
     const invited = body.invitation !== undefined && body.invitation !== '';
     const preview = invited ? await this.invitationPreview(body.invitation) : null;
     const address = preview ? preview.email : email(body.email);
@@ -482,7 +482,7 @@ export class Accounts {
   async report(ctx: Context, body: Row) {
     const app = await this.source(text(body.appSlug, 80, true));
     const contact = ctx.user ? ctx.user.email : body.contactEmail ? email(body.contactEmail) : null;
-    const data = { summary: text(body.summary, 160), description: text(body.description, 10000, true),
+    const data = { summary: line(body.summary, 160), description: text(body.description, 10000, true),
       steps: text(body.steps, 5000), expected: text(body.expected, 2000), actual: text(body.actual, 2000), diagnostics: diagnostics(body.diagnostics),
       occurredAt: body.occurredAt ? text(body.occurredAt, 40) : null };
     if (data.occurredAt && (!Number.isFinite(Date.parse(data.occurredAt)) || Date.parse(data.occurredAt) > Date.now() + 300_000)) return fail(400, 'invalid_date');

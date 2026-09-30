@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { Accounts, type Context } from './accounts.js';
-import { diagnostics, email, equal, fail, hash, HttpError, language, password, text, uuid } from './security.js';
+import { diagnostics, email, equal, fail, hash, HttpError, language, line, password, text, uuid } from './security.js';
 import type { Row } from './db.js';
 import { Mfa } from './mfa.js';
 import { catalogApp } from './catalog.js';
@@ -264,7 +264,7 @@ function createSingleAccountServer(accounts: Accounts) {
         return json(res, { apps: apps.map(catalogApp) });
       }
       if (path === '/profile' && method === 'PATCH') {
-        const name = text(data.displayName, 100, true), lang = language(data.language);
+        const name = line(data.displayName, 100, true), lang = language(data.language);
         await accounts.db.tx(async q => {
           await q('update core.profiles set display_name=$2,updated_at=now() where id=$1', [user.id, name]);
           await q(`insert into accounts.security_state(user_id,language) values($1,$2) on conflict(user_id) do update set language=$2`, [user.id, lang]);

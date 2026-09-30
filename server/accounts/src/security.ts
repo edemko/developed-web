@@ -11,16 +11,44 @@ export function equal(a: unknown, b: string): boolean {
   const first = Buffer.from(a), second = Buffer.from(b);
   return first.length === second.length && timingSafeEqual(first, second);
 }
+// Multi-line free text (descriptions, notes): keeps \t, \n and \r, rejects NUL,
+// the other C0 controls and DEL.
 export function text(value: unknown, max: number, required = false): string {
   if (value === undefined && !required) return '';
   if (typeof value !== 'string') return fail(400, 'invalid_input');
   const clean = value.trim().normalize('NFC');
-  if (clean.length > max || (required && !clean) || /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(clean)) return fail(400, 'invalid_input');
+  if (clean.length > max || (required && !clean) || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(clean)) return fail(400, 'invalid_input');
   return clean;
 }
+// Single-line names and titles: like text(), but any Unicode control character
+// (including \n, \r, \t) and the U+2028/U+2029 separators are rejected.
+// Diacritics, apostrophes, hyphens and dots stay allowed.
+export function line(value: unknown, max: number, required = false): string {
+  if (value === undefined && !required) return '';
+  if (typeof value !== 'string') return fail(400, 'invalid_input');
+  const clean = value.trim().normalize('NFC');
+  if (clean.length > max || (required && !clean) || /[\p{Cc}\u2028\u2029]/u.test(clean)) return fail(400, 'invalid_input');
+  return clean;
+}
+// Canonical ecosystem email policy: ASCII dot-atom local part (1-64, no quoted
+// forms or comments), DNS hostname domain (<=253, >=2 labels, punycode allowed,
+// no IP literals, non-numeric TLD >=2), total <=254, stored lowercase.
+// Syntax only; ownership verification stays with the credential flow.
+const EMAIL_ATOM = /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+$/;
+const DOMAIN_LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 export function email(value: unknown): string {
-  const clean = text(value, 254, true).toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) return fail(400, 'invalid_email');
+  if (typeof value !== 'string') return fail(400, 'invalid_email');
+  const trimmed = value.trim();
+  // Printable ASCII only, checked before lowercasing so no Unicode case mapping
+  // (e.g. KELVIN SIGN -> "k") can turn a non-ASCII address into an accepted one.
+  if (!trimmed || trimmed.length > 254 || !/^[\x21-\x7e]+$/.test(trimmed)) return fail(400, 'invalid_email');
+  const clean = trimmed.toLowerCase(), parts = clean.split('@');
+  if (parts.length !== 2) return fail(400, 'invalid_email');
+  const [local, domain] = parts as [string, string];
+  if (local.length < 1 || local.length > 64 || !local.split('.').every(atom => EMAIL_ATOM.test(atom))) return fail(400, 'invalid_email');
+  const labels = domain.split('.');
+  if (domain.length > 253 || labels.length < 2 || !labels.every(label => DOMAIN_LABEL.test(label))
+    || labels.at(-1)!.length < 2 || /^[0-9]+$/.test(labels.at(-1)!)) return fail(400, 'invalid_email');
   return clean;
 }
 export function password(value: unknown): string {

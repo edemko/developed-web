@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
-import { diagnostics, equal, password, passwordInput, email, seal, unseal, exactHttps, text, oauthCallback } from '../dist/security.js';
+import { diagnostics, equal, password, passwordInput, email, seal, unseal, exactHttps, text, line, oauthCallback } from '../dist/security.js';
 import { config } from '../dist/config.js';
 import { Provider } from '../dist/provider.js';
 import { Accounts } from '../dist/accounts.js';
@@ -101,4 +101,36 @@ test('expired-cookie marketing fallback permits only exact inline script hashes,
   assert.match(policy, /script-src 'self' 'sha256-[A-Za-z0-9+/]+=*'/);
   assert.equal(policy.includes('unsafe-inline'), false);
   assert.notEqual(policy, marketingPolicy('<script>different()</script>'));
+});
+test('email follows the canonical ecosystem policy', () => {
+  const accepted = { 'a@example.com': 'a@example.com', 'first.last+tag@example.co.uk': 'first.last+tag@example.co.uk',
+    "o'brien@example.sk": "o'brien@example.sk", 'user@xn--80ak6aa92e.com': 'user@xn--80ak6aa92e.com',
+    'x@sub-domain.example.org': 'x@sub-domain.example.org', [`${'a'.repeat(64)}@example.com`]: `${'a'.repeat(64)}@example.com`,
+    '  Mixed@Example.COM  ': 'mixed@example.com' };
+  for (const [input, output] of Object.entries(accepted)) assert.equal(email(input), output, input);
+  const total254 = `${'a'.repeat(64)}@${'b'.repeat(63)}.${'c'.repeat(63)}.${'d'.repeat(57)}.com`;
+  assert.equal(total254.length, 254); assert.equal(email(total254), total254);
+  const total255 = `${'a'.repeat(64)}@${'b'.repeat(63)}.${'c'.repeat(63)}.${'d'.repeat(58)}.com`;
+  assert.equal(total255.length, 255);
+  for (const input of ['a..b@example.com', '.a@example.com', 'a.@example.com', 'a@-example.com', 'a@example-.com',
+    'a@example..com', 'a@example', 'a@example.c', 'a@example.123', `${'a'.repeat(65)}@example.com`, total255,
+    'a@@example.com', 'a@b@example.com', '"a b"@example.com', 'a@[127.0.0.1]', 'a b@example.com', 'a@exämple.com',
+    'a\n@example.com', 'a\0@example.com', 'a@\u212Aexample.com', '', '   ', {}, [], 42, null, undefined]) {
+    assert.throws(() => email(input), e => e.code === 'invalid_email', JSON.stringify(input));
+  }
+});
+test('single-line names keep real-world punctuation but reject control characters', () => {
+  assert.equal(line('  Ľudmila O\'Brien-Šťastná  ', 100, true), 'Ľudmila O\'Brien-Šťastná');
+  assert.equal(line('J. R. R. O’Neill', 100, true), 'J. R. R. O’Neill');
+  assert.equal(line('Cafe\u0301', 100, true), 'Caf\u00e9'); // NFC before storing and measuring
+  assert.equal(line('x'.repeat(99), 100, true).length, 99); assert.equal(line('x'.repeat(100), 100, true).length, 100);
+  assert.throws(() => line('x'.repeat(101), 100, true));
+  assert.equal(line(undefined, 100), ''); assert.throws(() => line(undefined, 100, true)); assert.throws(() => line('   ', 100, true));
+  for (const input of [null, 42, {}, ['name']]) assert.throws(() => line(input, 100, true), e => e.code === 'invalid_input');
+  for (const input of ['Ann\nSmith', 'Ann\rSmith', 'Ann\tSmith', 'Ann\0Smith', 'Ann\u007fSmith', 'Ann\u0085Smith', 'Ann\u2028Smith', 'Ann\u2029Smith']) {
+    assert.throws(() => line(input, 100, true), JSON.stringify(input));
+  }
+  // Multi-line text keeps line breaks and tabs but still refuses NUL/DEL/other C0.
+  assert.equal(text('first\n\tsecond\r\nthird', 100), 'first\n\tsecond\r\nthird');
+  for (const input of ['a\0b', 'a\u007fb', 'a\u001bb']) assert.throws(() => text(input, 100));
 });

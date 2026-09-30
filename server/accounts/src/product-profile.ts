@@ -1,7 +1,7 @@
 import { createHmac, randomInt, randomUUID } from 'node:crypto';
 import type { Accounts } from './accounts.js';
 import type { Row, Query } from './db.js';
-import { email, equal, fail, password, seal, text, unseal, uuid } from './security.js';
+import { email, equal, fail, line, password, seal, text, unseal, uuid } from './security.js';
 
 
 export function contactPhone(input: unknown) {
@@ -70,7 +70,7 @@ export class ProductProfile {
       return { accepted: true };
     }
     if (action === 'profile') {
-      const displayName = text(body.displayName, 60, true);
+      const displayName = line(body.displayName, 100, true);
       await a.db.tx(async q => { await this.locked(q, user); await q('update core.profiles set display_name=$2,updated_at=now() where id=$1', [user.id, displayName]); });
       return { ok: true };
     }

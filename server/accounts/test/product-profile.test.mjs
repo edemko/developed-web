@@ -62,3 +62,21 @@ test('profile SMS uses explicit sender and v2 without retrying an ambiguous send
   assert.equal(calls,1);
   assert.equal((await sendProfileSms({config:{smsGateKey:'fixture'}},'+421911111111','Fixture',async()=>assert.fail())).status,'not_configured');
 });
+
+test('product profile display name shares the central 100-character single-line limit', async () => {
+  const user = { id: '11111111-1111-4111-8111-111111111111', email: 'old@example.test', security_version: 4, language: 'sk' };
+  const writes = [];
+  const query = async (sql, args) => { if (sql.startsWith('select *')) return [user]; writes.push(args); return []; };
+  const service = new ProductProfile({
+    internalCheck: async () => ({ app: { id: 'app_airsoft' }, client: { kind: 'web' }, user, securityVersion: 4 }),
+    userById: async () => user, db: { tx: async run => run(query) },
+  });
+  for (const name of ['x'.repeat(99), 'x'.repeat(100), "Ľudmila O'Brien-Šťastná"]) {
+    assert.deepEqual(await service.handle('key', 'profile', { displayName: `  ${name}  ` }), { ok: true });
+    assert.deepEqual(writes.pop(), [user.id, name]);
+  }
+  for (const displayName of ['x'.repeat(101), '   ', null, 42, {}, 'Ann\nSmith', 'Ann\u0000Smith']) {
+    await assert.rejects(service.handle('key', 'profile', { displayName }), e => e.code === 'invalid_input', JSON.stringify(displayName));
+  }
+  assert.equal(writes.length, 0);
+});

@@ -154,7 +154,7 @@ header. The same internal session gate verifies subject, app/client, browser
 family, membership and central security state. No caller-supplied user ID is used.
 
 - `details` → `{ user, phones: [{ id, phone, verifiedAt }] }`.
-- `profile` `{ displayName }` updates the shared display name (1–60 characters).
+- `profile` `{ displayName }` updates the shared display name (1–100 characters, single line; control characters rejected).
 - `password` `{ currentPassword, password, code?, factorId? }` uses central
   password mutation/revocation → `{ ok: true, loginRequired: true }`.
 - `email` `{ currentPassword, email, code?, factorId? }` queues central confirmation

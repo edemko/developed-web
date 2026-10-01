@@ -105,36 +105,48 @@
     "icon": "mega-music-square-192.b19ee4800c84.webp",
     "url": "https://megamusic.developed.sk/app/",
     "host": "megamusic.developed.sk",
-    "hero": "library",
-    "detail": "good-songs",
-    "extra": null,
+    "hero": "web-home.4dd50394bed2",
+    "detail": "web-search.c8aea17f1bb0",
+    "extra": "web-equalizer.9a153548cc6e",
     "sk": {
       "label": "Vaša súkromná hudobná knižnica",
       "title": "Vaša hudba. Váš priestor.",
-      "intro": "Obľúbené skladby na jednom mieste. Usporiadajte si vlastnú kolekciu, nájdite tú správnu náladu a pustite si hudbu.",
+      "intro": "Známe rozhranie v štýle Macu, prehľadná knižnica a zvuk podľa teba. Otvor Mega Music na webe a maj hudbu poruke.",
       "chips": [
-        "Súkromná knižnica",
-        "Priečinky a značky",
-        "Webový prehrávač"
+        "Päťpásmový ekvalizér",
+        "Pokročilé vyhľadávanie",
+        "Virtuálne priečinky"
       ],
       "features": [
         [
-          "Kolekcia podľa vás",
-          "Priečinky, kategórie a značky udržia poriadok aj vo väčšej knižnici. Skladby si môžete aj hodnotiť."
+          "Päťpásmový ekvalizér",
+          "Prispôsob si basy, stredy aj výšky v piatich pásmach od 60 Hz do 14 kHz. Dolaď každé pásmo po pol decibele alebo sa vráť k rovnému zvuku."
         ],
         [
-          "Stačí stlačiť prehrávanie",
-          "Prehrávač v prehliadači ponúka front skladieb, náhodné prehrávanie a opakovanie."
+          "Značky a kategórie",
+          "Priraď skladbe kategóriu a viacero značiek. Označ náladu, žáner či príležitosť a nájdi správnu hudbu aj bez názvu súboru."
         ],
         [
-          "Zvuk vo vašich rukách",
-          "Päťpásmový ekvalizér umožní prispôsobiť zvuk. Vlastné nahrávky zostávajú v súkromnej knižnici."
+          "Virtuálne priečinky",
+          "Vytváraj vnorené priečinky, premenuj a presúvaj skladby v spravovanej knižnici. Usporiadaj kolekciu bez opätovného nahrávania zvukových súborov."
+        ],
+        [
+          "Prehrávaj skupiny kolekcií",
+          "Vyber viacero priečinkov a spoj ich skladby do jedného frontu. Zostav si hudobný výber na prácu, cestu alebo celý večer."
+        ],
+        [
+          "Pokročilé vyhľadávanie",
+          "Spájaj alternatívne výrazy klávesom Enter, vyžaduj presné značky a filtruj podľa kategórie. Prehraj všetky zhody alebo len doteraz nehodnotené skladby."
+        ],
+        [
+          "Polhviezdičkové hodnotenia a obľúbené",
+          "Hodnoť skladby od polovice hviezdičky po päť, aj priamo vo fronte. Hodnotenia spravovanej knižnice sa synchronizujú medzi zariadeniami; srdiečka ukladajú samostatný zoznam obľúbených pre tvoj účet v tomto prehliadači."
         ]
       ],
-      "detailTitle": "Dobré skladby si zaslúžia dobrý poriadok.",
-      "detailText": "Vytvorte si výber na cestu, prácu či pokojný večer. Čitateľné názvy, obľúbené skladby a prehľadné kategórie sú vždy poruke.",
-      "heroAlt": "Prehrávač Mega Music s demo hudobnou knižnicou",
-      "detailAlt": "Priečinok Good Songs so skladbami, kategóriami a hodnoteniami",
+      "detailTitle": "Pokročilé vyhľadávanie",
+      "detailText": "Spájaj alternatívne výrazy klávesom Enter, vyžaduj presné značky a filtruj podľa kategórie. Prehraj všetky zhody alebo len doteraz nehodnotené skladby.",
+      "heroAlt": "Domov, kolekcie a stály mini prehrávač",
+      "detailAlt": "Vyhľadávacie výrazy, presné značky a polhviezdičkové hodnotenia",
       "faq": [
         [
           "Je Mega Music verejná streamovacia služba?",
@@ -148,35 +160,56 @@
           "Môžem počúvať cez prehliadač?",
           "Áno. Webový prehrávač je dostupný po prihlásení do Mega Music."
         ]
-      ]
+      ],
+      "extraTitle": "Päťpásmový ekvalizér",
+      "extraText": "Prispôsob si basy, stredy aj výšky v piatich pásmach od 60 Hz do 14 kHz. Dolaď každé pásmo po pol decibele alebo sa vráť k rovnému zvuku.",
+      "extraAlt": "Päťpásmový ekvalizér so samostatným nastavením pásiem",
+      "organizeTitle": "Prehrávaj skupiny kolekcií",
+      "organizeText": "Vyber viacero priečinkov a spoj ich skladby do jedného frontu. Zostav si hudobný výber na prácu, cestu alebo celý večer.",
+      "organizeAlt": "Virtuálne priečinky vybrané ako skupina na prehrávanie",
+      "queueTitle": "Polhviezdičkové hodnotenia a obľúbené",
+      "queueText": "Hodnoť skladby od polovice hviezdičky po päť, aj priamo vo fronte. Hodnotenia spravovanej knižnice sa synchronizujú medzi zariadeniami; srdiečka ukladajú samostatný zoznam obľúbených pre tvoj účet v tomto prehliadači.",
+      "queueAlt": "Front s hodnoteniami, obľúbenými, kategóriami a značkami"
     },
     "en": {
       "label": "Your private music library",
       "title": "Your music. Your space.",
-      "intro": "Keep the tracks you love together. Organize your own collection, find the right mood and press play.",
+      "intro": "A familiar Mac-style layout, a powerful library and the sound you love. Open Mega Music on the web and keep your music close.",
       "chips": [
-        "Private library",
-        "Folders and tags",
-        "Browser playback"
+        "Five-band equalizer",
+        "Advanced search",
+        "Virtual folders"
       ],
       "features": [
         [
-          "A collection your way",
-          "Organize music with folders, categories, tags and personal ratings."
+          "Five-band equalizer",
+          "Shape bass, mids and treble with five bands from 60 Hz to 14 kHz. Fine-tune each band in half-decibel steps, or return to a flat sound."
         ],
         [
-          "Just press play",
-          "Listen in your browser with a playback queue, shuffle and repeat."
+          "Tags and categories",
+          "Give each song a category and multiple tags. Label moods, genres or occasions, then find the right track without remembering its filename."
         ],
         [
-          "Shape your sound",
-          "Adjust the five-band equalizer while your uploaded tracks stay in your private library."
+          "Virtual folders",
+          "Create nested folders and rename or move songs in your managed library. Organize your collection without re-uploading audio files."
+        ],
+        [
+          "Play collections together",
+          "Select several folders and combine their tracks into one playback queue. Build a listening session for work, a road trip or a whole evening."
+        ],
+        [
+          "Advanced search",
+          "Combine alternative search terms with Enter, require exact tags and narrow by category. Play all matches or discover only the songs you have not rated yet."
+        ],
+        [
+          "Half-star ratings and favorites",
+          "Rate songs from half a star to five stars, even from the queue. Managed-library ratings sync across devices; hearts keep a separate favorites list in this browser for your account."
         ]
       ],
-      "detailTitle": "Good songs deserve a good home.",
-      "detailText": "Build a collection for the road, a focused afternoon or a quiet evening. Clear titles and useful categories keep it easy to browse.",
-      "heroAlt": "Mega Music player populated with a demo music library",
-      "detailAlt": "Good Songs folder with tracks, categories and ratings",
+      "detailTitle": "Advanced search",
+      "detailText": "Combine alternative search terms with Enter, require exact tags and narrow by category. Play all matches or discover only the songs you have not rated yet.",
+      "heroAlt": "Home, collections and the persistent mini player",
+      "detailAlt": "Search terms, exact tags and half-star ratings",
       "faq": [
         [
           "Is this a public streaming catalog?",
@@ -190,6 +223,47 @@
           "Can I listen in a browser?",
           "Yes. The web player is available after signing in to Mega Music."
         ]
+      ],
+      "extraTitle": "Five-band equalizer",
+      "extraText": "Shape bass, mids and treble with five bands from 60 Hz to 14 kHz. Fine-tune each band in half-decibel steps, or return to a flat sound.",
+      "extraAlt": "Five-band equalizer with independent gain controls",
+      "organizeTitle": "Play collections together",
+      "organizeText": "Select several folders and combine their tracks into one playback queue. Build a listening session for work, a road trip or a whole evening.",
+      "organizeAlt": "Virtual folders selected as a group for playback",
+      "queueTitle": "Half-star ratings and favorites",
+      "queueText": "Rate songs from half a star to five stars, even from the queue. Managed-library ratings sync across devices; hearts keep a separate favorites list in this browser for your account.",
+      "queueAlt": "Queue with editable ratings, favorites, categories and tags"
+    },
+    "organize": "web-collections.d2a147e32a41",
+    "queue": "web-queue.ae693ed0acad",
+    "imageSizes": {
+      "web-home.4dd50394bed2": [
+        1400,
+        985
+      ],
+      "web-search.c8aea17f1bb0": [
+        1400,
+        985
+      ],
+      "web-equalizer.9a153548cc6e": [
+        1440,
+        1120
+      ],
+      "web-collections.d2a147e32a41": [
+        1400,
+        985
+      ],
+      "web-queue.ae693ed0acad": [
+        1440,
+        1120
+      ],
+      "web-now-playing.1b31c72ec120": [
+        1440,
+        1120
+      ],
+      "web-mobile.81914463d275": [
+        374,
+        749
       ]
     }
   },

@@ -14,10 +14,11 @@ for product in products:
   appurl=p['url'];title=p['name']+' — '+copy['title']+' | DevelopED'
   def browser(name,alt,eager=False):
    image=f'/assets/showcases/{slug}/{name}.jpg'
-   return f'''<div class="browser"><div class="browser-bar" aria-hidden="true"><span class="dots"><i></i><i></i><i></i></span><span>{esc(p['host'])}</span><span>↗</span></div><button class="shot" type="button" data-zoom aria-label="{esc(t['zoom']+': '+alt)}"><img src="{image}" alt="{esc(alt)}" width="1440" height="1000" {'fetchpriority="high"' if eager else 'loading="lazy"'} decoding="async"><span class="zoom-label" aria-hidden="true">↗ {esc(t['zoom'])}</span></button></div>'''
+   width,height=p.get('imageSizes',{}).get(name,[1440,1000])
+   return f'''<div class="browser"><div class="browser-bar" aria-hidden="true"><span class="dots"><i></i><i></i><i></i></span><span>{esc(p['host'])}</span><span>↗</span></div><button class="shot" type="button" data-zoom aria-label="{esc(t['zoom']+': '+alt)}"><img src="{image}" alt="{esc(alt)}" width="{width}" height="{height}" {'fetchpriority="high"' if eager else 'loading="lazy"'} decoding="async"><span class="zoom-label" aria-hidden="true">↗ {esc(t['zoom'])}</span></button></div>'''
   features=''.join(f'<article class="feature"><span class="feature-num">0{i+1}</span><h3>{esc(f[0])}</h3><p>{esc(f[1])}</p></article>' for i,f in enumerate(copy['features']))
   spots=''
-  for i,key in enumerate(['detail','extra']):
+  for i,key in enumerate(['detail','extra','organize','queue']):
    if not p.get(key):continue
    spots+=f'''<article class="spotlight"><div class="spotlight-copy"><p class="eyebrow">0{i+1} / {esc(t['inside'])}</p><h2>{esc(copy[key+'Title'])}</h2><p>{esc(copy[key+'Text'])}</p><a class="text-link" href="{esc(appurl)}">{esc(t['open'])} <span aria-hidden="true">↗</span></a></div><div>{browser(p[key],copy[key+'Alt'])}<p class="caption">{esc(t['caption'])}</p></div></article>'''
   faq=''.join(f'<details><summary>{esc(q)}</summary><p>{esc(a)}</p></details>' for q,a in copy['faq'])

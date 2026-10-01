@@ -16,7 +16,8 @@ trap 'rm -r -- "$release_dir"' EXIT
 git archive "$release_sha" -- \
   .well-known DevelopED.png assets cookies en favicon.png index.html \
   ochrana-osobnych-udajov og-image.png podmienky-pouzivania pravne-informacie \
-  robots.txt script.js sitemap.xml styles.css | tar -x -C "$release_dir"
+  robots.txt script.js sitemap.xml styles.css \
+  airsoft kestrek mega-music odonto-ai otazkomat screen-time vocabulum | tar -x -C "$release_dir"
 test -f "$release_dir/index.html"
 test -f "$release_dir/styles.css"
 /usr/local/bin/check-publication "$release_dir"

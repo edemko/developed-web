@@ -19,4 +19,88 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://www.developed.sk/en/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://www.developed.sk/"/>
   </url>
+  <url>
+    <loc>https://www.developed.sk/vocabulum/</loc><lastmod>2026-10-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="sk" href="https://www.developed.sk/vocabulum/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.developed.sk/en/vocabulum/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.developed.sk/vocabulum/"/>
+  </url>
+  <url>
+    <loc>https://www.developed.sk/en/vocabulum/</loc><lastmod>2026-10-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="sk" href="https://www.developed.sk/vocabulum/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.developed.sk/en/vocabulum/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.developed.sk/vocabulum/"/>
+  </url>
+  <url>
+    <loc>https://www.developed.sk/mega-music/</loc><lastmod>2026-10-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="sk" href="https://www.developed.sk/mega-music/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.developed.sk/en/mega-music/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.developed.sk/mega-music/"/>
+  </url>
+  <url>
+    <loc>https://www.developed.sk/en/mega-music/</loc><lastmod>2026-10-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="sk" href="https://www.developed.sk/mega-music/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.developed.sk/en/mega-music/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.developed.sk/mega-music/"/>
+  </url>
+  <url>
+    <loc>https://www.developed.sk/kestrek/</loc><lastmod>2026-10-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="sk" href="https://www.developed.sk/kestrek/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.developed.sk/en/kestrek/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.developed.sk/kestrek/"/>
+  </url>
+  <url>
+    <loc>https://www.developed.sk/en/kestrek/</loc><lastmod>2026-10-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="sk" href="https://www.developed.sk/kestrek/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.developed.sk/en/kestrek/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.developed.sk/kestrek/"/>
+  </url>
+  <url>
+    <loc>https://www.developed.sk/screen-time/</loc><lastmod>2026-10-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="sk" href="https://www.developed.sk/screen-time/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.developed.sk/en/screen-time/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.developed.sk/screen-time/"/>
+  </url>
+  <url>
+    <loc>https://www.developed.sk/en/screen-time/</loc><lastmod>2026-10-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="sk" href="https://www.developed.sk/screen-time/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.developed.sk/en/screen-time/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.developed.sk/screen-time/"/>
+  </url>
+  <url>
+    <loc>https://www.developed.sk/airsoft/</loc><lastmod>2026-10-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="sk" href="https://www.developed.sk/airsoft/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.developed.sk/en/airsoft/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.developed.sk/airsoft/"/>
+  </url>
+  <url>
+    <loc>https://www.developed.sk/en/airsoft/</loc><lastmod>2026-10-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="sk" href="https://www.developed.sk/airsoft/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.developed.sk/en/airsoft/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.developed.sk/airsoft/"/>
+  </url>
+  <url>
+    <loc>https://www.developed.sk/odonto-ai/</loc><lastmod>2026-10-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="sk" href="https://www.developed.sk/odonto-ai/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.developed.sk/en/odonto-ai/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.developed.sk/odonto-ai/"/>
+  </url>
+  <url>
+    <loc>https://www.developed.sk/en/odonto-ai/</loc><lastmod>2026-10-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="sk" href="https://www.developed.sk/odonto-ai/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.developed.sk/en/odonto-ai/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.developed.sk/odonto-ai/"/>
+  </url>
+  <url>
+    <loc>https://www.developed.sk/otazkomat/</loc><lastmod>2026-10-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="sk" href="https://www.developed.sk/otazkomat/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.developed.sk/en/otazkomat/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.developed.sk/otazkomat/"/>
+  </url>
+  <url>
+    <loc>https://www.developed.sk/en/otazkomat/</loc><lastmod>2026-10-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="sk" href="https://www.developed.sk/otazkomat/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.developed.sk/en/otazkomat/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.developed.sk/otazkomat/"/>
+  </url>
 </urlset>

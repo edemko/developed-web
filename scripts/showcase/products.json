@@ -1,0 +1,666 @@
+[
+  {
+    "slug": "vocabulum",
+    "name": "Vocabulum",
+    "icon": "vocabulum.svg",
+    "url": "https://vocabulum.developed.sk/auth/login",
+    "host": "vocabulum.developed.sk",
+    "hero": "results",
+    "detail": "languages",
+    "extra": "mistakes",
+    "sk": {
+      "label": "Učenie jazykov",
+      "title": "Nové slová. Viac istoty.",
+      "intro": "Vlastná slovná zásoba, krátke testy a prehľadný pokrok. Vocabulum dáva učeniu jazykov miesto aj systém.",
+      "chips": [
+        "Slová aj celé vety",
+        "Súkromné precvičovanie",
+        "Prehľad výsledkov"
+      ],
+      "features": [
+        [
+          "Váš vlastný slovník",
+          "Usporiadajte si slovíčka a vety do tematických priečinkov. Od prvých rozhovorov po jazyk, ktorý potrebujete v práci."
+        ],
+        [
+          "Učenie cez precvičovanie",
+          "Vytvárajte si súkromné testy a vracajte sa k výrazom, ktoré ešte potrebujú trochu pozornosti."
+        ],
+        [
+          "Pokrok, ktorý vidíte",
+          "Výsledky a história testov ukážu, čo už zvládate. Prehľad chýb pomôže vybrať ďalší krok."
+        ]
+      ],
+      "detailTitle": "Každý jazyk má svoje miesto.",
+      "detailText": "Angličtina na cestovanie, nemčina do školy alebo španielčina na dovolenku. Obsah si vytvárate podľa toho, čo sa práve chcete naučiť.",
+      "extraTitle": "Z chýb sa stáva ďalšia lekcia.",
+      "extraText": "Ťažšie slová nemusíte hľadať v starých poznámkach. Vocabulum ich zhromaždí na jednom mieste a umožní vám precvičiť si ich znova.",
+      "heroAlt": "Výsledky demo študenta s históriou testov a grafom pokroku",
+      "detailAlt": "Prehľad jazykov a slovnej zásoby demo účtu",
+      "extraAlt": "Chyby demo študenta s opravenými slovami a slovami na precvičenie",
+      "faq": [
+        [
+          "Môžem sa učiť aj bez školy?",
+          "Áno. Bežný účet podporuje vlastné súkromné priečinky, slová, vety a súkromné testy."
+        ],
+        [
+          "Čo ponúka školám?",
+          "Učitelia môžu pripravovať obsah a testy, pracovať s triedami a sledovať výsledky študentov. Školské funkcie vyžadujú príslušnú rolu a organizáciu."
+        ],
+        [
+          "Ako získam prístup?",
+          "Prihláste sa svojím DevelopED účtom. Ak účet ešte nemáte, kontaktujte nás so žiadosťou o prístup."
+        ]
+      ]
+    },
+    "en": {
+      "label": "Language learning",
+      "title": "New words. More confidence.",
+      "intro": "Your vocabulary, focused practice and visible progress. Give language learning a place and a structure.",
+      "chips": [
+        "Words and sentences",
+        "Private practice",
+        "Progress tracking"
+      ],
+      "features": [
+        [
+          "Your own vocabulary",
+          "Organize words and sentences into folders built around your interests, studies and work."
+        ],
+        [
+          "Learn through practice",
+          "Create private tests and revisit the expressions that need a little more attention."
+        ],
+        [
+          "See your progress",
+          "Test history and results show what you know. Your mistake list helps you choose what to practise next."
+        ]
+      ],
+      "detailTitle": "A place for every language.",
+      "detailText": "English for travel, German for school or Spanish for your next holiday. Build a collection around what you want to learn.",
+      "extraTitle": "Turn mistakes into your next lesson.",
+      "extraText": "Keep difficult words together and practise them again, without searching through old notes.",
+      "heroAlt": "Demo learner results with test history and a progress chart",
+      "detailAlt": "Languages and vocabulary in the demo account",
+      "extraAlt": "Demo vocabulary mistakes and corrected words",
+      "faq": [
+        [
+          "Can I learn without joining a school?",
+          "Yes. Regular accounts support private folders, words, sentences and practice tests."
+        ],
+        [
+          "What is available for schools?",
+          "Teachers can prepare content and tests, work with classes and review student results. School features require an appropriate role and organization."
+        ],
+        [
+          "How do I get access?",
+          "Sign in with your DevelopED account. Contact us for access if you do not have an account yet."
+        ]
+      ]
+    }
+  },
+  {
+    "slug": "mega-music",
+    "name": "Mega Music",
+    "icon": "mega-music-square-192.b19ee4800c84.webp",
+    "url": "https://megamusic.developed.sk/app/",
+    "host": "megamusic.developed.sk",
+    "hero": "library",
+    "detail": "good-songs",
+    "extra": null,
+    "sk": {
+      "label": "Vaša súkromná hudobná knižnica",
+      "title": "Vaša hudba. Váš priestor.",
+      "intro": "Obľúbené skladby na jednom mieste. Usporiadajte si vlastnú kolekciu, nájdite tú správnu náladu a pustite si hudbu.",
+      "chips": [
+        "Súkromná knižnica",
+        "Priečinky a značky",
+        "Webový prehrávač"
+      ],
+      "features": [
+        [
+          "Kolekcia podľa vás",
+          "Priečinky, kategórie a značky udržia poriadok aj vo väčšej knižnici. Skladby si môžete aj hodnotiť."
+        ],
+        [
+          "Stačí stlačiť prehrávanie",
+          "Prehrávač v prehliadači ponúka front skladieb, náhodné prehrávanie a opakovanie."
+        ],
+        [
+          "Zvuk vo vašich rukách",
+          "Päťpásmový ekvalizér umožní prispôsobiť zvuk. Vlastné nahrávky zostávajú v súkromnej knižnici."
+        ]
+      ],
+      "detailTitle": "Dobré skladby si zaslúžia dobrý poriadok.",
+      "detailText": "Vytvorte si výber na cestu, prácu či pokojný večer. Čitateľné názvy, obľúbené skladby a prehľadné kategórie sú vždy poruke.",
+      "heroAlt": "Prehrávač Mega Music s demo hudobnou knižnicou",
+      "detailAlt": "Priečinok Good Songs so skladbami, kategóriami a hodnoteniami",
+      "faq": [
+        [
+          "Je Mega Music verejná streamovacia služba?",
+          "Mega Music slúži na prehrávanie vašej vlastnej hudobnej kolekcie. Knižnica patrí vášmu účtu."
+        ],
+        [
+          "Koľko úložiska dostanem na začiatok?",
+          "Po aktivácii knižnice má bežný účet 500 MB spravovaného úložiska."
+        ],
+        [
+          "Môžem počúvať cez prehliadač?",
+          "Áno. Webový prehrávač je dostupný po prihlásení do Mega Music."
+        ]
+      ]
+    },
+    "en": {
+      "label": "Your private music library",
+      "title": "Your music. Your space.",
+      "intro": "Keep the tracks you love together. Organize your own collection, find the right mood and press play.",
+      "chips": [
+        "Private library",
+        "Folders and tags",
+        "Browser playback"
+      ],
+      "features": [
+        [
+          "A collection your way",
+          "Organize music with folders, categories, tags and personal ratings."
+        ],
+        [
+          "Just press play",
+          "Listen in your browser with a playback queue, shuffle and repeat."
+        ],
+        [
+          "Shape your sound",
+          "Adjust the five-band equalizer while your uploaded tracks stay in your private library."
+        ]
+      ],
+      "detailTitle": "Good songs deserve a good home.",
+      "detailText": "Build a collection for the road, a focused afternoon or a quiet evening. Clear titles and useful categories keep it easy to browse.",
+      "heroAlt": "Mega Music player populated with a demo music library",
+      "detailAlt": "Good Songs folder with tracks, categories and ratings",
+      "faq": [
+        [
+          "Is this a public streaming catalog?",
+          "Mega Music plays your own music collection. Your library belongs to your account."
+        ],
+        [
+          "How much storage is included initially?",
+          "Regular accounts receive 500 MB of managed storage after library activation."
+        ],
+        [
+          "Can I listen in a browser?",
+          "Yes. The web player is available after signing in to Mega Music."
+        ]
+      ]
+    }
+  },
+  {
+    "slug": "kestrek",
+    "name": "KešTrek",
+    "icon": "kestrek.svg",
+    "url": "https://kestrek.sk/api/auth/ecosystem/start",
+    "host": "kestrek.sk",
+    "hero": "dashboard",
+    "detail": "transactions",
+    "extra": null,
+    "sk": {
+      "label": "Osobné financie",
+      "title": "Menej hádania. Viac prehľadu.",
+      "intro": "Príjmy, výdavky aj platby, ktoré vás ešte čakajú. KešTrek vám pomôže vidieť každodenné financie v súvislostiach.",
+      "chips": [
+        "Príjmy a výdavky",
+        "Plánované platby",
+        "Kategórie a reporty"
+      ],
+      "features": [
+        [
+          "Každá platba na svojom mieste",
+          "Zaraďujte transakcie do priečinkov a kategórií. Popisy a značky uľahčia neskoršie hľadanie."
+        ],
+        [
+          "Prehľad bez tabuliek navyše",
+          "Dashboard a reporty zobrazia príjmy, výdavky, saldo aj rozdelenie podľa kategórií."
+        ],
+        [
+          "Myslite aj na ďalší mesiac",
+          "Zaznamenajte si budúce platby a pozrite sa, čo sa blíži. Plánovanie je súčasťou rovnakého prehľadu."
+        ]
+      ],
+      "detailTitle": "Aj drobné výdavky majú svoj príbeh.",
+      "detailText": "Nákup potravín, ranná káva alebo víkendový výlet. V prehľade transakcií ich ľahko nájdete, upravíte a zaradíte.",
+      "heroAlt": "KešTrek dashboard so vzorovým rozpočtom a výdavkami",
+      "detailAlt": "Zoznam fiktívnych transakcií v demo účte KešTrek",
+      "faq": [
+        [
+          "Posiela KešTrek peniaze alebo vykonáva platby?",
+          "Nie. Zaznamenáva a zobrazuje finančné údaje. Plánovaná platba je záznam, nie bankový príkaz."
+        ],
+        [
+          "Môžem rozdeliť osobné financie a projekty?",
+          "Áno. Priečinky pomáhajú oddeliť rôzne časti rozpočtu. Aplikácia obsahuje aj samostatný obchodný modul."
+        ],
+        [
+          "Sú zobrazené sumy reálne údaje zákazníka?",
+          "Nie. Na tejto stránke sú výlučne fiktívne transakcie demo účtu."
+        ]
+      ]
+    },
+    "en": {
+      "label": "Personal finances",
+      "title": "Less guessing. More clarity.",
+      "intro": "Income, expenses and the payments still ahead. See your everyday finances in context with KešTrek.",
+      "chips": [
+        "Income and expenses",
+        "Planned payments",
+        "Categories and reports"
+      ],
+      "features": [
+        [
+          "Every payment in its place",
+          "Group transactions into folders and categories. Descriptions and tags make them easy to find."
+        ],
+        [
+          "See the bigger picture",
+          "The dashboard and reports show income, expenses, balance and spending by category."
+        ],
+        [
+          "Look ahead",
+          "Record future payments and see what is coming up, alongside your everyday finances."
+        ]
+      ],
+      "detailTitle": "Small expenses tell a story, too.",
+      "detailText": "Groceries, a morning coffee or a weekend away. Find, edit and categorize each entry in your transaction history.",
+      "heroAlt": "KešTrek dashboard showing a fictional household budget",
+      "detailAlt": "Synthetic transactions in the KešTrek demo account",
+      "faq": [
+        [
+          "Does KešTrek transfer money?",
+          "No. It records and displays financial information. Planned payments are records, not bank instructions."
+        ],
+        [
+          "Can I separate personal finances and projects?",
+          "Yes. Folders separate different parts of your budget. The app also includes a business module."
+        ],
+        [
+          "Are these real customer finances?",
+          "No. All transactions shown here are synthetic demo data."
+        ]
+      ]
+    }
+  },
+  {
+    "slug": "screen-time",
+    "name": "Screen Time",
+    "icon": "screentime.svg",
+    "url": "https://screentime.developed.sk/",
+    "host": "screentime.developed.sk",
+    "hero": "overview",
+    "detail": "activity",
+    "extra": null,
+    "sk": {
+      "label": "Rodinný prehľad používania zariadení",
+      "title": "Viac porozumenia. Lepšie rozhovory.",
+      "intro": "Zistite, ako vyzerá čas pri obrazovke na detskom Android tablete. Prehľad aktivít pomáha začať rozhovor na základe skutočnosti.",
+      "chips": [
+        "Prehľad aplikácií",
+        "Denná aktivita",
+        "História dní"
+      ],
+      "features": [
+        [
+          "Čas v konkrétnych aplikáciách",
+          "Pozrite sa, ktoré aplikácie dieťa používalo a ako dlho. Aktivita je zobrazená v prehľadnom dashboarde."
+        ],
+        [
+          "Každé zariadenie zvlášť",
+          "Vytvorte profil dieťaťa a pripojte jeho Android tablet. K zariadeniu patria jeho vlastné záznamy."
+        ],
+        [
+          "Súvislosti namiesto odhadov",
+          "Vyberte si deň a pozrite sa, ktoré aplikácie sa používali. Prehľad pomôže rozlišovať rôzne typy aktivít."
+        ]
+      ],
+      "detailTitle": "Čomu patril čas pri obrazovke?",
+      "detailText": "Rozdelenie podľa aplikácií ukáže čas strávený učením, čítaním aj hrou. Vlastné skupiny pomáhajú zorientovať sa v jednotlivých aktivitách.",
+      "heroAlt": "Screen Time s aktivitou dvoch fiktívnych detí",
+      "detailAlt": "Rozdelenie ukážkovej dennej aktivity podľa aplikácií",
+      "faq": [
+        [
+          "Blokuje aplikácie alebo nastavuje limity?",
+          "Nie. Súčasná verzia meria používanie. Neponúka blokovanie aplikácií ani vynucovanie časových limitov."
+        ],
+        [
+          "Čo treba nainštalovať?",
+          "Na detský Android tablet patrí aplikácia Screen Time s povolením prístupu k údajom o používaní. Rodič si prezerá výsledky vo webovom dashboarde."
+        ],
+        [
+          "Sú na obrázkoch údaje skutočných detí?",
+          "Nie. Mená, zariadenia aj aktivita sú vytvorené iba na ukážku."
+        ]
+      ]
+    },
+    "en": {
+      "label": "Family screen-time awareness",
+      "title": "More perspective. Better conversations.",
+      "intro": "Understand how time is spent on your child’s Android tablet. A clear activity overview makes space for better conversations.",
+      "chips": [
+        "App activity",
+        "Daily overview",
+        "Daily history"
+      ],
+      "features": [
+        [
+          "Time in each app",
+          "See which apps were used and for how long in a clear dashboard."
+        ],
+        [
+          "Each device has its place",
+          "Create a child profile and connect an Android tablet, with activity recorded for that device."
+        ],
+        [
+          "Context instead of guesses",
+          "Choose a day and see which apps were used. The overview helps distinguish different types of activity."
+        ]
+      ],
+      "detailTitle": "Where did the screen time go?",
+      "detailText": "A breakdown by app shows time spent learning, reading and playing. Custom groups help organize different activities.",
+      "heroAlt": "Screen Time showing synthetic activity for two fictional children",
+      "detailAlt": "Synthetic daily activity broken down by app",
+      "faq": [
+        [
+          "Does it block apps or enforce limits?",
+          "No. The current version measures usage; it does not block apps or enforce time limits."
+        ],
+        [
+          "What needs to be installed?",
+          "Install Screen Time on the child’s Android tablet and allow usage access. Parents review activity in the web dashboard."
+        ],
+        [
+          "Do these screenshots show real children’s activity?",
+          "No. Names, devices and activity were created only for this demo."
+        ]
+      ]
+    }
+  },
+  {
+    "slug": "airsoft",
+    "name": "Airsoft Marketplace",
+    "icon": "airsoft.svg",
+    "url": "https://amp.developed.sk/sk",
+    "host": "amp.developed.sk",
+    "hero": "watches",
+    "detail": "settings",
+    "extra": null,
+    "sk": {
+      "label": "Komunita a airsoftová výstroj",
+      "title": "Výstroj, ktorá nájde ďalší príbeh.",
+      "intro": "Ponuky, správy a uložené vyhľadávania pre airsoftovú komunitu. Nájdite si výstroj alebo pripravte vlastnú ponuku na jednom mieste.",
+      "chips": [
+        "Prehľadné ponuky",
+        "Uložené vyhľadávania",
+        "Komunikácia v aplikácii"
+      ],
+      "features": [
+        [
+          "Hľadajte podľa svojich potrieb",
+          "Kategórie a filtre pomôžu zúžiť výber na výstroj, o ktorú máte záujem."
+        ],
+        [
+          "Uložte si, čo hľadáte",
+          "Strážny pes uchová vaše vyhľadávania a pomáha sledovať zodpovedajúce ponuky."
+        ],
+        [
+          "Dohodnite sa priamo",
+          "Správy a návrhy výmen prepájajú záujemcov s predávajúcimi v aplikácii."
+        ]
+      ],
+      "detailTitle": "Váš profil. Vaše vyhľadávania.",
+      "detailText": "Spravujte údaje svojho účtu a sledujte ponuky podľa vlastných filtrov. Pri návrate do aplikácie pokračujete tam, kde ste skončili.",
+      "heroAlt": "Súkromné uložené vyhľadávania demo účtu Airsoft Marketplace",
+      "detailAlt": "Profil a nastavenia demo účtu Airsoft Marketplace",
+      "faq": [
+        [
+          "Čo zobrazujú snímky?",
+          "Súkromné uložené vyhľadávania a profil demo účtu. Žiadne fiktívne ponuky neboli zverejnené na predaj."
+        ],
+        [
+          "Musím sa prihlásiť?",
+          "Ponuky môžete prehliadať aj bez účtu. Správy, vlastné ponuky a uložené vyhľadávania vyžadujú prihlásenie."
+        ],
+        [
+          "Čo potrebujem na pridanie ponuky?",
+          "Prihlásený účet a overené telefónne číslo. Podrobnosti vás prevedie formulár v aplikácii."
+        ]
+      ]
+    },
+    "en": {
+      "label": "Airsoft gear and community",
+      "title": "Gear with another story to tell.",
+      "intro": "Listings, messages and saved searches for the airsoft community. Find equipment or prepare your own listing in one place.",
+      "chips": [
+        "Detailed listings",
+        "Saved searches",
+        "In-app messages"
+      ],
+      "features": [
+        [
+          "Find what fits",
+          "Categories and filters help narrow your search to equipment you are interested in."
+        ],
+        [
+          "Keep your searches",
+          "Save your searches and follow matching offers with the watch feature."
+        ],
+        [
+          "Talk directly",
+          "In-app messages and exchange proposals connect buyers and sellers."
+        ]
+      ],
+      "detailTitle": "Your profile. Your searches.",
+      "detailText": "Manage your account details and follow offers using your own filters. Pick up where you left off when you return.",
+      "heroAlt": "Private saved searches in the Airsoft Marketplace demo account",
+      "detailAlt": "Profile and settings of the Airsoft Marketplace demo account",
+      "faq": [
+        [
+          "What do the screenshots show?",
+          "Private saved searches and the demo account profile. No fictional offers were published for sale."
+        ],
+        [
+          "Do I need an account?",
+          "Browsing is available without an account. Messages, your listings and saved searches require sign-in."
+        ],
+        [
+          "What do I need to publish a listing?",
+          "A signed-in account and a verified phone number. The application guides you through the required details."
+        ]
+      ]
+    }
+  },
+  {
+    "slug": "odonto-ai",
+    "name": "Odonto AI",
+    "icon": "odonto.svg",
+    "url": "https://frontend-jet-rho-66.vercel.app/dashboard",
+    "host": "Odonto AI",
+    "hero": "catalog",
+    "detail": "topic",
+    "extra": null,
+    "sk": {
+      "label": "Študijné materiály pre zubné lekárstvo",
+      "title": "Menej hľadania. Viac učenia.",
+      "intro": "Témy, otázky a dokumenty usporiadané do jedného študijného priestoru. Nájdite materiál, ktorý práve potrebujete.",
+      "chips": [
+        "Katalóg tém",
+        "Študijné otázky",
+        "Vyhľadávanie v materiáloch"
+      ],
+      "features": [
+        [
+          "Od témy ku konkrétnej otázke",
+          "Prechádzajte študijné okruhy a súvisiace otázky v prehľadnom katalógu."
+        ],
+        [
+          "Dokumenty v kontexte",
+          "K otázkam patria prílohy a spracované dokumenty, aby podklady zostali na správnom mieste."
+        ],
+        [
+          "Nájdite správny podklad",
+          "Vyhľadávanie prepája témy, otázky a obsah spracovaných dokumentov."
+        ]
+      ],
+      "detailTitle": "Študijný okruh, v ktorom sa vyznáte.",
+      "detailText": "Otvorte tému a pokračujte ku konkrétnym otázkam a dostupným prílohám. Rozhranie necháva priestor na to podstatné: učenie.",
+      "heroAlt": "Odonto AI s izolovaným ukážkovým katalógom študijných tém",
+      "detailAlt": "Ukážková téma s otázkami v Odonto AI",
+      "faq": [
+        [
+          "Kto pripravuje študijné materiály?",
+          "Katalóg je zdieľaný. Nahrávanie a úpravy materiálov spravujú administrátori; bežný používateľ obsah prehliada a vyhľadáva."
+        ],
+        [
+          "Čo zobrazujú tieto snímky?",
+          "Skutočné rozhranie aplikácie s izolovanými vzorovými údajmi. Ukážkové témy neboli pridané do zdieľaného katalógu."
+        ],
+        [
+          "Na čo je aplikácia určená?",
+          "Na organizáciu a vyhľadávanie študijných materiálov pre zubné lekárstvo."
+        ]
+      ]
+    },
+    "en": {
+      "label": "Dental study materials",
+      "title": "Less searching. More learning.",
+      "intro": "Topics, questions and documents together in one study space. Find the material you need and keep learning.",
+      "chips": [
+        "Topic catalog",
+        "Study questions",
+        "Material search"
+      ],
+      "features": [
+        [
+          "From topic to question",
+          "Browse study topics and related questions in an organized catalog."
+        ],
+        [
+          "Documents in context",
+          "Attachments and processed documents stay connected to their questions."
+        ],
+        [
+          "Find the right material",
+          "Search across topics, questions and processed document content."
+        ]
+      ],
+      "detailTitle": "A study topic you can navigate.",
+      "detailText": "Open a topic and continue to individual questions and available attachments. Keep your attention on learning.",
+      "heroAlt": "Odonto AI interface with an isolated sample study catalog",
+      "detailAlt": "Sample topic and questions in Odonto AI",
+      "faq": [
+        [
+          "Who prepares study materials?",
+          "The catalog is shared. Administrators manage uploads and edits; regular users browse and search."
+        ],
+        [
+          "What do these screenshots show?",
+          "The real application interface with isolated sample responses. Demo topics were not added to the shared catalog."
+        ],
+        [
+          "What is the application for?",
+          "Organizing and searching dental study materials."
+        ]
+      ]
+    }
+  },
+  {
+    "slug": "otazkomat",
+    "name": "Otázkomat",
+    "icon": "otazkomat.svg",
+    "url": "https://educatio.sk/api/auth/ecosystem/start",
+    "host": "educatio.sk",
+    "hero": "modules",
+    "detail": "tests",
+    "extra": null,
+    "sk": {
+      "label": "Testy a vzdelávanie pre organizácie",
+      "title": "Od vedomostí k výsledkom.",
+      "intro": "Usporiadajte vzdelávací obsah, sprístupnite testy a sledujte výsledky. Otázkomat prepája prípravu aj precvičovanie v jednom prostredí.",
+      "chips": [
+        "Moduly a témy",
+        "Vedomostné testy",
+        "Organizačný prístup"
+      ],
+      "features": [
+        [
+          "Obsah so zrozumiteľnou štruktúrou",
+          "Moduly, podmoduly a testy vytvárajú prehľadnú cestu cez vzdelávací obsah."
+        ],
+        [
+          "Overovanie aj precvičovanie",
+          "Časované testy, kontrola výsledkov a precvičovanie nesprávnych odpovedí podporujú ďalšie učenie."
+        ],
+        [
+          "Prístup podľa organizácie",
+          "Organizácie spravujú svoj obsah a členov. Priradenie určuje, ktoré moduly a testy má používateľ dostupné."
+        ]
+      ],
+      "detailTitle": "Ďalší krok je vždy jasný.",
+      "detailText": "Vyberte si tému, otvorte dostupný test a začnite. História a vyhodnotenie umožnia vrátiť sa k výsledkom aj po dokončení.",
+      "heroAlt": "Detail vzdelávacieho modulu súkromnej demo organizácie v Otázkomate",
+      "detailAlt": "Ukážkové testy demo organizácie v Otázkomate",
+      "faq": [
+        [
+          "Pre koho je Otázkomat?",
+          "Pre organizácie, školy a vzdelávacie programy, ktoré potrebujú pripravovať, prideľovať a vyhodnocovať testy."
+        ],
+        [
+          "Vidí každý používateľ všetok obsah?",
+          "Nie. Dostupnosť závisí od organizácie, priradenia a oprávnení ku konkrétnemu obsahu."
+        ],
+        [
+          "Sú na obrázkoch výsledky skutočných študentov?",
+          "Nie. Ukážková organizácia a jej obsah boli vytvorené pre demo účet."
+        ]
+      ]
+    },
+    "en": {
+      "label": "Testing and learning for organizations",
+      "title": "Turn knowledge into progress.",
+      "intro": "Organize learning content, make tests available and review results. Bring preparation and practice into one environment.",
+      "chips": [
+        "Modules and topics",
+        "Knowledge tests",
+        "Organization access"
+      ],
+      "features": [
+        [
+          "Content with a clear structure",
+          "Modules, submodules and tests create a navigable path through learning material."
+        ],
+        [
+          "Assess and practise",
+          "Timed tests, result review and practice based on wrong answers support continued learning."
+        ],
+        [
+          "Organization-based access",
+          "Organizations manage content and members. Assignments determine which modules and tests each learner can access."
+        ]
+      ],
+      "detailTitle": "Make the next step clear.",
+      "detailText": "Choose a topic, open an available test and begin. History and result review let learners return to their work later.",
+      "heroAlt": "Learning module in the private Otázkomat demo organization",
+      "detailAlt": "Sample tests in the Otázkomat demo organization",
+      "faq": [
+        [
+          "Who is Otázkomat for?",
+          "Organizations, schools and training programs that need to prepare, assign and evaluate tests."
+        ],
+        [
+          "Can every user access all content?",
+          "No. Availability depends on organization membership, assignments and content permissions."
+        ],
+        [
+          "Are these real student records?",
+          "No. The organization and its learning content were created for the demo account."
+        ]
+      ]
+    }
+  }
+]

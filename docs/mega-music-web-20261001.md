@@ -19,4 +19,12 @@ Other product pages regenerate without changes.
 Local browser acceptance: both pages at 1440 and 390 px, six feature cards, all five
 images decoded, no horizontal overflow or JavaScript errors, and accessible image
 zoom/escape behavior. The corresponding Mega Music landing page also passed its
-four languages at both viewport widths. Publication status is recorded after release.
+four languages at both viewport widths. Published from committed source `aebfc39` to both canonical product URLs.
+Only the two Mega Music pages and their screenshot assets were copied, after the
+curated artifact passed `check-publication`. Existing product pages were preserved.
+Public HTML matches the source after decoding Cloudflare email links; screenshot
+filenames remain immutable. The corresponding player is live as `ba7767b`.
+
+Live acceptance also passed for both SK/EN pages at desktop/mobile widths, with
+all images loaded and enlargement/keyboard dismissal working. Mega Music’s four
+language variants passed the same live layout and image checks.

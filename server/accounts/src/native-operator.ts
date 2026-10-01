@@ -12,6 +12,7 @@ export function validateNativeConfiguration(input: unknown) {
   const data = input as Record<string, unknown>;
   if (Object.keys(data).some(key => !['appId', 'clientId', 'callbackUrl', 'platform'].includes(key))) throw new Error('Unexpected field');
   if (!(data.appId === 'app_kestrek' && data.callbackUrl === 'sk.kestrek://oauth/callback')
+    && !(data.appId === 'app_voc_builder' && data.callbackUrl === 'sk.developed.vocabulum://oauth/callback')
     && !(data.appId === 'app_mega_music' && data.callbackUrl === 'sk.developed.megamusic://oauth/callback')) throw new Error('Unsupported native app/callback');
   const platform = data.platform ?? 'android';
   if (!['android','macos','ios'].includes(platform as string)) throw new Error('Invalid native platform');

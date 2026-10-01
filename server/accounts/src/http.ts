@@ -8,6 +8,7 @@ import type { Row } from './db.js';
 import { Mfa } from './mfa.js';
 import { catalogApp } from './catalog.js';
 import { oauthBroker } from './oauth-broker.js';
+import { logoutNativeSession } from './native-logout.js';
 import { ProductProfile } from './product-profile.js';
 
 const assets = new Map<string, [string, string]>([
@@ -173,6 +174,13 @@ function createSingleAccountServer(accounts: Accounts) {
         const auth = req.headers.authorization || '';
         if (!auth.startsWith('Bearer ')) return fail(401, 'invalid_app_credentials');
         return json(res, await new ProductProfile(accounts).handle(auth.slice(7), productProfile[1]!, await body(req)));
+      }
+      if (path === '/internal/session/logout-native') {
+        if (method !== 'POST') return fail(405, 'method_not_allowed');
+        const auth = req.headers.authorization || '';
+        if (!auth.startsWith('Bearer ')) return fail(401, 'invalid_app_credentials');
+        const data = await body(req);
+        return json(res, await logoutNativeSession(accounts, auth.slice(7), data.accessToken));
       }
       if (path === '/internal/session/check' || path === '/internal/user/check') {
         if (method !== 'POST') return fail(405, 'method_not_allowed');

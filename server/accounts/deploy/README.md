@@ -1,9 +1,10 @@
-> Current September30 production state: [Supabase optimization deployment](../../../docs/audits/2026-09-30-supabase-deployment.md). This checkpoint supersedes the earlier runtime versions below.
+> Current central production state: [30 September validation deployment](../../../docs/audits/2026-09-30-accounts-validation-deployment.md). The [Supabase optimization checkpoint](../../../docs/audits/2026-09-30-supabase-deployment.md) records the preceding ecosystem release.
 
 # DevelopED deployment and runtime separation
 
-Current API release (2026-09-28): `ec2da85`, unit `developed-accounts.service`,
-loopback 3140. AMP profile account controls and both migrations are deployed.
+Current API release (2026-09-30): `f6cd40f`, unit `developed-accounts.service`,
+loopback 3140. See [Vocabulum native activation](vocabulum-native-checkpoint-20260929.md)
+for mobile registration history. AMP profile account controls and both migrations are deployed.
 See [the AMP profile checkpoint](amp-profile-checkpoint-20260928.md) for exact
 API/mail-worker pins, delivery limits, validation and rollback.
 

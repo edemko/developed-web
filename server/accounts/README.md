@@ -12,7 +12,11 @@ closed and transactional email starts disabled. Existing static Slovak/English
 marketing remains a separate public artifact; it is not replaced by this app.
 
 Current production: `developed-accounts.service`, UID988, loopback3140,
-release `ec2da85d00be54dc7c58a8710ee153388c0e95df` (2026-09-28).
+release `f6cd40f7e6effcaabaa6d5fae1a6ded0f084395d` (2026-09-30).
+See the [validation deployment](../../docs/audits/2026-09-30-accounts-validation-deployment.md)
+for the current API/mail pins.
+See the [Vocabulum native checkpoint](deploy/vocabulum-native-checkpoint-20260929.md)
+for the native-client activation history.
 See the [AMP profile checkpoint](deploy/amp-profile-checkpoint-20260928.md)
 for current API/mail-worker pins and account-editing deployment evidence. All seven web apps use
 central SSO; registration is invitation-only. Browser-family enforcement is

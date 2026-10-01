@@ -134,6 +134,14 @@ not URL. An app-local opaque session stores provider tokens server-side and
 invokes this gate for protected requests, failing closed on network/DB failures.
 Provider tokens alone are not authorization for another app.
 
+POST `/internal/session/logout-native` accepts `{ accessToken }` with the product's
+server credential. This addition currently supports Vocabulum native clients
+only: the same internal session gate must verify the token, exact app and native
+client kind before the provider's local-session logout. It revokes neither the
+central browser family nor other devices. An upstream failure is not success.
+It requires the Vocabulum native-client rollout; source presence alone is not
+production activation.
+
 POST `/internal/user/check` `{ userId }` uses the same app credential but ONLY
 after that product authenticates an independent device/API credential. It checks
 lock and existing membership without granting new membership or requiring an

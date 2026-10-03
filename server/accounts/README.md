@@ -12,7 +12,7 @@ closed and transactional email starts disabled. Existing static Slovak/English
 marketing remains a separate public artifact; it is not replaced by this app.
 
 Current production: `developed-accounts.service`, UID988, loopback3140,
-release `f6cd40f7e6effcaabaa6d5fae1a6ded0f084395d` (2026-09-30).
+release `8a476978a2875503af7438a6b7fa7aaef9e57cec` (2026-10-03), a minimal public-catalog visibility patch over the September release. See the [private Karak II checkpoint](../../docs/karak2-identity-deployment-2026-10-03.md).
 See the [validation deployment](../../docs/audits/2026-09-30-accounts-validation-deployment.md)
 for the current API/mail pins.
 See the [Vocabulum native checkpoint](deploy/vocabulum-native-checkpoint-20260929.md)
@@ -66,7 +66,7 @@ replacement, never reset a consumed token. If identity creation succeeded but th
 following central transaction failed, the confirmed account may already exist;
 reconcile its central state instead of attempting a second account creation.
 
-The anonymous header catalog exposes only published, active app metadata, not
+The anonymous header catalog exposes only published, active apps with `public_listing=true`, not
 membership/entitlement information. Known historical registry component names
 are mapped to reviewed first-party icon assets by `src/catalog.ts`; unknown
 apps accept only project-asset paths. Do not broaden image CSP to fix missing

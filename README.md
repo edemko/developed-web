@@ -8,7 +8,8 @@ Static bilingual B2B website for DevelopED, focused on custom web applications, 
 - English is an independently crawlable page at `/en/`.
 - Each language has its own canonical URL, metadata and reciprocal `hreflang`.
 - Contact is email-only through `info@developed.sk`; there is no contact-form processor.
-- The website does not use analytics, advertising, cookies, `localStorage` or `sessionStorage`.
+- Public pages do not use analytics, advertising, cookies, `localStorage` or `sessionStorage`. The separate account service uses essential session and remembered-browser security cookies.
+- Every page offers a footer cookie-information dialog; it stores no preference and does not request unnecessary consent. Its canonical assets are `assets/privacy/cookies.js` and `cookies.css`; keep the standalone account-release copies in `server/accounts/public/` identical. Before adding optional trackers, implement prior-consent blocking and equally accessible rejection/withdrawal. The current dialog is informational, not a consent manager.
 - Fonts, CSS and JavaScript are first-party. There is no external font or icon dependency.
 
 ## Local development

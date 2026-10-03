@@ -19,7 +19,7 @@ deployment command. Recheck all live facts immediately before implementation.
 | Airsoft | container `airsoft-marketplace` | loopback 3002 → container 3000 | image default root, `supabase_default` network |
 | Vocabulum | container `voc-builder` | loopback 3001 → container 3000 | image default root, `supabase_default` network |
 | JASOM | user `jasom-web.service`, `jasom-submissions.service` | web loopback 8091; immutable release `6-71198e06e22a3d0a242c8a317fbcba97ab173524` | `openclaw` |
-| Odonto Feedback, not OdontoAI | `odonto-feedback-web-1`, `odonto-feedback-api-1` | web loopback 3100, API container 4100 | API `node`, both app network and `supabase_default` |
+| Odonto Feedback, not OdontoAI | Retired 2026-10-02; containers/images/network removed | No listener; hostname returns 410 | Source/config archived privately; DB role NOLOGIN |
 | Other My Clinic | user `myclinic-prod.service` | wildcard 3125; `/var/www/myclinic.sk` static frontend | `openclaw`; separate hosted identity, do not silently migrate |
 | Deployment receiver | system `webhook.service` | loopback 9000, `/hooks/*` route | `openclaw` |
 | Public ingress | `caddy.service`, `cloudflared-sam-apps.service` | local HTTP Caddy → loopback app ports | `caddy` / `openclaw` respectively |

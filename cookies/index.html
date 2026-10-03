@@ -12,6 +12,10 @@
     <link rel="alternate" hreflang="x-default" href="https://www.developed.sk/cookies/">
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="stylesheet" href="/styles.css?v=e9f355de2293">
+<link rel="stylesheet" href="/assets/support/report.css">
+<script defer src="/assets/support/report.js" data-developed-app="developed"></script>
+<link rel="stylesheet" href="/assets/privacy/cookies.css">
+<script defer src="/assets/privacy/cookies.js"></script>
 </head>
 <body>
     <a class="skip-link" href="#main">Preskočiť na obsah</a>
@@ -29,19 +33,28 @@
             <article class="legal-content">
                 <p class="eyebrow">Transparentnosť úložísk</p>
                 <h1>Cookies a lokálne úložiská</h1>
-                <p class="legal-meta">Verzia návrhu: 23. júla 2026</p>
-                <div class="legal-warning" role="note"><strong>Návrh na právnu kontrolu.</strong> Technický stav opísaný nižšie bol navrhnutý tak, aby nevyžadoval súhlasový banner. Poskytovateľom webu je Healthcare Data Solutions s. r. o.; DevelopED je jeho obchodná značka.</div>
+                <p class="legal-meta">Verzia návrhu: 2. októbra 2026</p>
+                <div class="legal-warning" role="note"><strong>Návrh na právnu kontrolu.</strong> Verejné stránky nemajú voliteľné sledovacie technológie. Služba účtov používa nevyhnutné cookies na vyžiadané funkcie účtu a zabezpečenia. Poskytovateľom webu je Healthcare Data Solutions s. r. o.; DevelopED je jeho obchodná značka.</div>
 
                 <div class="policy-summary">
-                    <p><strong>Aktuálny stav:</strong> tento web nenastavuje cookies a nepoužíva localStorage ani sessionStorage. Nemá analytiku, reklamu, vložené prehrávače, chat widget ani kontaktný formulár. Preto sa pri tomto nastavení nezobrazuje cookie banner.</p>
+                    <p><strong>Aktuálny stav:</strong> verejné stránky nepoužívajú analytiku, reklamu, voliteľné cookies, localStorage ani sessionStorage. Stránky účtu používajú nevyhnutné bezpečnostné cookies. Pätička každej stránky otvára informačný dialóg o cookies; nežiada súhlas ani neukladá voľbu. Súhlasový banner pre voliteľné cookies preto aktuálne nie je potrebný.</p>
                 </div>
 
                 <h2>Čo web používa</h2>
                 <ul>
-                    <li>statické HTML, CSS a malý JavaScript z domény developed.sk,</li>
+                    <li>HTML, CSS a JavaScript prvej strany a podľa potreby požiadavky služby účtov na rovnakej doméne,</li>
                     <li>technické serverové logy hostingu na zaistenie bezpečnosti a diagnostiky; tie nie sú cookies ani úložiskom v zariadení návštevníka,</li>
                     <li>odkazy na e-mail, telefón, LinkedIn a prezentované projekty; externá služba sa načíta až po kliknutí.</li>
                 </ul>
+
+                <h2>Cookies účtu a zabezpečenia</h2>
+                <p>Službu účtov DevelopED poskytuje Healthcare Data Solutions s. r. o. Jej cookies prvej strany sú obmedzené na hostiteľa, ktorý ich nastaví, používajú HTTPS (Secure) a JavaScript ich nemôže čítať (HttpOnly). Slúžia na relácie účtu a vyžiadané bezpečnostné funkcie, nie na analytiku či reklamu.</p>
+                <ul>
+                    <li><code>__Host-developed_session</code>: udržiava reláciu účtu a zabezpečenie požiadaviek. Platnosť cookie je 30 minút pre anonymnú reláciu, 10 minút počas čakania na overenie autentifikátorom, zvyčajne 7 dní po prihlásení alebo najviac 14 dní pri zapamätanom prehliadači. Server môže reláciu ukončiť alebo odvolať skôr. SameSite=Lax.</li>
+                    <li><code>__Host-developed_mfa_trust</code>: po úspešnom overení autentifikátorom a výbere tejto možnosti si zapamätá prehliadač na 14 dní. SameSite=Strict.</li>
+                </ul>
+                <p>Tieto cookies zabezpečujú služby, ktoré si vyžiadate, a nevyžadujú súhlas pre voliteľné cookies. Bežné odhlásenie vymaže centrálnu cookie relácie; odhlásenie zo všetkých aplikácií a zariadení vymaže aj dôveru zapamätaného prehliadača. Cookies môžete odstrániť v prehliadači, čím ukončíte prístup k príslušnej relácii alebo funkcii zapamätaného prehliadača. Informačný dialóg vás neodhlási.</p>
+                <p>Prezentačné stránky projektov patria k tomuto webu. Aplikácie otvorené cez externé odkazy fungujú samostatne a môžu mať vlastné cookies a informácie o úložiskách; tento dialóg za ne nenastavuje žiadne voľby.</p>
 
                 <h2>Jazyk webu</h2>
                 <p>Slovenská a anglická verzia majú samostatné adresy. Jazyková voľba sa preto neukladá do prehliadača.</p>
@@ -50,13 +63,13 @@
                 <p>Ak sa pridá analytika, marketing, vložený obsah alebo iná nepodstatná technológia ukladajúca alebo čítajúca údaje zo zariadenia, najprv sa vykoná technické a právne posúdenie. Technológia vyžadujúca súhlas sa nenačíta pred aktívnym súhlasom; používateľ dostane možnosť odmietnuť ju rovnako jednoducho ako prijať a neskôr voľbu zmeniť.</p>
 
                 <h2>Ako stav overiť</h2>
-                <p>Úložiská možno skontrolovať vo vývojárskych nástrojoch prehliadača v častiach Cookies, Local Storage a Session Storage. Sieťové požiadavky pri prvom načítaní majú smerovať iba na developed.sk.</p>
+                <p>Úložiská možno skontrolovať vo vývojárskych nástrojoch prehliadača v častiach Cookies, Local Storage a Session Storage. Nová návšteva verejnej stránky nemá vytvoriť cookies ani úložiská. Požiadavky služby účtov môžu vytvoriť vyššie uvedené nevyhnutné cookies. Otvorenie ani zatvorenie informačného dialógu nevytvára úložiská ani sieťové požiadavky.</p>
 
                 <h2>Kontakt</h2>
                 <p>Otázky o technológiách webu pošlite na <a href="mailto:info@developed.sk">info@developed.sk</a>. Súvisiace spracúvanie osobných údajov vysvetľujú <a href="/ochrana-osobnych-udajov/">informácie o ochrane súkromia</a>.</p>
             </article>
         </div>
     </main>
-    <footer class="footer"><div class="container footer-bottom"><p>© 2026 Healthcare Data Solutions s. r. o. · obchodná značka DevelopED</p><a href="/en/cookies/" lang="en">English version</a></div></footer>
+    <footer class="footer"><div class="container footer-bottom"><p>© 2026 Healthcare Data Solutions s. r. o. · obchodná značka DevelopED</p><a href="/en/cookies/" lang="en">English version</a></div><div class="developed-cookie-entry"><a href="/cookies/" data-cookie-info>Informácie o cookies</a></div></footer>
 </body>
 </html>

@@ -1,3 +1,4 @@
+import { imageData, sourcePage, reportLink } from './images.js';
 import { languages, normaliseLanguage, translate } from './i18n.js';
 
 // First-party interface icons; SK/GB reuse the marketing header's flag artwork.
@@ -18,7 +19,11 @@ export function safeContinuation(value, origin) {
       return id && /^[a-zA-Z0-9_-]{1,160}$/.test(id)
         ? `/account/authorize?authorization_id=${encodeURIComponent(id)}` : '/apps';
     }
-    return /^\/report-bug(?:\/[a-z0-9-]{1,64})?$/.test(url.pathname) ? url.pathname : '/apps';
+    if (/^\/report-bug(?:\/[a-z0-9-]{1,64})?$/.test(url.pathname)) {
+      const source = sourcePage(url.searchParams.get('sourceUrl'));
+      return url.pathname + (source ? `?sourceUrl=${encodeURIComponent(source)}` : '');
+    }
+    return '/apps';
   } catch { return '/apps'; }
 }
 
@@ -161,7 +166,7 @@ async function start() {
     renderChrome();
   }
 
-  function field(form, key, { type = 'text', value = '', required = false, maxLength, autocomplete, minLength } = {}) {
+  function field(form, key, { type = 'text', value = '', required = false, maxLength, autocomplete, minLength, accept } = {}) {
     const label = el('label', t(key));
     const input = el(type === 'textarea' ? 'textarea' : 'input');
     if (type !== 'textarea') input.type = type;
@@ -171,6 +176,7 @@ async function start() {
     if (maxLength) input.maxLength = maxLength;
     if (minLength) input.minLength = minLength;
     if (autocomplete) input.autocomplete = autocomplete;
+    if (accept) input.accept = accept;
     label.append(input);
     form.append(label);
     return input;
@@ -256,7 +262,7 @@ async function start() {
     document.documentElement.lang = language;
     navigation.replaceChildren();
     navigation.setAttribute('aria-label', t('account'));
-    navigation.append(languageMenu());
+    navigation.append(link(t('reportBug'), reportLink(musicSurface ? 'mega-music' : 'developed'), 'report-link'), languageMenu());
     if (session?.user) {
       const menu = el('details', undefined, 'avatar-menu');
       const summary = el('summary');
@@ -275,7 +281,10 @@ async function start() {
       navigation.append(menu);
     } else navigation.append(link(t('login'), '/login', 'login-link'), link(t('register'), '/register', 'button register-link'));
     if (!musicSurface) renderAppMenu();
-    footer.replaceChildren(link('DevelopED', musicSurface ? 'https://www.developed.sk/' : '/'), link(t('reportBug'), musicSurface ? 'https://www.developed.sk/report-bug/mega-music' : '/report-bug'), link('info@developed.sk', 'mailto:info@developed.sk'));
+    footer.replaceChildren(link('DevelopED', musicSurface ? 'https://www.developed.sk/' : '/'), link(t('reportBug'), reportLink(musicSurface ? 'mega-music' : 'developed')), link('info@developed.sk', 'mailto:info@developed.sk'));
+    const cookieInfo = link(t('cookieInfo'), `${musicSurface ? 'https://www.developed.sk' : ''}${['en', 'uk'].includes(language) ? '/en/cookies/' : '/cookies/'}`);
+    cookieInfo.setAttribute('data-cookie-info', '');
+    footer.append(cookieInfo);
   }
 
   function languageMenu() {
@@ -564,6 +573,34 @@ async function start() {
 
   async function profilePage() {
     heading(t('profile'));
+    const photoForm = el('form');
+    photoForm.append(el('p', t('avatarHint'), 'muted'));
+    const preview = el('img', undefined, 'avatar avatar-preview');
+    preview.alt = t('avatar'); preview.hidden = !session.user.avatarUrl;
+    if (session.user.avatarUrl) preview.src = session.user.avatarUrl;
+    photoForm.append(preview);
+    const photo = field(photoForm, 'avatar', { type: 'file', accept: 'image/jpeg,image/png,image/webp', required: true });
+    let prepared = null;
+    photo.addEventListener('change', async () => {
+      prepared = null; photo.setCustomValidity('');
+      const chosen = photo.files[0];
+      if (!chosen) return;
+      try {
+        const data = await imageData(chosen, true);
+        if (photo.files[0] !== chosen) return;
+        prepared = data; preview.src = data; preview.hidden = false;
+      } catch { photo.setCustomValidity(t('imageError')); photo.reportValidity(); }
+    });
+    bindForm(photoForm, t('save'), async notice => {
+      if (!prepared) throw new Error(t('imageError'));
+      const result = await api('/profile/avatar', 'PUT', { image: prepared });
+      session.user.avatarUrl = result.avatarUrl; renderChrome(); feedback(notice, t('saved'));
+    });
+    photoForm.append(button(t('removeAvatar'), async () => {
+      try { await api('/profile/avatar', 'DELETE', {}); session.user.avatarUrl = null; preview.hidden = true; photo.value = ''; prepared = null; renderChrome(); }
+      catch (error) { photo.setCustomValidity(error.message); photo.reportValidity(); }
+    }, 'secondary'));
+    panel(t('avatar')).append(photoForm);
     const factors = session.user.hasMfa ? (await api('/mfa')).factors : [];
     if (session.user.requirePasswordChange) main.append(el('p', t('requiredPassword'), 'notice'));
     const columns = el('div', undefined, 'two-column');
@@ -755,8 +792,23 @@ async function start() {
     }
     main.append(el('h2', `${t('reportingFor')} ${source.app.name}`));
     main.append(el('p', t(session.user ? 'signedReporter' : 'anonymous'), 'muted'));
-    if (!session.user) main.append(link(t('login'), `/login?next=${encodeURIComponent(location.pathname)}`));
+    if (!session.user) main.append(link(t('login'), `/login?next=${encodeURIComponent(safeContinuation(location.pathname + location.search, location.origin))}`));
     const form = el('form');
+    const sourceUrl = field(form, 'sourceUrl', { type: 'url', maxLength: 4096,
+      value: sourcePage(new URLSearchParams(location.search).get('sourceUrl') || document.referrer || location.href) });
+    const screenshot = field(form, 'screenshot', { type: 'file', accept: 'image/jpeg,image/png,image/webp' });
+    form.append(el('p', t('screenshotHint'), 'muted'));
+    const screenshotPreview = el('img', undefined, 'screenshot-preview'); screenshotPreview.alt = t('screenshot'); screenshotPreview.hidden = true;
+    form.append(screenshotPreview);
+    let preparedScreenshot = null;
+    screenshot.addEventListener('change', async () => {
+      preparedScreenshot = null; screenshotPreview.hidden = true; screenshot.setCustomValidity('');
+      const chosen = screenshot.files[0]; if (!chosen) return;
+      try { const data = await imageData(chosen); if (screenshot.files[0] !== chosen) return;
+        preparedScreenshot = data; screenshotPreview.src = data; screenshotPreview.hidden = false;
+      } catch { screenshot.setCustomValidity(t('imageError')); screenshot.reportValidity(); }
+    });
+    form.append(button(t('removeScreenshot'), () => { screenshot.value = ''; screenshot.setCustomValidity(''); preparedScreenshot = null; screenshotPreview.hidden = true; }, 'secondary'));
     const summary = field(form, 'summary', { maxLength: 160 });
     const description = field(form, 'description', { type: 'textarea', required: true, minLength: 10, maxLength: 10000 });
     const steps = field(form, 'steps', { type: 'textarea', maxLength: 4000 });
@@ -774,7 +826,8 @@ async function start() {
     form.append(details);
     const idempotencyKey = crypto.randomUUID();
     bindForm(form, t('submitReport'), async notice => {
-      const payload = { appSlug: source.app.slug, description: description.value.trim(), idempotencyKey };
+      if (screenshot.files.length && !preparedScreenshot) throw new Error(t('imageError'));
+      const payload = { appSlug: source.app.slug, description: description.value.trim(), idempotencyKey, sourceUrl: sourcePage(sourceUrl.value), screenshot: preparedScreenshot };
       for (const [key, input] of Object.entries({ summary, steps, expected, actual, contactEmail: contact })) if (input?.value.trim()) payload[key] = input.value.trim();
       if (occurredAt.value) payload.occurredAt = new Date(occurredAt.value).toISOString();
       payload.diagnostics = Object.fromEntries(Object.entries(diagnostics).filter(([, input]) => input.value.trim()).map(([key, input]) => [key, input.value.trim()]));
@@ -892,6 +945,8 @@ async function start() {
         const details = el('details');
         details.append(el('summary', t('details')));
         for (const key of ['description', 'steps', 'expected', 'actual']) if (report[key]) details.append(el('h3', t(key)), el('p', report[key]));
+        if (report.sourceUrl) details.append(el('p', `${t('sourceUrl')}: ${report.sourceUrl}`));
+        if (report.hasScreenshot) { const image = el('img', undefined, 'screenshot-preview'); image.src = `/api/account/admin/reports/${report.id}/screenshot`; image.alt = t('screenshot'); image.loading = 'lazy'; details.append(image); }
         if (report.occurredAt) details.append(el('p', `${t('occurredAt')}: ${date(report.occurredAt)}`));
         for (const key of ['version', 'platform', 'screen', 'locale', 'errorId']) if (report.diagnostics?.[key]) details.append(el('p', `${t(key)}: ${report.diagnostics[key]}`));
         details.append(el('h3', t('notes')));

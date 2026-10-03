@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
+import sharp from 'sharp';
 
 const playwrightModule = process.env.PLAYWRIGHT_MODULE;
 const launchCatalog = JSON.parse(await readFile(new URL('../launch-catalog.json', import.meta.url), 'utf8'));
@@ -17,7 +18,7 @@ test('browser account and report flows retain safe state and render user text in
       res.end(await readFile(new URL('../../../favicon.png', import.meta.url))); return;
     }
     const asset = path.startsWith('/account-assets/') ? path.slice('/account-assets/'.length) : 'index.html';
-    if (!['index.html', 'app.js', 'i18n.js', 'app.css'].includes(asset)) { res.writeHead(404).end(); return; }
+    if (!['index.html', 'cookies.js', 'cookies.css', 'app.js', 'images.js', 'i18n.js', 'app.css'].includes(asset)) { res.writeHead(404).end(); return; }
     const content = await readFile(new URL(`../public/${asset}`, import.meta.url));
     res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
     res.setHeader('Content-Type', asset.endsWith('.js') ? 'text/javascript' : asset.endsWith('.css') ? 'text/css' : 'text/html');
@@ -49,6 +50,7 @@ test('browser account and report flows retain safe state and render user text in
       else if (path === '/login') { authenticated = true; result = { user }; }
       else if (path === '/apps' || path === '/catalog') result = { apps: launchCatalog.apps.map(app => ({ ...app, id: app.appId, available: true, plan: 'free' })) };
       else if (path === '/logout' || path === '/logout-all') { authenticated = false; result = { ok: true }; }
+      else if (path === '/profile/avatar') { user.avatarUrl = request.method() === 'DELETE' ? null : `${new URL(request.url()).origin}/api/account/avatars/fixture.jpg`; result = { avatarUrl: user.avatarUrl }; }
       else if (path === '/security') result = { sessions: [] };
       else if (path === '/mfa') result = { enabled: true };
       else if (path === '/reports/source/mega-music') result = { app: { id: 'music', slug: 'mega-music', name: 'Mega Music' } };
@@ -65,7 +67,7 @@ test('browser account and report flows retain safe state and render user text in
     // These are local UI fixtures, never real product/provider requests. The
     // manifest stays closed; availability above is synthetic presentation data.
     for (const app of launchCatalog.apps) {
-      await page.route(app.launchUrl, route => route.fulfill({ contentType: 'text/html', body: '<h1>Launch fixture</h1>' }));
+      await page.route(`${app.launchUrl}*`, route => route.fulfill({ contentType: 'text/html', body: '<h1>Launch fixture</h1>' }));
       await page.route(`**${app.icon}`, async route => route.fulfill({
         contentType: app.icon.endsWith('.svg') ? 'image/svg+xml' : 'image/webp',
         body: await readFile(new URL(`../../../${app.icon.slice(1)}`, import.meta.url)),
@@ -95,6 +97,13 @@ test('browser account and report flows retain safe state and render user text in
       assert.equal(await page.locator('html').getAttribute('lang'), id);
       assert.equal(await page.locator('.language-menu').evaluate(node => node.open), false);
       assert.equal(await page.locator('.language-menu > summary').evaluate(node => node === document.activeElement), true);
+      await page.locator('[data-cookie-info]').click();
+      const cookieDialog = page.locator('#developed-cookie-dialog');
+      await cookieDialog.waitFor({ state: 'visible' });
+      assert.equal(await cookieDialog.locator('h2').textContent(), { en: 'Cookies and your privacy', sk: 'Cookies a vaše súkromie', cs: 'Cookies a vaše soukromí', uk: 'Cookies і ваша приватність' }[id]);
+      await page.keyboard.press('Escape');
+      await page.waitForFunction(() => !document.getElementById('developed-cookie-dialog'));
+      assert.equal(await page.locator('[data-cookie-info]').evaluate(node => node === document.activeElement), true);
     }
     await page.locator('.language-menu > summary').click();
     await page.getByRole('heading', { name: 'Create account', exact: true }).click();
@@ -151,8 +160,11 @@ test('browser account and report flows retain safe state and render user text in
     await page.getByText('Email confirmed. You can now sign in.').waitFor();
     assert.equal(requests.find(request => request.path === '/verify-email').body.token, 'private-email-token');
     assert.equal(await page.locator('main a.button').getAttribute('href'), '/login?app=mega-music');
-    await page.goto(`${base}/report-bug/mega-music?screen=player&token=SECRET`);
+    await page.goto(`${base}/report-bug/mega-music?screen=player&token=SECRET&sourceUrl=${encodeURIComponent('https://music.example.test/library?code=SECRET#token=SECRET')}`);
     await page.getByRole('heading', { name: 'Reporting a bug in Mega Music' }).waitFor();
+    assert.equal(await page.getByLabel('Page URL', { exact: true }).inputValue(), 'https://music.example.test/library');
+    await page.getByLabel('Screenshot (optional)', { exact: true }).setInputFiles({ name: 'screen.png', mimeType: 'image/png', buffer: await sharp({ create: { width: 800, height: 400, channels: 3, background: '#f04' } }).png().toBuffer() });
+    await page.locator('.screenshot-preview:not([hidden])').waitFor();
     await page.getByLabel('Description', { exact: true }).fill('The music stopped unexpectedly.');
     await page.getByRole('button', { name: 'Send bug report' }).click();
     await page.getByRole('alert').waitFor();
@@ -164,6 +176,8 @@ test('browser account and report flows retain safe state and render user text in
     assert.equal(reports[0].body.idempotencyKey, reports[1].body.idempotencyKey);
     assert.equal(reports[0].headers['x-csrf-token'], 'test-csrf');
     assert.equal(reports[0].body.appSlug, 'mega-music');
+    assert.equal(reports[0].body.sourceUrl, 'https://music.example.test/library');
+    assert.match(reports[0].body.screenshot, /^data:image\/jpeg;base64,/);
     assert.equal(reports[0].body.userId, undefined);
     assert.equal(reports[0].body.diagnostics.token, undefined);
     await page.goto(`${base}/report-bug/unknown`);
@@ -192,7 +206,7 @@ test('browser account and report flows retain safe state and render user text in
     for (const app of launchCatalog.apps) {
       await page.getByRole('button', { name: new RegExp(app.name) }).click();
       await page.getByRole('heading', { name: 'Launch fixture', exact: true }).waitFor();
-      assert.equal(page.url(), app.launchUrl);
+      assert.equal(page.url(), app.appId === 'app_mega_music' ? `${app.launchUrl}?portal=1` : app.launchUrl);
       await page.goto(`${base}/apps`);
       await page.getByRole('heading', { name: 'Your apps', exact: true }).waitFor();
     }
@@ -206,6 +220,16 @@ test('browser account and report flows retain safe state and render user text in
     await page.goto(`${base}/profile`);
     await page.getByRole('heading', { name: 'My profile', exact: true }).first().waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    const avatarForm = page.locator('form').filter({ has: page.getByLabel('Profile picture', { exact: true }) });
+    await page.getByLabel('Profile picture', { exact: true }).setInputFiles({ name: 'avatar.png', mimeType: 'image/png', buffer: await sharp({ create: { width: 900, height: 400, channels: 3, background: '#0f4' } }).png().toBuffer() });
+    await page.locator('.avatar-preview:not([hidden])').waitFor();
+    await avatarForm.getByRole('button', { name: 'Save changes', exact: true }).click();
+    await avatarForm.getByText('Changes saved.', { exact: true }).waitFor();
+    const uploaded = requests.find(request => request.path === '/profile/avatar' && request.body?.image);
+    const avatarMeta = await sharp(Buffer.from(uploaded.body.image.split(',')[1], 'base64')).metadata();
+    assert.equal(avatarMeta.width, 256); assert.equal(avatarMeta.height, 256);
+    await avatarForm.getByRole('button', { name: 'Remove picture', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('.avatar-preview').hidden);
     user.requirePasswordChange = true;
     await page.goto(`${base}/apps`);
     await page.getByText('Please change your password before opening an app.').waitFor();

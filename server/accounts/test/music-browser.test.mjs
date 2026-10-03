@@ -23,6 +23,10 @@ test('branded registration follows the central invitation/open/closed switch',{s
  await page.goto(url);await page.getByText(/An invitation is required/i).first().waitFor();
  assert.equal(await page.locator('input[type="password"]').count(),0);
  assert.equal(await page.evaluate(()=>document.documentElement.dataset.product),'mega-music');
+ await page.locator('[data-cookie-info]').click();
+ await page.locator('#developed-cookie-dialog').waitFor({state:'visible'});
+ assert.equal(await page.locator('#developed-cookie-dialog a').getAttribute('href'),'https://www.developed.sk/en/cookies/');
+ await page.keyboard.press('Escape');
  mode='open';await page.reload();await page.locator('input[type="password"]').waitFor();
  assert.equal(await page.locator('input[type="password"]').getAttribute('minlength'),'15');
  assert.equal(await page.locator('input[type="email"]').count(),1);

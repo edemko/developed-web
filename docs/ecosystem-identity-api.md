@@ -91,7 +91,7 @@ separate remembered-browser cookie is SameSite=Strict. Responses are no-store.
   UI never navigates to unvalidated browser-supplied redirect URLs.
 - GET `/reports/source/:slug` (use `developed` for portal):
   `{ app: { id, slug, name } }`; unknown/nonreportable source is 404.
-- POST `/reports` `{ appSlug, description, summary?, steps?, expected?, actual?,
+- POST `/reports` `{ appSlug, description, summary?, steps?, expected?, actual?, sourceUrl?, screenshot?,
   occurredAt?, contactEmail?, diagnostics?: { version?, platform?, screen?,
   locale?, errorId? }, idempotencyKey }`: `{ reference }`.
   User UUID is always derived server-side. Anonymous email is unverified.
@@ -182,3 +182,23 @@ Only central sends SMS; products receive neither OTP hashes nor provider tokens.
 Deployed on 2026-09-28 in scoped release `ec2da85` with the required migration.
 See [the deployment checkpoint](../server/accounts/deploy/amp-profile-checkpoint-20260928.md)
 for live pins, verification and delivery acceptance limits.
+
+
+Profile image/report additions (migration required):
+
+- `PUT /profile/avatar { image }` takes a JPEG/PNG/WebP base64 data URL and returns
+  `{ avatarUrl }`. `DELETE /profile/avatar {}` removes it. Both require the normal
+  authenticated session, exact Origin and CSRF token. Image requests are capped at
+  1,550,000 bytes; ordinary JSON routes retain their existing 32 KiB cap.
+- `GET /avatars/:randomId.jpg` serves only a normalized public profile JPEG.
+  IDs rotate on replacement and the previous URL stops resolving. Internal
+  session checks return the current central `user.avatarUrl`; products select
+  their own local avatar first and only then this fallback.
+- `POST /reports` optionally accepts `sourceUrl` (HTTPS, at most 4096 characters;
+  query/fragment removed) and `screenshot` (JPEG/PNG/WebP base64 data URL).
+  Screenshots preserve aspect ratio, fit within 1920×1920, and are capped at 1 MiB.
+  Both fields participate in idempotency matching. Only the fixed support inbox
+  receives the description and attachment; reporter acknowledgements omit them.
+- Admin report rows include `sourceUrl` and `hasScreenshot`. Authenticated,
+  MFA-qualified superadmins may GET `/admin/reports/:id/screenshot`. Image bytes
+  are excluded from report lists and are never publicly served.

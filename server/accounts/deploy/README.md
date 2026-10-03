@@ -1,3 +1,5 @@
+> Product favicons: [2 October deployment](../../../docs/audits/2026-10-02-favicon-deployment.md). Central services are unchanged.
+
 > Current central production state: [30 September validation deployment](../../../docs/audits/2026-09-30-accounts-validation-deployment.md). The [Supabase optimization checkpoint](../../../docs/audits/2026-09-30-supabase-deployment.md) records the preceding ecosystem release.
 
 # DevelopED deployment and runtime separation

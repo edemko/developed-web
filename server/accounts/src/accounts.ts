@@ -4,6 +4,7 @@ import { Database, type Query, type Row } from './db.js';
 import { Provider, type ProviderSession } from './provider.js';
 import { claims, diagnostics, email, equal, fail, hash, HttpError, language, line, password, passwordInput, seal, text, token, unseal, uuid, exactHttps, oauthCallback } from './security.js';
 import { credentialMail, credentialLifetime, queueMail, securityMail, reportMail, registrationMail } from './mail.js';
+import { prepareImage, reportSourceUrl } from './images.js';
 import { SmsVerification } from './sms.js';
 
 export interface Context { session: Row; user: Row | null; cookie?: string; trustCookie?: string; candidate?: Row; mfa?: { mode: 'enroll' | 'challenge' } }
@@ -493,22 +494,24 @@ export class Accounts {
   async report(ctx: Context, body: Row) {
     const app = await this.source(text(body.appSlug, 80, true));
     const contact = ctx.user ? ctx.user.email : body.contactEmail ? email(body.contactEmail) : null;
-    const data = { summary: line(body.summary, 160), description: text(body.description, 10000, true),
+    const screenshot = body.screenshot ? await prepareImage(body.screenshot) : null;
+    const data = { sourceUrl: reportSourceUrl(body.sourceUrl), screenshotHash: screenshot ? hash(screenshot.toString('base64')) : null, summary: line(body.summary, 160), description: text(body.description, 10000, true),
       steps: text(body.steps, 5000), expected: text(body.expected, 2000), actual: text(body.actual, 2000), diagnostics: diagnostics(body.diagnostics),
       occurredAt: body.occurredAt ? text(body.occurredAt, 40) : null };
     if (data.occurredAt && (!Number.isFinite(Date.parse(data.occurredAt)) || Date.parse(data.occurredAt) > Date.now() + 300_000)) return fail(400, 'invalid_date');
     const key = hash(`${ctx.user?.id || ctx.session.id}:${uuid(body.idempotencyKey)}`), payloadHash = hash(JSON.stringify({ appId: app.id, contact, data }));
     return this.db.tx(async q => {
-      const [report] = await q(`insert into accounts.reports(id,app_id,idempotency_hash,payload_hash,reporter_id,contact_email,contact_verified,summary,description,steps,expected,actual,diagnostics,occurred_at)
-        values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) on conflict(idempotency_hash) do nothing returning ticket`,
-      [randomUUID(), app.id, key, payloadHash, ctx.user?.id || null, contact, Boolean(ctx.user), data.summary, data.description, data.steps, data.expected, data.actual, data.diagnostics, data.occurredAt]);
+      const reportId = randomUUID();
+      const [report] = await q(`insert into accounts.reports(id,app_id,idempotency_hash,payload_hash,reporter_id,contact_email,contact_verified,summary,description,steps,expected,actual,diagnostics,occurred_at,source_url,screenshot_ciphertext)
+        values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) on conflict(idempotency_hash) do nothing returning ticket`,
+      [reportId, app.id, key, payloadHash, ctx.user?.id || null, contact, Boolean(ctx.user), data.summary, data.description, data.steps, data.expected, data.actual, data.diagnostics, data.occurredAt, data.sourceUrl, screenshot ? seal(screenshot.toString('base64'), this.config.encryptionKey, `report:${reportId}`) : null]);
       if (!report) {
         const [prior] = await q('select ticket,payload_hash from accounts.reports where idempotency_hash=$1', [key]);
         if (prior!.payload_hash !== payloadHash) return fail(409, 'idempotency_conflict');
         return { reference: `DEV-${prior!.ticket}` };
       }
       const reference = `DEV-${report.ticket}`;
-      await queueMail(q, this.config, reportMail(this.config.supportEmail, reference, app.name, 'en', true, this.config));
+      await queueMail(q, this.config, reportMail(this.config.supportEmail, reference, app.name, 'en', true, this.config, { ...data, contactEmail: contact, screenshot: screenshot?.toString('base64') }));
       if (ctx.user) await queueMail(q, this.config, reportMail(ctx.user.email, reference, app.name, ctx.user.language, false, this.config));
       return { reference };
     });

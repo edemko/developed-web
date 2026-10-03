@@ -1,0 +1,7 @@
+#developed-report-problem { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; padding: 6px 10px; border: 1px solid currentColor; border-radius: 8px; font: 500 12px/1.3 system-ui,sans-serif; color: inherit; text-decoration: none; text-align: center; }
+#developed-report-problem:focus-visible { outline: 3px solid #818cf8; outline-offset: 3px; }
+#developed-report-problem.developed-report-floating { position: fixed; bottom: max(18px, env(safe-area-inset-bottom)); right: 18px; z-index: 40; background: #18243b; color: #fff; box-shadow: 0 3px 12px #0003; }
+[data-developed-support-slot] { display: inline-flex; flex-shrink: 0; }
+@media (max-width: 480px) { #developed-report-problem { max-width: 105px; font-size: 11px; } }
+
+[data-developed-support-slot]:empty { display: none; }

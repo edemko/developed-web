@@ -19,11 +19,10 @@ and lazy loading keeps them out of the initial viewport's critical requests.
 - KešTrek: `kestrek/frontend/src/favicon.svg`.
 - Otazkomat: `otazkomat/frontend/public/favicon.svg`.
 - Vocabulum: `vocabulary-builder/public/favicon.svg`.
-- Odonto AI: SVG transcription of the tooth/sparkle mark in
-  `odonto-ai/frontend/src/components/Logo.tsx`, for the staged account picker.
-- Airsoft: an A monogram fallback in the marketplace's olive/orange palette,
-  for the staged picker. The app currently uses a text badge and has no dedicated
-  brand icon; its framework favicon is not used as product branding.
+- Odonto AI: small-size tooth/sparkle mark on a deep blue tile, shared with
+  `odonto-ai/frontend/src/app/icon.svg` and both showcase favicons.
+- Airsoft: cream A monogram with an orange inset on an olive tile, shared with
+  `airsoft-marketplace/app/icon.svg` and both showcase favicons.
 - Filament Check: the project homepage has no favicon. Its existing logo was copied
   from https://www.filamentree.eu/nest_filamentree_theme/static/src/img/filamentree-full-logo.svg
   on 2026-09-15. It is hosted locally rather than loaded from that service at runtime.
@@ -31,3 +30,10 @@ and lazy loading keeps them out of the initial viewport's critical requests.
 The two new project cards describe currently implemented capabilities. The Mac
 release is identified as a preview, and no iOS download or ScreenTime app blocking
 is advertised.
+
+The 2026-10-02 local favicon audit found the Vercel triangle in Airsoft,
+OdontoAI, Vocabulum and Svet Pečenia. Their app-level `favicon.ico` files now
+contain matching 16/32/48/64/256px exports. Vocabulum retains its existing blue
+book SVG; Svet Pečenia uses a cream cake on a berry tile in `src/app/icon.svg`.
+AMP, OdontoAI and Vocabulum are deployed; Svet Pečenia remains pending at the
+owner’s request. See [deployment record](audits/2026-10-02-favicon-deployment.md).

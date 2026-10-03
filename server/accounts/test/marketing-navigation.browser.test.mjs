@@ -10,6 +10,10 @@ test('marketing navigation exposes login, registration and owner-selected app th
   const files = new Map([
     ['/', ['index.html', 'text/html']], ['/en/', ['en/index.html', 'text/html']],
     ['/styles.css', ['styles.css', 'text/css']], ['/script.js', ['script.js', 'text/javascript']],
+    ['/assets/support/report.js', ['assets/support/report.js', 'text/javascript']],
+    ['/assets/support/report.css', ['assets/support/report.css', 'text/css']],
+    ['/assets/privacy/cookies.js', ['assets/privacy/cookies.js', 'text/javascript']],
+    ['/assets/privacy/cookies.css', ['assets/privacy/cookies.css', 'text/css']],
     ['/favicon.png', ['favicon.png', 'image/png']],
     ...catalog.apps.map(app => [app.icon, [app.icon.slice(1), app.icon.endsWith('.svg') ? 'image/svg+xml' : 'image/webp']]),
   ]);
@@ -37,6 +41,11 @@ test('marketing navigation exposes login, registration and owner-selected app th
           icon.onerror = () => resolve(false); icon.src = document.querySelector('link[rel=icon]').href;
         })), true);
         await page.waitForFunction(() => document.querySelectorAll('[data-apps-list] img').length === 7 && [...document.querySelectorAll('[data-apps-list] img')].every(image => image.complete && image.naturalWidth > 0));
+        const reportButton = page.locator('#developed-report-problem');
+        await reportButton.waitFor({ state: 'visible' });
+        const reportUrl = new URL(await reportButton.getAttribute('href'));
+        assert.equal(reportUrl.origin, 'https://www.developed.sk');
+        assert.equal(reportUrl.searchParams.get('sourceUrl'), `http://127.0.0.1:${server.address().port}${path}`);
         const summary = page.locator('[data-apps-menu] summary');
         await summary.click();
         assert.equal(await page.locator('[data-apps-list] a').count(), 8);

@@ -1,26 +1,28 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { Accounts, type Context } from './accounts.js';
-import { diagnostics, email, equal, fail, hash, HttpError, language, line, password, text, uuid } from './security.js';
+import { diagnostics, email, equal, fail, hash, HttpError, language, line, password, text, unseal, uuid } from './security.js';
 import type { Row } from './db.js';
 import { Mfa } from './mfa.js';
 import { catalogApp } from './catalog.js';
 import { oauthBroker } from './oauth-broker.js';
 import { logoutNativeSession } from './native-logout.js';
+import { prepareImage } from './images.js';
 import { ProductProfile } from './product-profile.js';
 
 const assets = new Map<string, [string, string]>([
-  ['app.js', ['app.js', 'text/javascript']], ['i18n.js', ['i18n.js', 'text/javascript']],
+  ['cookies.js', ['cookies.js', 'text/javascript']], ['cookies.css', ['cookies.css', 'text/css']],
+  ['images.js', ['images.js', 'text/javascript']], ['app.js', ['app.js', 'text/javascript']], ['i18n.js', ['i18n.js', 'text/javascript']],
   ['app.css', ['app.css', 'text/css']], ['music.css', ['music.css','text/css']], ['music-logo.png',['music-logo.png','image/png']], ['logo.svg', ['logo.svg', 'image/svg+xml']],
 ]);
-async function body(req: IncomingMessage): Promise<Row> {
+async function body(req: IncomingMessage, limit = 32768): Promise<Row> {
   if (req.headers['content-type']?.split(';')[0]?.trim() !== 'application/json') return fail(415, 'json_required');
   if (req.headers['content-encoding']) return fail(415, 'encoding_not_supported');
   let size = 0; const chunks: Buffer[] = [];
   for await (const chunk of req) {
-    size += chunk.length; if (size > 32768) return fail(413, 'request_too_large'); chunks.push(chunk);
+    size += chunk.length; if (size > limit) return fail(413, 'request_too_large'); chunks.push(chunk);
   }
   try { const parsed = JSON.parse(Buffer.concat(chunks).toString()); if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return fail(400, 'invalid_json'); return parsed; }
   catch { return fail(400, 'invalid_json'); }
@@ -57,7 +59,7 @@ function createSingleAccountServer(accounts: Accounts) {
     res.setHeader('Cache-Control', 'private, no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff'); res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+    res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' https://www.developed.sk/api/account/avatars/ data:; font-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     if (!accounts.config.insecureLocal) res.setHeader('Strict-Transport-Security', 'max-age=31536000');
     try {
@@ -76,7 +78,7 @@ function createSingleAccountServer(accounts: Accounts) {
           if (next.pathname !== '/account/authorize' || !/^[a-zA-Z0-9]{32}$/.test(next.searchParams.get('authorization_id') || '')) return fail(503,'provider_unavailable');
           res.writeHead(303,{Location:`/account/authorize?authorization_id=${next.searchParams.get('authorization_id')}`});return res.end();
         }
-        const allowed = /^(?:\/(?:login|register|verify-email|forgot-password|reset-password|profile|security|account\/authorize)|\/account-assets\/[a-z0-9.-]+|\/api\/account\/(?:session|login|register|logout|logout-all|resend-verification|forgot-password|reset-password|verify-email|reauthenticate|invitation\/preview|mfa(?:\/(?:enroll|verify))?|profile(?:\/(?:password|email))?|security|authorize|catalog))$/;
+        const allowed = /^(?:\/(?:login|register|verify-email|forgot-password|reset-password|profile|security|account\/authorize)|\/account-assets\/[a-z0-9.-]+|\/api\/account\/(?:session|login|register|logout|logout-all|resend-verification|forgot-password|reset-password|verify-email|reauthenticate|invitation\/preview|mfa(?:\/(?:enroll|verify))?|profile(?:\/(?:password|email|avatar))?|security|authorize|catalog))$/;
         if (url.pathname === '/apps') {res.writeHead(303,{Location:'/api/music/auth/start'});return res.end();}
         if (!allowed.test(url.pathname)) return fail(404,'not_found');
       }
@@ -195,6 +197,13 @@ function createSingleAccountServer(accounts: Accounts) {
           where a.published and c.status='ACTIVE' and c.deleted_at is null order by c.sort_order,c.name`);
         return json(res, { apps: apps.map(catalogApp) });
       }
+      const avatarMatch = /^\/avatars\/([a-f0-9-]{36})\.jpg$/.exec(path);
+      if (avatarMatch && ['GET', 'HEAD'].includes(method)) {
+        const [avatar] = await accounts.db.query('select image from accounts.avatars where id=$1', [uuid(avatarMatch[1])]);
+        if (!avatar) return fail(404, 'not_found');
+        res.setHeader('Content-Type', 'image/jpeg');
+        return res.end(method === 'HEAD' ? undefined : avatar.image);
+      }
       let ctx = await accounts.bootstrap(cookieValue(req, accounts.config.insecureLocal ? 'developed_local' : '__Host-developed_session'));
       const setContext = (next: Context) => {
         ctx = next;
@@ -206,7 +215,7 @@ function createSingleAccountServer(accounts: Accounts) {
       if (!['GET', 'HEAD'].includes(method)) {
         if (req.headers.origin !== accounts.config.origin || req.headers['sec-fetch-site'] === 'cross-site') return fail(403, 'invalid_origin');
         if (!equal(req.headers['x-csrf-token'], accounts.csrf(ctx.session))) return fail(403, 'invalid_csrf');
-        data = await body(req);
+        data = await body(req, path === '/reports' || path === '/profile/avatar' ? 1_550_000 : 32768);
       }
       if (method === 'GET' && path === '/session') {
         const [settings] = await accounts.db.query('select registration_mode from accounts.settings where singleton');
@@ -262,6 +271,18 @@ function createSingleAccountServer(accounts: Accounts) {
           left join core.app_access m on m.app_id=a.app_id and m.user_id=$1
           where a.published and c.deleted_at is null order by c.sort_order,c.name`, [user.id]);
         return json(res, { apps: apps.map(catalogApp) });
+      }
+      if (path === '/profile/avatar' && ['PUT', 'DELETE'].includes(method)) {
+        await accounts.db.limit(`avatar:${user.id}`, 20, 3600);
+        const image = method === 'PUT' ? await prepareImage(data.image, true) : null;
+        const id = randomUUID(), avatarUrl = image ? `${accounts.config.surfaceAppId ? 'https://www.developed.sk' : accounts.config.origin}/api/account/avatars/${id}.jpg` : null;
+        await accounts.db.tx(async q => {
+          await new ProductProfile(accounts).locked(q, user);
+          if (image) await q('insert into accounts.avatars(user_id,id,image) values($1,$2,$3) on conflict(user_id) do update set id=$2,image=$3', [user.id,id,image]);
+          else await q('delete from accounts.avatars where user_id=$1', [user.id]);
+          await q('update core.profiles set photo_url=$2,updated_at=now() where id=$1', [user.id,avatarUrl]);
+        });
+        return json(res, { avatarUrl });
       }
       if (path === '/profile' && method === 'PATCH') {
         const name = line(data.displayName, 100, true), lang = language(data.language);
@@ -363,13 +384,22 @@ function createSingleAccountServer(accounts: Accounts) {
         } else return fail(400, 'invalid_action');
         return json(res, { ok: true });
       }
+      const screenshotMatch = /^\/admin\/reports\/([a-f0-9-]{36})\/screenshot$/.exec(path);
+      if (screenshotMatch && method === 'GET') {
+        const id = uuid(screenshotMatch[1]);
+        const [report] = await accounts.db.query('select screenshot_ciphertext from accounts.reports where id=$1', [id]);
+        if (!report?.screenshot_ciphertext) return fail(404, 'not_found');
+        res.setHeader('Content-Type', 'image/jpeg');
+        res.setHeader('Content-Disposition', 'inline; filename="screenshot.jpg"');
+        return res.end(Buffer.from(unseal<string>(report.screenshot_ciphertext, accounts.config.encryptionKey, `report:${id}`), 'base64'));
+      }
       if (path === '/admin/reports' && method === 'GET') {
         const status = url.searchParams.get('status') || null, app = url.searchParams.get('app') || null, reporter = url.searchParams.get('user');
         if (status && !['new','in_progress','resolved','closed'].includes(status)) return fail(400, 'invalid_status');
         const from = url.searchParams.get('from'), to = url.searchParams.get('to');
         if ([from, to].some(v => v && !Number.isFinite(Date.parse(v)))) return fail(400, 'invalid_date');
         const reports = await accounts.db.query(`select r.id,'DEV-'||r.ticket as reference,r.app_id as "appId",coalesce(c.name,'DevelopED') as "appName",
-          r.summary,r.description,r.steps,r.expected,r.actual,r.reporter_id as "reporterId",r.contact_email as "contactEmail",r.contact_verified as "contactVerified",
+          r.source_url as "sourceUrl",(r.screenshot_ciphertext is not null) as "hasScreenshot",r.summary,r.description,r.steps,r.expected,r.actual,r.reporter_id as "reporterId",r.contact_email as "contactEmail",r.contact_verified as "contactVerified",
           r.created_at as "createdAt",r.occurred_at as "occurredAt",r.diagnostics,r.status,
           coalesce((select jsonb_agg(jsonb_build_object('id',n.id,'note',n.note,'actorId',n.actor_id,'createdAt',n.created_at) order by n.created_at) from accounts.report_notes n where n.report_id=r.id),'[]') as notes
           from accounts.reports r left join core.apps c on c.id=r.app_id

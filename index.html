@@ -168,6 +168,10 @@
     }
     </script>
     <script>document.documentElement.classList.add("js");</script>
+<link rel="stylesheet" href="/assets/support/report.css">
+<script defer src="/assets/support/report.js" data-developed-app="developed"></script>
+<link rel="stylesheet" href="/assets/privacy/cookies.css">
+<script defer src="/assets/privacy/cookies.js"></script>
 </head>
 <body>
     <svg xmlns="http://www.w3.org/2000/svg" hidden aria-hidden="true">
@@ -198,6 +202,7 @@
                     <div class="apps-menu-items" data-apps-list><a href="/apps">Všetky aplikácie</a></div>
                 </details>
             </div>
+            <span data-developed-support-slot></span>
             <button class="menu-toggle" type="button" aria-label="Otvoriť navigáciu" aria-expanded="false" aria-controls="main-menu" data-menu-toggle>
                 <span aria-hidden="true"></span>
                 <span aria-hidden="true"></span>
@@ -663,7 +668,7 @@
                     <ul>
                         <li><a href="/pravne-informacie/">Poskytovateľ</a></li>
                         <li><a href="/ochrana-osobnych-udajov/">Ochrana osobných údajov</a></li>
-                        <li><a href="/cookies/">Cookies a úložiská</a></li>
+                        <li><a href="/cookies/" data-cookie-info>Cookies a úložiská</a></li>
                         <li><a href="/podmienky-pouzivania/">B2B podmienky webu</a></li>
                     </ul>
                 </div>

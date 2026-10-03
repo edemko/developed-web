@@ -95,3 +95,10 @@ footer { border-top: 1px solid var(--line); padding-block: 1.5rem; display: flex
 @media(max-width: 480px) { nav { width: 100%; justify-content: flex-end; } .apps-menu-items { top: 128px; max-height: calc(100dvh - 148px); } }
 @media(max-width: 760px) { .language-menu .language-options { position: fixed; right: 1rem; left: auto; top: 128px; } }
 @media(prefers-reduced-motion: no-preference) { button, a { transition: background .15s, border-color .15s; } }
+
+.avatar-preview { width: 128px; height: 128px; }
+.screenshot-preview { display: block; max-width: 100%; max-height: 480px; object-fit: contain; border-radius: 8px; }
+.screenshot-preview[hidden], .avatar-preview[hidden] { display: none; }
+.report-link { font-size: .8rem; white-space: nowrap; }
+
+@media(max-width:480px) { .report-link { position:fixed; right:16px; bottom:16px; z-index:4; padding:10px; background:#18243b; border:1px solid #818cf8; border-radius:8px; } }

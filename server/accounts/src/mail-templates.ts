@@ -1,6 +1,6 @@
 import {readFileSync} from 'node:fs';
 /** First-party transactional mail. No remote images, web fonts or tracking. */
-export interface Mail { to: string; subject: string; text: string; html?: string; brand?: 'mega-music'; inlineLogo?: string }
+export interface Mail { to: string; subject: string; text: string; html?: string; brand?: 'mega-music'; inlineLogo?: string; attachments?: { ContentType: string; Filename: string; Base64Content: string }[] }
 export interface MailOptions { origin?: string; supportEmail?: string; insecureLocal?: boolean; mailBrand?: 'mega-music'; invitationOrigin?: string; invitationPath?: string }
 type Purpose = 'verification' | 'recovery' | 'email_change' | 'invitation';
 const lifetimes: Record<Purpose, number> = { verification: 86400, recovery: 1800, email_change: 1800, invitation: 604800 };
@@ -126,12 +126,16 @@ export function securityMail(to: string, lang: string, options: MailOptions = {}
   const [subject, intro, label] = confirmed ? local.verified : local.security;
   return render(to, subject, [intro], lang, options, { label, url: `${settings(options).origin}${confirmed ? '/login' : '/security'}` });
 }
-export function reportMail(to: string, reference: string, appName: string, lang: string, operator: boolean, options: MailOptions = {}): Mail {
+export function reportMail(to: string, reference: string, appName: string, lang: string, operator: boolean, options: MailOptions = {}, details?: { description: string; sourceUrl: string | null; contactEmail?: string | null; screenshot?: string; steps?: string; expected?: string; actual?: string }): Mail {
   if (!/^DEV-[0-9]+$/.test(reference)) throw new Error('Invalid report reference');
   const local = copy[locale(lang)], message = operator ? local.alert : local.report;
   // App names are body text only; never incorporate user-controlled text in headers.
-  return render(to, `${message[0]} — ${reference}`, [message[1], `${local.reference}: ${reference}`, `${local.app}: ${appName}`], lang, options,
+  const paragraphs = [message[1], `${local.reference}: ${reference}`, `${local.app}: ${appName}`];
+  if (operator && details) paragraphs.push(`URL: ${details.sourceUrl || '—'}`, `Contact: ${details.contactEmail || '—'}`, details.description, ...[details.steps, details.expected, details.actual].filter((v): v is string => Boolean(v)));
+  const mail = render(to, `${message[0]} — ${reference}`, paragraphs, lang, options,
     operator ? { label: local.alert[2], url: `${settings(options).origin}/admin/reports` } : undefined);
+  if (operator && details?.screenshot) mail.attachments = [{ ContentType: 'image/jpeg', Filename: `${reference}-screenshot.jpg`, Base64Content: details.screenshot }];
+  return mail;
 }
 export function registrationMail(to: string, userEmail: string, displayName: string, appName: string, lang: string, options: MailOptions = {}): Mail {
   const local = copy[locale(lang)];

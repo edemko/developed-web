@@ -167,6 +167,10 @@
     }
     </script>
     <script>document.documentElement.classList.add("js");</script>
+<link rel="stylesheet" href="/assets/support/report.css">
+<script defer src="/assets/support/report.js" data-developed-app="developed"></script>
+<link rel="stylesheet" href="/assets/privacy/cookies.css">
+<script defer src="/assets/privacy/cookies.js"></script>
 </head>
 <body>
     <svg xmlns="http://www.w3.org/2000/svg" hidden aria-hidden="true">
@@ -197,6 +201,7 @@
                     <div class="apps-menu-items" data-apps-list><a href="/apps">All apps</a></div>
                 </details>
             </div>
+            <span data-developed-support-slot></span>
             <button class="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="main-menu" data-menu-toggle>
                 <span aria-hidden="true"></span>
                 <span aria-hidden="true"></span>
@@ -662,7 +667,7 @@
                     <ul>
                         <li><a href="/en/legal-notice/">Provider details</a></li>
                         <li><a href="/en/privacy/">Privacy notice</a></li>
-                        <li><a href="/en/cookies/">Cookies and storage</a></li>
+                        <li><a href="/en/cookies/" data-cookie-info>Cookies and storage</a></li>
                         <li><a href="/en/website-terms/">B2B website terms</a></li>
                     </ul>
                 </div>

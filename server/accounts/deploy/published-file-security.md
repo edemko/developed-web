@@ -1,5 +1,8 @@
 # Publication security remediation — 2026-09-21
 
+Odonto Feedback was [retired on 2026-10-02](../../../docs/app-retirement-2026-10-02.md).
+Its paths, container image tags and rollback instructions below are historical.
+
 The owner authorized fixing the audit findings and confirmed that all MyClinic and Kestrek landing screenshots contain only demo data. No image replacement was needed.
 
 ## Applied host changes

@@ -9,7 +9,7 @@ test('browser MFA enrollment, challenge, recovery copy and password+TOTP step-up
   const server = createServer(async (req, res) => {
     const path = new URL(req.url, 'http://localhost').pathname;
     const asset = path.startsWith('/account-assets/') ? path.slice('/account-assets/'.length) : 'index.html';
-    if (!['index.html', 'app.js', 'i18n.js', 'app.css', 'logo.svg'].includes(asset)) return res.writeHead(404).end();
+    if (!['index.html', 'cookies.js', 'cookies.css', 'app.js', 'images.js', 'i18n.js', 'app.css', 'logo.svg'].includes(asset)) return res.writeHead(404).end();
     res.setHeader('Content-Type', asset.endsWith('.js') ? 'text/javascript' : asset.endsWith('.css') ? 'text/css' : asset.endsWith('.svg') ? 'image/svg+xml' : 'text/html');
     res.end(await readFile(new URL(`../public/${asset}`, import.meta.url)));
   });

@@ -20,6 +20,7 @@ test('continuations only retain local authorization or report context', () => {
   const origin = 'https://www.developed.sk';
   assert.equal(safeContinuation('/account/authorize?authorization_id=abc-123&redirect_uri=https://evil.test', origin), '/account/authorize?authorization_id=abc-123');
   assert.equal(safeContinuation('/report-bug/mega-music?secret=abc', origin), '/report-bug/mega-music');
+  assert.equal(safeContinuation('/report-bug/mega-music?sourceUrl=https%3A%2F%2Fmusic.test%2Fplayer%3Fcode%3Dsecret', origin), '/report-bug/mega-music?sourceUrl=https%3A%2F%2Fmusic.test%2Fplayer');
   for (const value of ['https://evil.test', '//evil.test', '/\\evil.test', '/admin/users', '/profile', '/account/authorize', '/report-bug/x#token=abc']) assert.equal(safeContinuation(value, origin), '/apps', value);
 });
 

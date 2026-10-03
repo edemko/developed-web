@@ -26,6 +26,7 @@ export class MailWorker {
         body: JSON.stringify({ Messages: [{ From: { Email: 'noreply@developed.sk', Name: mail.brand === 'mega-music' ? 'Mega Music · DevelopED' : 'DevelopED' },
           ReplyTo: { Email: this.config.supportEmail, Name: 'DevelopED support' }, To: [{ Email: mail.to }],
           Subject: mail.subject, TextPart: mail.text, HTMLPart: mail.html || legacyMailHtml(mail, this.config),
+          ...(mail.attachments?.length ? { Attachments: mail.attachments } : {}),
           TrackOpens: 'disabled', TrackClicks: 'disabled', CustomID: job.id,
           ...(mail.brand === 'mega-music' && mail.inlineLogo ? {InlinedAttachments:[{ContentType:'image/png',Filename:'mega-music.png',ContentID:'mega-music-logo',Base64Content:mail.inlineLogo}]} : {}) }] }),
         signal: AbortSignal.timeout(15_000), redirect: 'error',

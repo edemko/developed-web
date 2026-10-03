@@ -12,6 +12,10 @@
     <link rel="alternate" hreflang="x-default" href="https://www.developed.sk/cookies/">
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="stylesheet" href="/styles.css?v=e9f355de2293">
+<link rel="stylesheet" href="/assets/support/report.css">
+<script defer src="/assets/support/report.js" data-developed-app="developed"></script>
+<link rel="stylesheet" href="/assets/privacy/cookies.css">
+<script defer src="/assets/privacy/cookies.js"></script>
 </head>
 <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -29,17 +33,26 @@
             <article class="legal-content">
                 <p class="eyebrow">Storage transparency</p>
                 <h1>Cookies and local storage</h1>
-                <p class="legal-meta">Draft version: 23 July 2026</p>
-                <div class="legal-warning" role="note"><strong>Draft for legal review.</strong> The technical state described below is intentionally designed not to require a consent banner. The website provider is Healthcare Data Solutions s. r. o.; DevelopED is its commercial brand.</div>
+                <p class="legal-meta">Draft version: 2 October 2026</p>
+                <div class="legal-warning" role="note"><strong>Draft for legal review.</strong> The public pages have no optional trackers. The account service uses essential cookies for requested account and security features. The website provider is Healthcare Data Solutions s. r. o.; DevelopED is its commercial brand.</div>
 
-                <div class="policy-summary"><p><strong>Current state:</strong> this website sets no cookies and uses neither localStorage nor sessionStorage. It has no analytics, advertising, embedded player, chat widget or contact form. A cookie banner is therefore not displayed for this configuration.</p></div>
+                <div class="policy-summary"><p><strong>Current state:</strong> the public pages have no analytics, advertising or optional cookies and use neither localStorage nor sessionStorage. Account pages use essential security cookies. The footer opens a cookie-information dialog on every page; it does not request consent or save a preference. No optional-cookie consent banner is currently needed.</p></div>
 
                 <h2>What the website uses</h2>
                 <ul>
-                    <li>static HTML, CSS and a small JavaScript file served from developed.sk;</li>
+                    <li>first-party HTML, CSS and JavaScript, plus same-origin account requests where needed;</li>
                     <li>technical hosting logs for security and diagnostics, which are server-side records rather than cookies or browser storage;</li>
                     <li>links to email, telephone, LinkedIn and presented projects; an external service loads only after you follow its link.</li>
                 </ul>
+
+                <h2>Account and security cookies</h2>
+                <p>Healthcare Data Solutions s. r. o. provides the DevelopED account service. Its first-party cookies are restricted to the host that sets them, use HTTPS (Secure), and cannot be read by JavaScript (HttpOnly). They enable account sessions and requested security features, rather than analytics or advertising.</p>
+                <ul>
+                    <li><code>__Host-developed_session</code>: maintains the account session and request security. Its cookie lifetime is 30 minutes for an anonymous session, 10 minutes while authenticator verification is pending, normally 7 days after sign-in, or up to 14 days with remembered-browser security. The server can expire or revoke a session earlier. SameSite=Lax.</li>
+                    <li><code>__Host-developed_mfa_trust</code>: remembers a browser for 14 days after successful authenticator verification when you select that option. SameSite=Strict.</li>
+                </ul>
+                <p>These cookies support services you request and do not require optional-cookie consent. Ordinary sign-out clears the central session cookie; signing out of all apps and devices also clears remembered-browser trust. You can remove cookies in your browser, which ends access to the corresponding session or remembered-browser feature. The cookie-information dialog does not sign you out.</p>
+                <p>Project showcase pages belong to this website. Applications reached through external links run separately and may have their own cookies and storage notices; this dialog makes no choices for those applications.</p>
 
                 <h2>Website language</h2>
                 <p>Slovak and English have separate URLs, so the language choice is not stored in the browser.</p>
@@ -48,13 +61,13 @@
                 <p>If analytics, marketing, embedded content or another non-essential technology that stores or reads information on a device is added, it will first undergo technical and legal assessment. Anything requiring consent will stay blocked until active consent; refusal will be as easy as acceptance and the decision can be changed later.</p>
 
                 <h2>How to verify the state</h2>
-                <p>You can inspect Cookies, Local Storage and Session Storage in browser developer tools. Network requests on initial page load should go only to developed.sk.</p>
+                <p>You can inspect Cookies, Local Storage and Session Storage in browser developer tools. A fresh visit to a public page should not create cookies or browser storage. Account requests may create the essential cookies listed above. Opening or closing the information dialog creates no storage or network requests.</p>
 
                 <h2>Contact</h2>
                 <p>Send technology questions to <a href="mailto:info@developed.sk">info@developed.sk</a>. Related personal-data processing is explained in the <a href="/en/privacy/">privacy notice</a>.</p>
             </article>
         </div>
     </main>
-    <footer class="footer"><div class="container footer-bottom"><p>© 2026 Healthcare Data Solutions s. r. o. · commercial brand DevelopED</p><a href="/cookies/" lang="sk">Slovenská verzia</a></div></footer>
+    <footer class="footer"><div class="container footer-bottom"><p>© 2026 Healthcare Data Solutions s. r. o. · commercial brand DevelopED</p><a href="/cookies/" lang="sk">Slovenská verzia</a></div><div class="developed-cookie-entry"><a href="/en/cookies/" data-cookie-info>Cookie information</a></div></footer>
 </body>
 </html>

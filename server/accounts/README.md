@@ -79,8 +79,9 @@ confirmation, password recovery, email changes, invitations, security notices,
 bug-report acknowledgements, and new-registration alerts. Every confirmed
 superadmin receives a registration alert naming the new account and the
 server-resolved originating app (or DevelopED for a portal registration), plus
-an authenticated admin-page link. Operator report alerts contain only the app,
-reference, and an authenticated admin-page link—not the report body. Mailjet
+an authenticated admin-page link. Operator report emails contain the app, reference, originating page URL,
+description and an optional JPEG screenshot attachment, delivered to info@developed.sk.
+Reporter acknowledgements contain only the reference and app. Mailjet
 open/click tracking is explicitly disabled, and templates load no remote assets.
 Credential links are limited to the configured portal origin and the correct
 route/fragment. Their expiry copy shares the backend lifetime definition:
@@ -392,8 +393,10 @@ Report links such as `/report-bug/mega-music` automatically assign a validated
 registry source; the user does not choose the app manually. This is reporting
 context, not tamper-proof evidence of the executing app. Anonymous typed contact
 email is never used to attach an account identity. Only authenticated reporter
-contacts are marked verified. Notifications carry a ticket reference and
-admin-page link; descriptions/diagnostics/private notes remain in the portal.
+contacts are marked verified. Notifications to support carry the ticket reference, page URL, description and
+optional screenshot. Screenshots are encrypted at rest and visible through the
+authenticated admin report view; private notes stay in the portal. Query strings
+and fragments are removed from source URLs before transport and persistence.
 Zoho correspondence stays manual using the reference; there is no mailbox-sync
 or ticket-email ingestion integration in v1.
 
@@ -489,3 +492,16 @@ closed public provider bypasses on **every** ingress, removal/restriction of
 legacy app admin keys, controlled Mailjet delivery, restore proof, monitoring,
 and review of account/privacy/support retention disclosures. Unrelated shared
 Auth consumers must not be broken without agreed migration scope.
+
+
+## Problem reports and profile images (source implementation, October 2026)
+
+Apply `20261002090301_report_screenshots_and_profile_avatars.sql` before this
+backend release. This implementation has not been deployed. The existing sole
+mail worker must run the new mail code to deliver screenshot attachments; do not
+start another sender. See [implementation and validation notes](../../docs/problem-reports-and-avatars.md).
+
+The profile page uploads/removes the central fallback image. JPEG/PNG/WebP inputs
+are normalized to 256×256 JPEGs, capped at 128 KiB, with metadata removed. Public
+image URLs use a random ID replaced on each upload; the database table itself
+remains private. The current URL is returned by existing central identity checks.

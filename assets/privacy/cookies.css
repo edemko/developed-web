@@ -1,0 +1,28 @@
+.developed-cookie-entry { padding: 1rem; text-align: center; font-size: .875rem; }
+[data-cookie-info]:focus-visible { outline: 3px solid #93c5fd; outline-offset: 4px; }
+#developed-cookie-dialog {
+  box-sizing: border-box;
+  width: min(560px, calc(100% - 2rem));
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  padding: clamp(1.25rem, 4vw, 2rem);
+  overflow: auto;
+  border: 1px solid #475569;
+  border-radius: 20px;
+  background: #101b2e;
+  color: #f1f5f9;
+  font: 400 1rem/1.6 system-ui, sans-serif;
+  box-shadow: 0 24px 80px #0008;
+  text-align: left;
+  color-scheme: dark;
+}
+#developed-cookie-dialog::backdrop { background: #020617c9; }
+#developed-cookie-dialog h2 { margin: 0 0 1rem; font-size: 1.5rem; line-height: 1.25; color: #fff; }
+#developed-cookie-dialog h3 { margin: 1.25rem 0 .25rem; font-size: 1rem; color: #fff; }
+#developed-cookie-dialog p { margin: 0 0 .75rem; color: #cbd5e1; }
+#developed-cookie-dialog a { color: #93c5fd; text-decoration: underline; text-underline-offset: .2em; }
+#developed-cookie-dialog .developed-cookie-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.5rem; }
+#developed-cookie-dialog button { min-height: 44px; padding: .65rem 1.5rem; border: 1px solid #93c5fd; border-radius: 10px; background: #1e40af; color: #fff; font: inherit; cursor: pointer; }
+#developed-cookie-dialog :focus-visible { outline: 3px solid #93c5fd; outline-offset: 4px; }
+@media (max-width: 400px) { #developed-cookie-dialog .developed-cookie-actions { align-items: stretch; flex-direction: column; } }

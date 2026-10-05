@@ -170,7 +170,7 @@ function createSingleAccountServer(accounts: Accounts) {
         }
         return json(res, await accounts.register(data, app.app_id, ctx.session.id));
       }
-      const productProfile = path.match(/^\/internal\/profile\/(details|profile|password|email|phone-start|phone-verify)$/);
+      const productProfile = path.match(/^\/internal\/profile\/(details|profile|password|email|phone-start|phone-verify|phone-status)$/);
       if (productProfile) {
         if (method !== 'POST') return fail(405, 'method_not_allowed');
         const auth = req.headers.authorization || '';

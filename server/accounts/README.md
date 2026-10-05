@@ -33,6 +33,15 @@ generic provider identity/consent APIs and legacy shared administrator keys.
 
 ## What runs here
 
+Pending source change (2026-10-05): AMP profile SMS diagnostics require
+`supabase/migrations/20261005160242_account_profile_sms_delivery.sql` before the
+new API code. It persists provider IDs/error codes, adds owner-scoped
+`/internal/profile/phone-status`, and returns challenge status/cooldown metadata
+even when submission fails. `details.pendingPhone` restores the latest attempt
+after a profile refresh. Gateway acceptance is not delivery; only OTP entry
+verifies the phone. Coordinate with the Airsoft UI release. This migration and
+these changes are not deployed; the production pin above remains current.
+
 - Loopback-only HTTP service on port 3140, behind the canonical
   `https://www.developed.sk` ingress. The bare `developed.sk` hostname keeps its
   canonical redirect. No cross-domain/shared parent-domain authentication cookie.

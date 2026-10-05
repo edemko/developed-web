@@ -39,6 +39,7 @@ test('central phone transactions preserve pending contacts, attempts, ownership,
     assert.ok(sms,'registration SMS prerequisite exists');
     sql(readFileSync(new URL(sms,migrations),'utf8'));
     sql(readFileSync(new URL('20260924194706_account_profile_contacts.sql',migrations),'utf8'));
+    sql(readFileSync(new URL('20261005160242_account_profile_sms_delivery.sql',migrations),'utf8'));
     pool = new pg.Pool({host:socket,user:'developed_accounts',database:'postgres',max:4});
     const query = async (s,a=[]) => (await pool.query(s,a)).rows;
     const db = { query, limit: async()=>{}, audit: async()=>{}, tx: async run => {
@@ -51,19 +52,50 @@ test('central phone transactions preserve pending contacts, attempts, ownership,
       internalCheck:async(_key,token)=>({app:{id:'app_airsoft'},client:{kind:'web'},user:{id:token},securityVersion:1}),
       userById:async id=>({id,security_version:1}),publicUser:u=>({id:u.id})};
     const sent=[];
-    const service=new ProductProfile(accounts,async(_a,phone,message)=>{sent.push({phone,code:message.match(/\d{6}/)[0]});return {ok:true,status:'accepted'};});
+    let sendResult = {ok:true,status:'accepted',messageId:'123'};
+    let checked = 0, delivery = {status:'sent'};
+    const service=new ProductProfile(accounts,async(_a,phone,message)=>{sent.push({phone,code:message.match(/\d{6}/)[0]});return sendResult;},
+      async () => { checked++; return delivery; });
     const call=(action,body={},who=user)=>service.handle('test',action,{...body,accessToken:who});
     const resetCooldown=()=>sql("update accounts.profile_phone_challenges set created_at=now()-interval '2 hours'");
     async function start(phone,replaceId){resetCooldown();return call('phone-start',{phone,...(replaceId?{replaceId}:{})});}
     const first=await start('+421911111111');
-    assert.equal((await call('details')).phones.length,0,'pending number is not a contact');
+    assert.equal(first.status,'accepted');
+    assert.ok(first.resendAfter>0 && first.resendAfter<=60);
+    assert.equal((await query('select provider_message_id from accounts.profile_phone_challenges where id=$1',[first.challengeId]))[0].provider_message_id,'123');
+    const restored=await call('details');
+    assert.equal(restored.phones.length,0,'pending number is not a contact');
+    assert.equal(restored.pendingPhone.challengeId,first.challengeId);
+    assert.equal(restored.pendingPhone.phone,'+421911111111');
+    await assert.rejects(call('phone-status',{challengeId:first.challengeId},other),e=>e.code==='not_found');
+    assert.equal(checked,0,'other users cannot query the provider');
+    assert.equal((await call('phone-status',{challengeId:first.challengeId})).status,'sent');
+    assert.equal((await call('phone-status',{challengeId:first.challengeId})).status,'sent');
+    assert.equal(checked,1,'repeated polls use cached delivery status');
+    assert.equal((await call('details')).phones.length,0,'delivery does not verify a phone');
+    delivery={status:'failed',errorCode:'ERROR'};
+    sql("update accounts.profile_phone_challenges set delivery_checked_at=now()-interval '20 seconds'");
+    assert.equal((await call('phone-status',{challengeId:first.challengeId})).status,'failed');
+    assert.equal((await query('select delivery_error_code from accounts.profile_phone_challenges where id=$1',[first.challengeId]))[0].delivery_error_code,'ERROR');
     await assert.rejects(call('phone-verify',{challengeId:first.challengeId,code:sent.at(-1).code},other),e=>e.code==='invalid_sms_code');
     for(let i=0;i<5;i++) await assert.rejects(call('phone-verify',{challengeId:first.challengeId,code:'000000'}),e=>e.code==='invalid_sms_code');
     assert.equal((await query('select attempts from accounts.profile_phone_challenges where id=$1',[first.challengeId]))[0].attempts,5);
     await assert.rejects(call('phone-verify',{challengeId:first.challengeId,code:sent.at(-1).code}),e=>e.code==='invalid_sms_code');
+    sendResult={ok:false,status:'rejected',errorCode:'NO_CREDIT'};
+    const failed=await start('+421911111111');
+    assert.equal(failed.status,'failed');
+    assert.ok(failed.resendAfter>0,'failed sends still expose cooldown');
+    await assert.rejects(call('phone-start',{phone:'+421911111111'}),e=>e.code==='sms_resend_too_soon');
+    await assert.rejects(call('phone-verify',{challengeId:failed.challengeId,code:sent.at(-1).code}),e=>e.code==='invalid_sms_code');
+    sendResult={ok:false,status:'ambiguous',errorCode:'TIMEOUT'};
+    const uncertain=await start('+421911111111');
+    assert.equal(uncertain.status,'unknown');
+    assert.equal((await call('phone-status',{challengeId:uncertain.challengeId})).status,'unknown');
+    sendResult={ok:true,status:'accepted',messageId:'124'};
     const verified=await start('+421911111111'); const code=sent.at(-1).code;
     await call('phone-verify',{challengeId:verified.challengeId,code});
     await assert.rejects(call('phone-verify',{challengeId:verified.challengeId,code}),e=>e.code==='invalid_sms_code');
+    assert.equal((await call('details')).pendingPhone,null);
     const old=(await call('details')).phones[0];
     const replacement=await start('+420777111111',old.id);
     assert.equal((await call('details')).phones[0].phone,old.phone);
@@ -75,6 +107,7 @@ test('central phone transactions preserve pending contacts, attempts, ownership,
     const expired=await start('+421933333333',contacts[0].id);
     sql(`update accounts.profile_phone_challenges set expires_at=now()-interval '1 second'`);
     await assert.rejects(call('phone-verify',{challengeId:expired.challengeId,code:sent.at(-1).code}),e=>e.code==='invalid_sms_code');
+    assert.equal((await call('phone-status',{challengeId:expired.challengeId})).status,'expired');
     assert.equal((await call('details')).phones.length,3);
     await assert.rejects(call('phone-start',{phone:'+421944444444',replaceId:contacts[0].id},other),e=>e.code==='phone_not_found');
     // A late uniqueness conflict rolls back deletion of the old contact.

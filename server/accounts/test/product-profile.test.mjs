@@ -80,3 +80,33 @@ test('product profile display name shares the central 100-character single-line 
   }
   assert.equal(writes.length, 0);
 });
+
+test('profile SMS distinguishes rejection from uncertainty and keeps safe error codes', async () => {
+  const a={config:{smsGateKey:'fixture-secret',smsGateFrom:'DevelopED'}};
+  for (const [payload,http,status,code] of [
+    [{code:'NO_CREDIT',description:'fixture-secret'},400,'rejected','NO_CREDIT'],
+    [{error:{code:10}},200,'rejected','10'],
+    [{messages:[]},200,'ambiguous','INVALID_RESPONSE'],
+    [{},503,'ambiguous','HTTP_503'],
+  ]) {
+    let calls=0;
+    const result=await sendProfileSms(a,'+421911111111','Code',async()=>{calls++;return Response.json(payload,{status:http});});
+    assert.equal(result.status,status);assert.equal(result.errorCode,code);assert.equal(calls,1);
+    assert.ok(!JSON.stringify(result).includes('fixture-secret'));
+  }
+});
+
+test('profile delivery requires DELIVERED, handles ERROR and never returns provider secrets', async () => {
+  const {checkProfileSms}=await import('../dist/profile-sms.js');
+  const a={config:{smsGateKey:'fixture-secret'}};
+  for(const [code,status] of [['SENT','sent'],['QUEUED','accepted'],['DELIVERED','delivered'],['EXPIRED','failed'],['ERROR','failed'],['UNDELIVERABLE','failed'],['NEW_STATUS','unknown']]) {
+    const result=await checkProfileSms(a,'123',async(url,init)=>{
+      assert.equal(url.searchParams.get('message_id'),'123');assert.equal(init.redirect,'error');
+      return Response.json({result:{code:'OK'},code,deliveryDateTime:'2026-10-05 15:56:00'});
+    });
+    assert.equal(result.status,status);
+  }
+  const result=await checkProfileSms(a,'123',async()=>{throw new Error('fixture-secret');});
+  assert.equal(result.status,'unknown');assert.ok(!JSON.stringify(result).includes('fixture-secret'));
+  assert.equal((await checkProfileSms(a,'invalid',async()=>assert.fail())).status,'unknown');
+});

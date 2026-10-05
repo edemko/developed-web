@@ -15,27 +15,19 @@ export function contactPhone(input: unknown) {
 }
 const keyed = (a: Accounts, purpose: string, value: string) => createHmac('sha256', a.config.encryptionKey).update(`${purpose}:${value}`).digest('hex');
 
-// Profile verification uses the explicit DevelopED sender required by the
-// production gateway; no implicit sender and no automatic retry after a timeout.
-export async function sendProfileSms(a: Accounts, phone: string, message: string, fetcher = fetch) {
-  const from = a.config.smsGateFrom;
-  if (!a.config.smsGateKey || !from || !/^[A-Za-z0-9][A-Za-z0-9 ._-]{0,10}$/.test(from)) return { ok: false, status: 'not_configured' };
-  try {
-    const response = await fetcher('https://api.smsgate.sk/v2/messages', {
-      method: 'POST', redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(8000),
-      headers: { 'X-API-KEY': a.config.smsGateKey, 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ recipients: [{ phone }], channels: [{ type: 'sms', ttl: 300 }], sms: { from, text: message, unicode: false } }),
-    });
-    if (!response.ok) return { ok: false, status: 'rejected' };
-    const data = await response.json() as Row;
-    const item = Array.isArray(data.messages) ? data.messages[0] : null;
-    if (data.error || data.code || item?.error || !Number.isSafeInteger(item?.messageId) || item.messageId <= 0) return { ok: false, status: 'rejected' };
-    return { ok: true, status: 'accepted', messageId: String(item.messageId) };
-  } catch { return { ok: false, status: 'ambiguous' }; }
-}
+export { sendProfileSms } from './profile-sms.js';
+import { sendProfileSms, checkProfileSms } from './profile-sms.js';
 
 export class ProductProfile {
-  constructor(readonly accounts: Accounts, readonly deliver = sendProfileSms) {}
+  constructor(readonly accounts: Accounts, readonly deliver = sendProfileSms, readonly checkDelivery = checkProfileSms) {}
+
+  challengeInfo(c: Row) {
+    const remaining = Math.max(0, Math.ceil((new Date(c.expires_at).getTime() - Date.now()) / 1000));
+    const status = c.status === 'consumed' ? 'verified' : c.status === 'locked' ? 'locked'
+      : c.status === 'failed' ? 'failed' : !remaining ? 'expired' : c.delivery_status;
+    return { challengeId: c.id, status, expiresIn: remaining,
+      resendAfter: Math.max(0, Math.ceil((new Date(c.created_at).getTime() + 60000 - Date.now()) / 1000)) };
+  }
 
   async phones(userId: string) {
     const rows = await this.accounts.db.query('select id,phone_ciphertext,verified_at from accounts.verified_phones where user_id=$1 order by slot', [userId]);
@@ -53,7 +45,33 @@ export class ProductProfile {
     if (checked.app.id !== 'app_airsoft' || checked.client.kind !== 'web') return fail(403, 'forbidden');
     const user = await a.userById(checked.user!.id);
     if (!user || String(user.security_version) !== String(checked.securityVersion)) return fail(401, 'invalid_session');
-    if (action === 'details') return { user: a.publicUser(user), phones: await this.phones(user.id) };
+    if (action === 'details') {
+      const [pending] = await a.db.query(`select * from accounts.profile_phone_challenges
+        where user_id=$1 and security_version=$2 and created_at>now()-interval '1 hour'
+        order by created_at desc limit 1`, [user.id, user.security_version]);
+      return { user: a.publicUser(user), phones: await this.phones(user.id),
+        pendingPhone: pending && pending.status !== 'consumed' ? {
+          ...this.challengeInfo(pending),
+          phone: unseal<string>(pending.phone_ciphertext,a.config.encryptionKey,`profile-phone:${pending.id}`),
+          ...(pending.replace_id ? { replaceId: pending.replace_id } : {}),
+        } : null };
+    }
+    if (action === 'phone-status') {
+      const id = uuid(body.challengeId);
+      const [challenge] = await a.db.query(`select * from accounts.profile_phone_challenges
+        where id=$1 and user_id=$2 and security_version=$3`, [id,user.id,user.security_version]);
+      if (!challenge) return fail(404, 'not_found');
+      const current = this.challengeInfo(challenge);
+      if (['verified','expired','locked','failed','delivered'].includes(current.status) || !challenge.provider_message_id) return current;
+      // Claim a short polling slot atomically, including across tabs/processes.
+      const claimed = await a.db.query(`update accounts.profile_phone_challenges set delivery_checked_at=now()
+        where id=$1 and (delivery_checked_at is null or delivery_checked_at<now()-interval '10 seconds') returning id`, [id]);
+      if (!claimed.length) return current;
+      const result = await this.checkDelivery(a, challenge.provider_message_id);
+      const [updated] = await a.db.query(`update accounts.profile_phone_challenges set delivery_status=$2,delivery_error_code=$3
+        where id=$1 returning *`, [id,result.status,result.errorCode ?? null]);
+      return this.challengeInfo(updated!);
+    }
     if (action === 'password' || action === 'email') {
       await a.db.limit(`identity:${user.id}`, 10, 3600);
       const nextPassword = action === 'password' ? password(body.password) : null;
@@ -97,9 +115,12 @@ export class ProductProfile {
           seal(phone,a.config.encryptionKey,`profile-phone:${id}`),keyed(a,`profile-code:${id}`,code)]);
       });
       const result = await this.deliver(a, phone, `DevelopED: Overovaci kod ${code}. Plati 5 minut. Nikomu ho neposielajte.`);
-      await a.db.query('update accounts.profile_phone_challenges set status=$2 where id=$1', [id,result.ok ? 'sent' : 'failed']);
-      if (!result.ok) return fail(503, 'sms_delivery_failed');
-      return { challengeId: id, expiresIn: 300, resendAfter: 60 };
+      // An uncertain send may still arrive; possession of its code can prove the phone.
+      const status = result.ok ? 'accepted' : result.status === 'ambiguous' ? 'unknown' : 'failed';
+      const [challenge] = await a.db.query(`update accounts.profile_phone_challenges
+        set status=$2,provider_message_id=$3,delivery_status=$4,delivery_error_code=$5 where id=$1 returning *`,
+        [id,status === 'failed' ? 'failed' : 'sent',result.messageId ?? null,status,result.errorCode ?? null]);
+      return this.challengeInfo(challenge!);
     }
     if (action === 'phone-verify') {
       const id = uuid(body.challengeId);

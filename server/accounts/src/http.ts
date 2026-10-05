@@ -192,7 +192,7 @@ function createSingleAccountServer(accounts: Accounts) {
       if (path === '/catalog' && method === 'GET') {
         const apps = await accounts.db.query(`select a.app_id as id,a.slug,c.name,c.description,c.icon,a.launch_url as "launchUrl"
           from accounts.app_settings a join core.apps c on c.id=a.app_id
-          where a.published and c.status='ACTIVE' and c.deleted_at is null order by c.sort_order,c.name`);
+          where a.published and a.public_listing and c.status='ACTIVE' and c.deleted_at is null order by c.sort_order,c.name`);
         return json(res, { apps: apps.map(catalogApp) });
       }
       let ctx = await accounts.bootstrap(cookieValue(req, accounts.config.insecureLocal ? 'developed_local' : '__Host-developed_session'));

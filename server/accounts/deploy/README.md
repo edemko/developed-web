@@ -1,3 +1,5 @@
+> Current SMS status release: [5 October checkpoint](sms-status-checkpoint-20261005.md). This supersedes the API release pins below.
+
 > Private Karak II integration: [3 October checkpoint](../../../docs/karak2-identity-deployment-2026-10-03.md). Central API now uses a minimal public-catalog visibility patch; other pending main-branch features remain undeployed.
 
 > Product favicons: [2 October deployment](../../../docs/audits/2026-10-02-favicon-deployment.md). Central services are unchanged.

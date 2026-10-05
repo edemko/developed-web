@@ -12,7 +12,7 @@ closed and transactional email starts disabled. Existing static Slovak/English
 marketing remains a separate public artifact; it is not replaced by this app.
 
 Current production: `developed-accounts.service`, UID988, loopback3140,
-release `8a476978a2875503af7438a6b7fa7aaef9e57cec` (2026-10-03), a minimal public-catalog visibility patch over the September release. See the [private Karak II checkpoint](../../docs/karak2-identity-deployment-2026-10-03.md).
+release `d1c3358ccbf7b9dedb51011b32e9e1f3eb457a06` (2026-10-05), adding AMP SMS diagnostics while preserving the serving public-catalog visibility patch. See the [private Karak II checkpoint](../../docs/karak2-identity-deployment-2026-10-03.md).
 See the [validation deployment](../../docs/audits/2026-09-30-accounts-validation-deployment.md)
 for the current API/mail pins.
 See the [Vocabulum native checkpoint](deploy/vocabulum-native-checkpoint-20260929.md)
@@ -33,14 +33,13 @@ generic provider identity/consent APIs and legacy shared administrator keys.
 
 ## What runs here
 
-Pending source change (2026-10-05): AMP profile SMS diagnostics require
-`supabase/migrations/20261005160242_account_profile_sms_delivery.sql` before the
-new API code. It persists provider IDs/error codes, adds owner-scoped
+Live SMS status release (2026-10-05): migration
+`20261005160242_account_profile_sms_delivery.sql` is applied. The central service
+persists provider IDs/error codes, exposes owner-scoped
 `/internal/profile/phone-status`, and returns challenge status/cooldown metadata
 even when submission fails. `details.pendingPhone` restores the latest attempt
-after a profile refresh. Gateway acceptance is not delivery; only OTP entry
-verifies the phone. Coordinate with the Airsoft UI release. This migration and
-these changes are not deployed; the production pin above remains current.
+after refresh. Gateway acceptance is not delivery; OTP entry verifies the phone.
+See [the SMS deployment checkpoint](deploy/sms-status-checkpoint-20261005.md).
 
 - Loopback-only HTTP service on port 3140, behind the canonical
   `https://www.developed.sk` ingress. The bare `developed.sk` hostname keeps its

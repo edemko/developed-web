@@ -211,6 +211,12 @@ function prune(config, { keep = 2, apply = false } = {}) {
     log(`${config.app}: ${apply ? 'pruning' : 'would prune'} ${release} (${size})`);
     if (apply) {
       sudo('rm', ['-rf', '--', `${config.releaseRoot}/${release}`]);
+      // Per-instance files written at switch time (e.g. myclinic's <release>.conf).
+      for (const side of Object.values(config.sides)) {
+        for (const file of side.switch?.instanceFiles ?? []) {
+          sudo('rm', ['-f', '--', file.path.replaceAll('{release}', release)]);
+        }
+      }
       record(config.app, `pruned ${release}`);
     }
   }

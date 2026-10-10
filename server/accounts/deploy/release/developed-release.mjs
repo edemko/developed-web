@@ -96,7 +96,12 @@ async function deploy(app, { commit, auto = false, flags = {} }) {
     if (decision.action === 'block' && !auto) process.exitCode = 1;
     return;
   }
-  if (flags['dry-run']) { log(`${app}: would ${decision.reason} at ${short(target)}`); return; }
+  if (flags.sides) {
+    const only = String(flags.sides).split(',');
+    decision.sides = decision.sides.filter((s) => only.includes(s));
+    if (!decision.sides.length) { log(`${app}: nothing selected by --sides=${flags.sides}`); return; }
+  }
+  if (flags['dry-run']) { log(`${app}: would deploy ${decision.sides.join(' + ')} at ${short(target)}`); return; }
 
   const state = readState(app);
   const attempts = state.target === target ? (state.attempts ?? 0) + 1 : 1;
@@ -212,7 +217,7 @@ function prune(app, flags) {
 
 const usage = `developed-release <command>
   status [app...]                     live vs origin/main and the next decision, per app
-  deploy <app> [commit] [--dry-run] [--migrations-applied] [--force]
+  deploy <app> [commit] [--dry-run] [--migrations-applied] [--force] [--sides=web,api]
   build <app> [commit] [--sides=web,api]   build + seal only, no switch
   switch <app> <release> [--migrations-applied]   switch an already sealed release
   poll                                deploy every app with "auto": true (timer entry point)

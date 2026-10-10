@@ -1,7 +1,7 @@
 {
   "app": "myclinic",
   "onboarded": true,
-  "auto": false,
+  "auto": true,
   "repo": "/home/openclaw/Dev/my-clinic",
   "branch": "main",
   "releaseRoot": "/opt/developed-apps/myclinic/releases",

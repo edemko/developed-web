@@ -1,0 +1,29 @@
+{
+  "app": "mega-music",
+  "onboarded": false,
+  "auto": false,
+  "blockers": [
+    "each API release needs a new session-cleanup owner guard pinned to the unit name (cleanup-v1..v11) — port it to a hook like kestrek-notifications",
+    "each new instance needs the zz-managed.conf drop-in (env files + port 3178) — add as switch.instanceDropin",
+    "legacy GitHub Actions deploy.yml is still wired (blocked only by /etc/developed/mega-music-isolation.guard) — retire it",
+    "landing site /var/www/megamusic.developed.sk is mutable and has drifted from the repo",
+    "local main has unpushed commits"
+  ],
+  "repo": "/home/openclaw/Dev/mega-media-player",
+  "branch": "main",
+  "releaseRoot": "/opt/developed-apps/mega-music/releases",
+  "runtimeUser": "developed-mega-music",
+  "archivePaths": ["server/accounts"],
+  "migrationPaths": ["supabase/migrations"],
+  "protect": ["4ca877f89a3d"],
+  "sides": {
+    "api": {
+      "paths": ["server/accounts"],
+      "switch": { "type": "instance-swap", "unit": "mega-music-accounts-isolated@{release}.service" },
+      "health": [
+        { "url": "http://127.0.0.1:3178/api/music/health", "status": 200 },
+        { "url": "https://megamusic.developed.sk/app/", "status": 200 }
+      ]
+    }
+  }
+}

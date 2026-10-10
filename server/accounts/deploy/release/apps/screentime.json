@@ -1,0 +1,26 @@
+{
+  "app": "screentime",
+  "onboarded": false,
+  "auto": false,
+  "blockers": [
+    "origin/main carries undeployed 8bd3dca (Android app-update API, package rename) — ship it by hand before the APK, then onboard",
+    "release names carry a -central suffix (build flags) — config needs a release-name suffix option",
+    "live release has no manifest"
+  ],
+  "repo": "/home/openclaw/Dev/screentime",
+  "branch": "main",
+  "releaseRoot": "/opt/developed-apps/screentime/releases",
+  "runtimeUser": "developed-screentime",
+  "archivePaths": ["web", "supabase/migrations"],
+  "migrationPaths": ["supabase/migrations"],
+  "sides": {
+    "app": {
+      "paths": ["web"],
+      "switch": { "type": "instance-swap", "unit": "developed-screentime@{release}.service" },
+      "health": [
+        { "url": "http://127.0.0.1:3167/", "status": 200 },
+        { "url": "http://127.0.0.1:3167/api/v1/app-update", "status": 200 }
+      ]
+    }
+  }
+}

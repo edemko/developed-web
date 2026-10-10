@@ -1,0 +1,27 @@
+{
+  "app": "karak2",
+  "onboarded": false,
+  "auto": false,
+  "blockers": [
+    "no artifact definition yet: releases were hand-copied whole pnpm workspaces (define pnpm deploy --prod or an explicit file list)",
+    "every restart drops all sessions and in-memory games — decide whether push-to-main restarts are acceptable",
+    "/health only checks sockets; add a DB-touching health check",
+    "backend/db SQL has no ledger — add backend/db to migrationPaths once a ledger exists"
+  ],
+  "repo": "/home/openclaw/Dev/karak2",
+  "branch": "main",
+  "releaseRoot": "/opt/developed-apps/karak2/releases",
+  "runtimeUser": "developed-karak2",
+  "archivePaths": ["."],
+  "migrationPaths": ["backend/db"],
+  "sides": {
+    "app": {
+      "paths": ["backend", "frontend", "gateway", "packages", "deploy/run.mjs", "package.json", "pnpm-lock.yaml"],
+      "switch": { "type": "symlink-restart", "link": "/opt/developed-apps/karak2/current", "unit": "developed-karak2.service" },
+      "health": [
+        { "url": "https://karak2.developed.sk/health", "status": 200 },
+        { "url": "https://karak2.developed.sk/api/heroes", "status": 401 }
+      ]
+    }
+  }
+}

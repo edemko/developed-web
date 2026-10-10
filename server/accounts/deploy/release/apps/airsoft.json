@@ -1,0 +1,25 @@
+{
+  "app": "airsoft",
+  "onboarded": false,
+  "auto": false,
+  "blockers": [
+    "live runs release branch release/sms-status-20261005 (memberships); main lacks memberships — merge release branches into main first",
+    "main working tree is dirty (54 paths, untracked memberships migration)",
+    "each release was a hand-copied unit file + blue/green port swap (3162/3172) with a Caddy edit — move to a template unit",
+    "AMP releases are paired with central developed-accounts releases",
+    "no migration ledger for AMP's own migrations"
+  ],
+  "repo": "/home/openclaw/Dev/airsoft-marketplace",
+  "branch": "main",
+  "releaseRoot": "/opt/developed-apps/airsoft/releases",
+  "runtimeUser": "developed-airsoft",
+  "archivePaths": ["."],
+  "migrationPaths": ["supabase/migrations"],
+  "sides": {
+    "app": {
+      "paths": ["app", "components", "lib", "i18n", "public", "package.json", "package-lock.json"],
+      "live": { "kind": "unit-path", "unit": "developed-airsoft-sms-status.service" },
+      "switch": { "type": "manual" }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "app": "developed-accounts",
+  "onboarded": false,
+  "auto": false,
+  "blockers": [
+    "central identity provider for every app — manual-only by policy (README, final-cutover-sequence.md)",
+    "released from release/* branches with candidate port 3180, mail-worker drain and pin update, DB backup + restore rehearsal"
+  ],
+  "repo": "/home/openclaw/Dev/developed-web",
+  "branch": "main",
+  "releaseRoot": "/opt/developed-accounts/releases",
+  "runtimeUser": "developed-accounts",
+  "archivePaths": ["server/accounts"],
+  "migrationPaths": ["server/accounts/migrations"],
+  "sides": {
+    "api": {
+      "paths": ["server/accounts"],
+      "live": { "kind": "symlink", "path": "/opt/developed-accounts/current" },
+      "switch": { "type": "manual" }
+    }
+  }
+}

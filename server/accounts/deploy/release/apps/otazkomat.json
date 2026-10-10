@@ -1,0 +1,29 @@
+{
+  "app": "otazkomat",
+  "onboarded": false,
+  "auto": false,
+  "blockers": [
+    "main carries Sections 3–4, which still need the owner's separate release authorization",
+    "true blue-green across ports 3166/3176 with a Caddy upstream + static-root edit — needs a blue-green strategy (or symlink/snippet conversion) in this tool",
+    "per-instance release-port.conf drop-in and port env must be generated",
+    "readiness.cjs is hard-coded per release"
+  ],
+  "repo": "/home/openclaw/Dev/otazkomat",
+  "branch": "main",
+  "releaseRoot": "/opt/developed-apps/otazkomat/releases",
+  "runtimeUser": "developed-otazkomat",
+  "archivePaths": ["backend", "frontend", "shared"],
+  "migrationPaths": ["supabase/migrations"],
+  "sides": {
+    "web": {
+      "paths": ["frontend"],
+      "live": { "kind": "caddy-root", "prefix": "/opt/developed-static/releases/otazkomat-school-" },
+      "switch": { "type": "manual" }
+    },
+    "api": {
+      "paths": ["backend", "shared"],
+      "switch": { "type": "manual" },
+      "live": { "kind": "units", "pattern": "developed-otazkomat@*.service" }
+    }
+  }
+}

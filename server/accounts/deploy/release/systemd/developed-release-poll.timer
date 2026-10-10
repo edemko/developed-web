@@ -1,0 +1,10 @@
+[Unit]
+Description=Poll origin/main of auto-deployed DevelopED apps every 3 minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitInactiveSec=3min
+RandomizedDelaySec=20s
+
+[Install]
+WantedBy=timers.target

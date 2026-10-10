@@ -1,0 +1,24 @@
+{
+  "app": "vocabulum",
+  "onboarded": false,
+  "auto": false,
+  "blockers": [
+    "live runs release/word-types-20261004 (5 commits not on main) — reconcile main first",
+    "main working tree is dirty (word types being redone, incl. prisma/schema.prisma)",
+    "one copy-and-append unit per feature release — migrate to developed-vocabulum@<rev> template",
+    "port flip 3161/3171 needs a Caddy edit (or accept same-port stop/start)"
+  ],
+  "repo": "/home/openclaw/Dev/vocabulary-builder",
+  "branch": "main",
+  "releaseRoot": "/opt/developed-apps/vocabulum/releases",
+  "runtimeUser": "developed-vocabulum",
+  "archivePaths": ["."],
+  "migrationPaths": ["supabase/migrations"],
+  "sides": {
+    "app": {
+      "paths": ["app", "components", "lib", "i18n", "public", "prisma", "package.json", "package-lock.json"],
+      "live": { "kind": "unit-path", "unit": "developed-vocabulum-word-types.service" },
+      "switch": { "type": "manual" }
+    }
+  }
+}

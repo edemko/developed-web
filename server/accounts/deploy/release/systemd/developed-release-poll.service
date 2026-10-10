@@ -1,0 +1,11 @@
+[Unit]
+Description=DevelopED release poll — deploy apps with "auto": true when origin/main moves
+Documentation=file:///home/openclaw/Dev/developed-web/server/accounts/deploy/release/README.md
+ConditionPathExists=!/etc/developed-apps/developed-release-paused
+
+[Service]
+Type=oneshot
+# @TOOL@ is replaced by install.sh with the frozen root-owned copy for one tool revision.
+ExecStart=/usr/bin/flock -n %h/.cache/developed-release/poll.lock /home/openclaw/.nvm/versions/node/v22.23.2/bin/node @TOOL@/developed-release.mjs poll
+Nice=10
+TimeoutStartSec=90min

@@ -1,0 +1,69 @@
+{
+  "app": "kestrek",
+  "onboarded": true,
+  "auto": false,
+  "repo": "/home/openclaw/Dev/kestrek",
+  "branch": "main",
+  "releaseRoot": "/opt/developed-apps/kestrek/releases",
+  "runtimeUser": "developed-kestrek",
+  "archivePaths": ["backend", "frontend", "docs", "deploy"],
+  "patches": [
+    { "path": "deploy/isolated-bind.patch",
+      "verify": { "file": "backend/src/main.ts", "contains": "app.listen(port, '127.0.0.1')" } }
+  ],
+  "migrationPaths": ["supabase/migrations"],
+  "knownSources": { "supabase-d280d1e": "d280d1eab82042c0727e3c4d73d175e81a691494" },
+  "protect": ["1c102674a293", "supabase-d280d1e"],
+  "switchOrder": ["web", "api"],
+  "sides": {
+    "web": {
+      "paths": ["frontend"],
+      "env": { "NG_BUILD_MAX_WORKERS": "1", "NODE_OPTIONS": "--max-old-space-size=1536" },
+      "publicEnv": { "file": "frontend/.env", "keys": ["SUPABASE_URL", "SUPABASE_ANON_KEY"],
+                     "set": { "ECOSYSTEM_AUTH_ENABLED": "true" } },
+      "steps": [
+        "cd frontend",
+        "npm ci --legacy-peer-deps --ignore-scripts --no-audit --no-fund",
+        "CHROME_BIN=$(ls -d \"$HOME\"/.cache/ms-playwright/chromium-*/chrome-linux64/chrome | sort -V | tail -1) npm test -- --watch=false",
+        "npm run build",
+        "grep -q '\"ecosystemAuth\": true' src/environments/environment.generated.ts"
+      ],
+      "artifacts": [{ "from": "frontend/dist/kestrek-frontend", "to": "web" }],
+      "carryForwardAssets": "web",
+      "verify": ["web/index.html"],
+      "switch": { "type": "web-symlink", "link": "/opt/developed-apps/kestrek/web-current", "dir": "web" },
+      "cloudflareZone": "1af3d874cef9756747f7b75c4f29f498",
+      "health": [
+        { "url": "https://kestrek.sk/", "status": 200 },
+        { "url": "https://kestrek.sk/login", "status": 200 }
+      ]
+    },
+    "api": {
+      "paths": ["backend", "deploy/isolated-bind.patch"],
+      "steps": [
+        "cd backend",
+        "npm ci --no-audit --no-fund",
+        "npm run build",
+        "npx jest --ci",
+        "npm prune --omit=dev --no-audit --no-fund",
+        "find dist -name '*.spec.*' -delete",
+        "test -f dist/src/main.js"
+      ],
+      "artifacts": [
+        { "from": "backend/dist", "to": "backend/dist" },
+        { "from": "backend/node_modules", "to": "backend/node_modules" },
+        { "from": "backend/package.json", "to": "backend/package.json" },
+        { "from": "backend/package-lock.json", "to": "backend/package-lock.json" }
+      ],
+      "verify": ["backend/dist/src/main.js"],
+      "switch": { "type": "instance-swap", "unit": "developed-kestrek@{release}.service" },
+      "hooks": ["kestrek-notifications"],
+      "health": [
+        { "url": "http://127.0.0.1:3164/api", "status": 200 },
+        { "url": "http://127.0.0.1:3164/api/folders", "status": 401 },
+        { "url": "https://kestrek.sk/api/folders", "status": 401 },
+        { "url": "https://kestrek.sk/.well-known/oauth-protected-resource", "status": 200 }
+      ]
+    }
+  }
+}

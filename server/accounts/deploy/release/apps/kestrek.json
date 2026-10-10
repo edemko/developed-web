@@ -1,7 +1,7 @@
 {
   "app": "kestrek",
   "onboarded": true,
-  "auto": false,
+  "auto": true,
   "repo": "/home/openclaw/Dev/kestrek",
   "branch": "main",
   "releaseRoot": "/opt/developed-apps/kestrek/releases",

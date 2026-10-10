@@ -58,7 +58,7 @@ hook) stay frozen behind their root guards; this tool never touches them.
 
 | App | Config | Why not auto yet |
 |---|---|---|
-| kestrek | onboarded, manual | first scripted release 6593f5cab055 done; enable auto after one clean tool-driven switch |
+| kestrek | **auto** (2026-10-10) | — |
 | karak2 | not onboarded | no artifact definition; every restart drops sessions/games; weak health |
 | mega-music | not onboarded | cleanup-guard pin hook + `zz-managed.conf` instance drop-in to port; legacy Actions hook |
 | myclinic | not onboarded | **live web/API skew** (problem-reports 404); literal Caddy root; CSP hashes; cron reads checkout `.env` |

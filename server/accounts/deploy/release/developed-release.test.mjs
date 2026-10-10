@@ -91,5 +91,7 @@ test('config validation', () => {
 
 test('every shipped app config validates', () => {
   for (const app of listApps()) assert.doesNotThrow(() => loadApp(app), app);
-  assert.ok(listApps().every((app) => !loadApp(app).auto), 'auto must be enabled deliberately, per app');
+  // Enabling automatic deploys is an owner decision per app: extend this list in the same commit.
+  const approvedAuto = ['kestrek'];
+  assert.deepEqual(listApps().filter((app) => loadApp(app).auto), approvedAuto);
 });

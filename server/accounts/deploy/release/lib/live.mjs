@@ -57,7 +57,7 @@ export function probeSide(config, side) {
   let path;
   let unit;
   if (spec.kind === 'symlink') {
-    const target = sudo('readlink', ['-f', spec.path], { allowFail: true }).out;
+    const target = sudo('readlink', ['-e', spec.path], { allowFail: true }).out;
     if (!target) throw new ReleaseError(`${spec.path} does not resolve`);
     path = target;
   } else if (spec.kind === 'units') {

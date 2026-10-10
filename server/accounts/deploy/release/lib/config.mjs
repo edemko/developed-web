@@ -33,6 +33,8 @@ export function validate(config) {
         need(!artifact.to.includes('..') && !artifact.to.startsWith('/'), `${where} artifact target must be relative`);
       }
     }
+    for (const check of side.checks ?? []) need(['csp-hashes'].includes(check), `${where}: unknown check ${check}`);
+    if (side.checks?.includes('csp-hashes')) need(typeof side.csp?.site === 'string', `${where}.csp.site is required`);
     if (side.switch?.type === 'instance-swap') {
       need(side.switch.unit?.includes('@{release}.service'), `${where}.switch.unit must contain @{release}.service`);
     }

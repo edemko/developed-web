@@ -4,6 +4,7 @@ import { listApps, loadApp, liveSpec, validate } from './lib/config.mjs';
 import { decide, HASHED_ASSET, MAX_AUTO_ATTEMPTS, sourceCandidates } from './lib/gates.mjs';
 import { releaseDirOf, releaseNameOf } from './lib/live.mjs';
 import { dropinFor, pinGuard } from './hooks/kestrek-notifications.mjs';
+import { inlineHashes, missingHashes, siteBlock } from './hooks/csp-hashes.mjs';
 
 const side = (over = {}) => ({ liveSource: 'a'.repeat(40), liveContained: true, liveIsTarget: false, changed: true, manual: false, ...over });
 const input = (over = {}) => ({ auto: true, subject: 'feat: x', migrationsChanged: false, migrationsApplied: false,
@@ -94,4 +95,16 @@ test('every shipped app config validates', () => {
   // Enabling automatic deploys is an owner decision per app: extend this list in the same commit.
   const approvedAuto = ['kestrek'];
   assert.deepEqual(listApps().filter((app) => loadApp(app).auto), approvedAuto);
+});
+
+test('csp-hashes finds inline scripts and handlers, ignores external and data scripts', () => {
+  const html = '<script src="main.js"></script><script>alert(1)</script><script type="application/json">{"a":1}</script>'
+    + '<link rel="stylesheet" href="s.css" media="print" onload="this.media=\'all\'">';
+  const { scripts, handlers } = inlineHashes(html);
+  assert.deepEqual(scripts, ["'sha256-bhHHL3z2vDgxUt0W3dWQOrprscmda2Y5pLsLg4GF+pI='"]);
+  assert.equal(handlers.length, 1);
+  const caddy = 'http://a.sk, http://b.sk {\n  header CSP "x ' + scripts[0] + '"\n}\nhttp://other.sk {\n ' + handlers[0] + '\n}\n';
+  const block = siteBlock(caddy, 'http://a.sk,');
+  assert.ok(!block.includes('other.sk'));
+  assert.deepEqual(missingHashes(html, block), handlers);
 });

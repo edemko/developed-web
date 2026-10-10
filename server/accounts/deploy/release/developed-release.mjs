@@ -11,6 +11,8 @@ import * as git from './lib/git.mjs';
 import { probe } from './lib/live.mjs';
 import { log, ReleaseError, run, sudo, sudoTest } from './lib/sh.mjs';
 import { switchSides } from './lib/switch.mjs';
+import { adoptWebSymlink } from './lib/adopt.mjs';
+import { checks } from './hooks/index.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const STATE = `${HOME}/.local/state/developed-release`;
@@ -111,6 +113,12 @@ async function deploy(app, { commit, auto = false, flags = {} }) {
       build(config, { sha: target, sides: decision.sides, live, toolVersion });
       record(app, `build ${release} ok (${decision.sides.join('+')})`);
     }
+    for (const name of decision.sides) {
+      for (const check of config.sides[name].checks ?? []) {
+        log(`${app}: check ${check} (${name})`);
+        checks[check].check({ config, name, side: config.sides[name], releaseDir: `${config.releaseRoot}/${release}` });
+      }
+    }
     const switched = await switchSides(config, { release, sha: target, sides: decision.sides, live, order: sideOrder(config) });
     record(app, `live ${release} (${switched.join('+') || 'no change'}) from ${short(target)}`);
     writeState(app, { target, attempts: 0, deployed: target, settledHead: auto ? target : undefined,
@@ -208,7 +216,8 @@ const usage = `developed-release <command>
   build <app> [commit] [--sides=web,api]   build + seal only, no switch
   switch <app> <release> [--migrations-applied]   switch an already sealed release
   poll                                deploy every app with "auto": true (timer entry point)
-  prune <app> [--keep=3] [--apply]    remove old releases (never live/protected ones)`;
+  prune <app> [--keep=3] [--apply]    remove old releases (never live/protected ones)
+  adopt-web-symlink <app> <side> --from=<current Caddy root>   one-time: point Caddy at the side's link`;
 
 const [command, ...rest] = process.argv.slice(2);
 const flags = parseFlags(rest);
@@ -223,6 +232,7 @@ try {
     await deploy(flags._[0], { commit: sides.sourceCommit, flags });
   } else if (command === 'poll') await poll();
   else if (command === 'prune' && flags._[0]) prune(flags._[0], flags);
+  else if (command === 'adopt-web-symlink' && flags._[1]) await adoptWebSymlink(loadApp(flags._[0]), flags._[1], flags);
   else { console.error(usage); process.exitCode = 2; }
 } catch (error) {
   log(`ERROR: ${error.message}`);

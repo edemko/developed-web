@@ -1,34 +1,68 @@
 {
   "app": "myclinic",
-  "onboarded": false,
+  "onboarded": true,
   "auto": false,
-  "blockers": [
-    "production is skewed: live web 458c497 calls POST /api/v1/problem-reports, live API 78b8221 lacks it (404) — release the API by hand first",
-    "web root is a literal Caddyfile path — convert to a web-current symlink (as kestrek)",
-    "Caddy CSP pins hashes of index.html inline scripts — add a CSP-hash pre-check",
-    "cron timers read CRON_SECRET from the developer checkout backend/.env",
-    "release names are not commit-based and API/web manifests lack the source commit",
-    "hosted Supabase with clinical data; migrations via supabase db push by hand"
-  ],
   "repo": "/home/openclaw/Dev/my-clinic",
   "branch": "main",
   "releaseRoot": "/opt/developed-apps/myclinic/releases",
   "runtimeUser": "developed-myclinic",
-  "archivePaths": ["backend", "frontend"],
+  "archivePaths": ["backend", "frontend", "deploy"],
   "migrationPaths": ["supabase/migrations"],
-  "switchOrder": ["web", "api"],
+  "notes": [
+    "Hosted Supabase with clinical data: migrations are applied by hand (supabase db push), never by this tool.",
+    "API first: an older web keeps working against a newer API; the reverse caused the 2026-10 problem-report 404.",
+    "myclinic-cron@ user timers call 127.0.0.1:3155 and read CRON_SECRET from the checkout backend/.env (isolation follow-up, not a deploy dependency)."
+  ],
+  "switchOrder": ["api", "web"],
   "sides": {
-    "web": {
-      "paths": ["frontend"],
-      "live": { "kind": "caddy-root", "prefix": "/opt/developed-apps/myclinic/web/releases/" },
-      "switch": { "type": "manual" }
-    },
     "api": {
       "paths": ["backend"],
-      "switch": { "type": "instance-swap", "unit": "developed-myclinic@{release}.service" },
+      "env": { "SUPABASE_URL": "http://127.0.0.1:9", "SUPABASE_SECRET_KEY": "test-only-dummy", "SUPABASE_PUBLISHABLE_KEY": "test-only-dummy" },
+      "steps": [
+        "cd backend",
+        "npm ci --no-audit --no-fund",
+        "npx jest --ci",
+        "npx eslint src/ --quiet",
+        "npm prune --omit=dev --no-audit --no-fund"
+      ],
+      "artifacts": [
+        { "from": "backend/src", "to": "src" },
+        { "from": "backend/node_modules", "to": "node_modules" },
+        { "from": "backend/package.json", "to": "package.json" },
+        { "from": "backend/package-lock.json", "to": "package-lock.json" }
+      ],
+      "verify": ["src/server.js", "node_modules/dotenv/config.js"],
+      "switch": {
+        "type": "instance-swap",
+        "unit": "developed-myclinic@{release}.service",
+        "instanceFiles": [{ "path": "/etc/developed-apps/myclinic/{release}.conf", "content": "PORT=3155\n", "mode": "0600" }]
+      },
       "health": [
         { "url": "http://127.0.0.1:3155/health", "status": 200 },
+        { "url": "http://127.0.0.1:3155/api/v1/config", "status": 200 },
         { "url": "http://127.0.0.1:3155/api/v1/patients", "status": 401 },
+        { "url": "https://myclinic.sk/api/v1/config", "status": 200 }
+      ]
+    },
+    "web": {
+      "paths": ["frontend"],
+      "env": { "NG_BUILD_MAX_WORKERS": "1", "NODE_OPTIONS": "--max-old-space-size=1536" },
+      "publicEnv": { "file": "/etc/developed-apps/myclinic/app.env", "keys": ["SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY"] },
+      "steps": [
+        "cd frontend",
+        "npm ci --no-audit --no-fund",
+        "CHROME_BIN=$(ls -d \"$HOME\"/.cache/ms-playwright/chromium-*/chrome-linux64/chrome | sort -V | tail -1) npx ng test --watch=false --karma-config ../deploy/karma-headless.cjs",
+        "npx eslint 'src/**/*.ts' --quiet",
+        "npm run build"
+      ],
+      "artifacts": [{ "from": "frontend/dist/my-clinic-frontend/browser", "to": "web" }],
+      "carryForwardAssets": "web",
+      "verify": ["web/index.html"],
+      "checks": ["csp-hashes"],
+      "csp": { "site": "http://myclinic.sk," },
+      "switch": { "type": "web-symlink", "link": "/opt/developed-apps/myclinic/web-current", "dir": "web" },
+      "health": [
+        { "url": "https://myclinic.sk/", "status": 200 },
         { "url": "https://myclinic.sk/api/v1/config", "status": 200 }
       ]
     }

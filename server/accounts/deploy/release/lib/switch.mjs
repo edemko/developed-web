@@ -1,6 +1,5 @@
 // Switch strategies. Each returns an undo function; the caller unwinds every completed
 // side in reverse when a later step fails, so web and API never stay on mismatched releases.
-import { readFileSync } from 'node:fs';
 import { hooks } from '../hooks/index.mjs';
 import { httpStatus, log, ReleaseError, run, sleep, sudo, sudoWrite } from './sh.mjs';
 
@@ -72,13 +71,15 @@ const strategies = {
     const oldUnit = live.unit;
     const newUnit = fill(side.switch.unit, { release });
     if (oldUnit === newUnit) { log(`${name} already on ${release}`); return null; }
-    let dropin = null;
-    if (side.switch.instanceDropin) {
-      dropin = `/etc/systemd/system/${newUnit}.d/${side.switch.instanceDropin.name}`;
-      const content = fill(readFileSync(new URL(`../apps/${side.switch.instanceDropin.template}`, import.meta.url), 'utf8'), { release });
-      sudoWrite(dropin, content);
-      sudo('systemctl', ['daemon-reload']);
+    // Per-instance files the unit template reads (e.g. myclinic's /etc/.../<release>.conf).
+    let reload = false;
+    for (const file of side.switch.instanceFiles ?? []) {
+      const path = fill(file.path, { release });
+      if (sudo('test', ['-e', path], { allowFail: true }).status === 0) continue;
+      sudoWrite(path, fill(file.content, { release }), file.mode ?? '0644');
+      reload ||= path.startsWith('/etc/systemd/');
     }
+    if (reload) sudo('systemctl', ['daemon-reload']);
     const restoreOld = async () => {
       log(`${config.app}: restoring ${oldUnit}`);
       sudo('systemctl', ['stop', newUnit], { allowFail: true });

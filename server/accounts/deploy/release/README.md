@@ -61,7 +61,7 @@ hook) stay frozen behind their root guards; this tool never touches them.
 | kestrek | **auto** (2026-10-10) | — |
 | karak2 | not onboarded | no artifact definition; every restart drops sessions/games; weak health |
 | mega-music | not onboarded | cleanup-guard pin hook + `zz-managed.conf` instance drop-in to port; legacy Actions hook |
-| myclinic | not onboarded | **live web/API skew** (problem-reports 404); literal Caddy root; CSP hashes; cron reads checkout `.env` |
+| myclinic | onboarded, manual (2026-10-10) | first tool release e2e438a fixed the web/API skew; Caddy web root on `web-current`; auto after one tool-built web release |
 | otazkomat | not onboarded | Sections 3–4 need owner sign-off; blue-green 3166/3176 strategy not implemented |
 | screentime | not onboarded | undeployed 8bd3dca must ship by hand before the APK; `-central` release suffix |
 | airsoft | not onboarded | live is a release branch (memberships) not on main; dirty tree; hand-made units |

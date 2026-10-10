@@ -1,13 +1,17 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { listApps, loadApp, liveSpec, validate } from './lib/config.mjs';
-import { decide, HASHED_ASSET, MAX_AUTO_ATTEMPTS, sourceCandidates } from './lib/gates.mjs';
+import { decide, HASHED_ASSET, isNoDeploy, MAX_AUTO_ATTEMPTS, releaseForSource, sourceCandidates } from './lib/gates.mjs';
+import { carryForward } from './lib/build.mjs';
+import { mkdtempSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { releaseDirOf, releaseNameOf } from './lib/live.mjs';
 import { dropinFor, pinGuard } from './hooks/kestrek-notifications.mjs';
 import { inlineHashes, missingHashes, siteBlock } from './hooks/csp-hashes.mjs';
 
 const side = (over = {}) => ({ liveSource: 'a'.repeat(40), liveContained: true, liveIsTarget: false, changed: true, manual: false, ...over });
-const input = (over = {}) => ({ auto: true, subject: 'feat: x', migrationsChanged: false, migrationsApplied: false,
+const input = (over = {}) => ({ auto: true, unmarkedChange: true, migrationsChanged: false, migrationsApplied: false,
   force: false, heldAttempts: 0, sides: { web: side(), api: side() }, ...over });
 
 test('deploys every changed side', () => {
@@ -15,9 +19,11 @@ test('deploys every changed side', () => {
   assert.deepEqual(decide(input({ sides: { web: side({ changed: false }), api: side() } })).sides, ['api']);
 });
 
-test('[no deploy] skips only automatic runs', () => {
-  assert.equal(decide(input({ subject: 'docs: x [no deploy]' })).action, 'skip');
-  assert.equal(decide(input({ subject: 'docs: x [No Deploy]', auto: false })).action, 'deploy');
+test('[no deploy] skips automatic runs only when every relevant commit is marked', () => {
+  assert.equal(decide(input({ unmarkedChange: false })).action, 'skip');
+  assert.equal(decide(input({ unmarkedChange: false, auto: false })).action, 'deploy');
+  assert.ok(isNoDeploy('docs: x [No Deploy]'));
+  assert.ok(!isNoDeploy('fix: pickers'));
 });
 
 test('refuses to drop live-only commits', () => {
@@ -107,4 +113,30 @@ test('csp-hashes finds inline scripts and handlers, ignores external and data sc
   const block = siteBlock(caddy, 'http://a.sk,');
   assert.ok(!block.includes('other.sk'));
   assert.deepEqual(missingHashes(html, block), handlers);
+});
+
+test('[no deploy] check does not mask "nothing changed"', () => {
+  assert.match(decide(input({ unmarkedChange: false, sides: { app: side({ changed: false }) } })).reason, /nothing deployable/);
+  assert.match(decide(input({ unmarkedChange: false })).reason, /marked \[no deploy\]/);
+  assert.equal(decide(input({ unmarkedChange: false, force: true })).action, 'deploy');
+});
+
+test('rollback targets map back to release names', () => {
+  const sha = '78b8221a255d0000000000000000000000000000';
+  const releases = ['e2e438a5bae7', 'release-20260930-validation-78b8221', 'release-20260924-staff-picker'];
+  assert.equal(releaseForSource({}, releases, sha), 'release-20260930-validation-78b8221');
+  assert.equal(releaseForSource({}, ['6593f5cab055'], '6593f5cab055604bf8fa'), '6593f5cab055');
+  assert.equal(releaseForSource({ knownSources: { 'supabase-d280d1e': 'd280d1eab820' } }, ['supabase-d280d1e'], 'd280d1eab82042c0'), 'supabase-d280d1e');
+  assert.equal(releaseForSource({}, ['release-20260924-staff-picker'], sha), undefined);
+});
+
+test('carry-forward copies only the live build\'s own bundles', () => {
+  const root = mkdtempSync(join(tmpdir(), 'dr-'));
+  const live = join(root, 'live'); const stage = join(root, 'stage');
+  mkdirSync(live); mkdirSync(stage);
+  for (const f of ['main-AAAAAAAA.js', 'chunk-OLDOLDOL.js', 'chunk-SHAREDSS.js', 'index.html']) writeFileSync(join(live, f), f);
+  writeFileSync(join(stage, 'chunk-SHAREDSS.js'), 'new');
+  assert.deepEqual(carryForward(stage, live, ['main-AAAAAAAA.js', 'chunk-SHAREDSS.js']), ['main-AAAAAAAA.js']);
+  assert.ok(!readdirSync(stage).includes('chunk-OLDOLDOL.js'));
+  assert.deepEqual(carryForward(stage, live, null).sort(), ['chunk-OLDOLDOL.js']); // legacy: all missing hashed
 });

@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build, HOME, releaseNameFor, releaseSides } from './lib/build.mjs';
 import { listApps, loadApp, sideOrder } from './lib/config.mjs';
-import { decide } from './lib/gates.mjs';
+import { decide, isNoDeploy, releaseForSource } from './lib/gates.mjs';
 import * as git from './lib/git.mjs';
 import { probe } from './lib/live.mjs';
 import { log, ReleaseError, run, sudo, sudoTest } from './lib/sh.mjs';
@@ -51,6 +51,7 @@ function assess(config, { commit, auto = false, flags = {} }) {
   const live = probe(config);
   const sides = {};
   let migrationsChanged = false;
+  let unmarkedChange = false;
   for (const [name, side] of Object.entries(config.sides)) {
     const liveSource = live[name].source;
     const contained = Boolean(liveSource) && git.isAncestor(config.repo, liveSource, target);
@@ -62,11 +63,13 @@ function assess(config, { commit, auto = false, flags = {} }) {
       manual: side.switch.type === 'manual',
     };
     if (contained && git.changed(config.repo, liveSource, target, config.migrationPaths ?? [])) migrationsChanged = true;
+    if (contained && sides[name].changed &&
+        git.subjectsTouching(config.repo, liveSource, target, side.paths).some((s) => !isNoDeploy(s))) unmarkedChange = true;
   }
   const state = readState(config.app);
   const decision = decide({
     auto,
-    subject: git.subject(config.repo, target),
+    unmarkedChange,
     migrationsChanged,
     migrationsApplied: Boolean(flags['migrations-applied']),
     force: Boolean(flags.force),
@@ -129,6 +132,8 @@ async function deploy(app, { commit, auto = false, flags = {} }) {
     writeState(app, { target, attempts: 0, deployed: target, settledHead: auto ? target : undefined,
       lastReason: 'deployed', at: new Date().toISOString() });
     log(`${app}: ${short(target)} is live (${switched.join(' + ')})`);
+    try { prune(config, { keep: config.keepReleases ?? 2, apply: true }); }
+    catch (error) { log(`${app}: prune skipped: ${error.message}`); }
     if (auto) notify(`${app}: deployed`, `${short(target)} live (${switched.join(' + ')}): ${git.subject(config.repo, target)}`);
   } catch (error) {
     record(app, `FAILED ${short(target)} attempt ${attempts}: ${error.message.split('\n')[0]}`);
@@ -184,35 +189,32 @@ async function poll() {
   }
 }
 
-function prune(app, flags) {
-  const config = loadApp(app);
-  const keep = Number(flags.keep ?? 3);
+// Remove old releases. Never: live releases, configured pins, each side's rollback target
+// (the previous live source in the live release's manifest), or the newest `keep` others.
+function prune(config, { keep = 2, apply = false } = {}) {
   const live = probe(config);
   if (Object.values(live).some((l) => l.error)) throw new ReleaseError('cannot determine every live release — not pruning');
   const releases = sudo('bash', ['-c', 'cd "$1" && ls -1dt -- */ | sed "s#/##"', 'ls', config.releaseRoot]).out.split('\n').filter(Boolean);
-  // Protect: live releases, configured pins, and each side's rollback target (the previous
-  // live source recorded in the live release's manifest).
   const protect = new Set([...(config.protect ?? []), ...Object.values(live).map((l) => l.release)]);
-  const sourceToRelease = (sha) => releases.find((r) => r === sha.slice(0, 12)) ??
-    Object.entries(config.knownSources ?? {}).find(([, s]) => sha.startsWith(s) || s.startsWith(sha))?.[0];
   for (const [name, l] of Object.entries(live)) {
     const manifestPath = `${l.dir}/release-manifest.json`;
     if (!sudoTest('-f', manifestPath)) continue;
     const manifest = JSON.parse(sudo('cat', [manifestPath]).out);
     const previous = manifest.previous?.[name] ?? (name === 'api' ? manifest.previousApiSource : null);
-    const release = previous && sourceToRelease(previous);
+    const release = previous && releaseForSource(config, releases, previous);
     if (release) protect.add(release);
   }
-  const candidates = releases.filter((r) => !protect.has(r)).slice(Math.max(0, keep - protect.size));
-  for (const release of candidates) {
+  const others = releases.filter((r) => !protect.has(r));
+  const remove = others.slice(keep);
+  for (const release of remove) {
     const size = sudo('du', ['-sh', `${config.releaseRoot}/${release}`]).out.split(/\s/)[0];
-    console.log(`${flags.apply ? 'removing' : 'would remove'} ${config.releaseRoot}/${release} (${size})`);
-    if (flags.apply) {
+    log(`${config.app}: ${apply ? 'pruning' : 'would prune'} ${release} (${size})`);
+    if (apply) {
       sudo('rm', ['-rf', '--', `${config.releaseRoot}/${release}`]);
-      record(app, `pruned ${release}`);
+      record(config.app, `pruned ${release}`);
     }
   }
-  console.log(`kept: ${releases.filter((r) => !candidates.includes(r)).join(' ')}`);
+  log(`${config.app}: keeping ${releases.filter((r) => !remove.includes(r)).join(' ')}`);
 }
 
 const usage = `developed-release <command>
@@ -221,7 +223,7 @@ const usage = `developed-release <command>
   build <app> [commit] [--sides=web,api]   build + seal only, no switch
   switch <app> <release> [--migrations-applied]   switch an already sealed release
   poll                                deploy every app with "auto": true (timer entry point)
-  prune <app> [--keep=3] [--apply]    remove old releases (never live/protected ones)
+  prune <app> [--keep=2] [--apply]    remove old releases (never live, pinned or rollback targets); runs after every deploy
   adopt-web-symlink <app> <side> --from=<current Caddy root>   one-time: point Caddy at the side's link`;
 
 const [command, ...rest] = process.argv.slice(2);
@@ -236,7 +238,7 @@ try {
     if (!sides) throw new ReleaseError(`no sealed release ${flags._[1]}`);
     await deploy(flags._[0], { commit: sides.sourceCommit, flags });
   } else if (command === 'poll') await poll();
-  else if (command === 'prune' && flags._[0]) prune(flags._[0], flags);
+  else if (command === 'prune' && flags._[0]) prune(loadApp(flags._[0]), { keep: Number(flags.keep ?? 2), apply: Boolean(flags.apply) });
   else if (command === 'adopt-web-symlink' && flags._[1]) await adoptWebSymlink(loadApp(flags._[0]), flags._[1], flags);
   else { console.error(usage); process.exitCode = 2; }
 } catch (error) {

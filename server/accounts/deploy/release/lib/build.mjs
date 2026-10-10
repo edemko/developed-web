@@ -59,17 +59,29 @@ function hashTree(root) {
   return files;
 }
 
-// Copy hashed bundles of the live web dir that the new build no longer has, so tabs opened
-// before the switch can still lazy-load their chunks.
-function carryForward(stageDir, liveDir) {
-  if (!liveDir || !existsSync(liveDir)) return 0;
-  let carried = 0;
-  for (const name of readdirSync(liveDir)) {
-    if (!HASHED_ASSET.test(name) || existsSync(join(stageDir, name))) continue;
+export const hashedAssets = (dir) => (existsSync(dir) ? readdirSync(dir).filter((n) => HASHED_ASSET.test(n)) : []);
+
+// Copy the live release's hashed bundles that the new build no longer has, so tabs opened
+// before the switch can still lazy-load their chunks. Only the live build's OWN bundles
+// (recorded as builtAssets in its manifest) are carried, so the set never accumulates
+// beyond one previous release. Releases without that record carry everything once.
+export function carryForward(stageDir, liveDir, liveBuilt) {
+  if (!liveDir || !existsSync(liveDir)) return [];
+  const carried = [];
+  for (const name of liveBuilt ?? hashedAssets(liveDir)) {
+    if (existsSync(join(stageDir, name)) || !existsSync(join(liveDir, name))) continue;
     cpSync(join(liveDir, name), join(stageDir, name)); // published assets are world-readable
-    carried += 1;
+    carried.push(name);
   }
   return carried;
+}
+
+function liveBuiltAssets(live, name) {
+  if (!live?.dir) return null;
+  try {
+    const manifest = JSON.parse(sudoRead(`${live.dir}/release-manifest.json`));
+    return manifest.builtAssets?.[name] ?? null;
+  } catch { return null; }
 }
 
 export function build(config, { sha, sides, live, toolVersion }) {
@@ -110,6 +122,7 @@ export function build(config, { sha, sides, live, toolVersion }) {
   const stage = join(work, 'stage');
   mkdirSync(stage);
   let carried = 0;
+  const builtAssets = {};
   for (const name of sides) {
     const side = config.sides[name];
     for (const artifact of side.artifacts) {
@@ -120,7 +133,11 @@ export function build(config, { sha, sides, live, toolVersion }) {
     for (const prune of side.pruneGlobs ?? []) {
       run('find', [stage, '-path', join(stage, prune.dir, '*'), '-name', prune.name, '-delete']);
     }
-    if (side.carryForwardAssets) carried += carryForward(join(stage, side.carryForwardAssets), live[name]?.path);
+    if (side.carryForwardAssets) {
+      const dir = join(stage, side.carryForwardAssets);
+      builtAssets[name] = hashedAssets(dir);
+      carried += carryForward(dir, live[name]?.path, liveBuiltAssets(live[name], name)).length;
+    }
     for (const path of side.verify ?? []) {
       if (!existsSync(join(stage, path))) throw new ReleaseError(`expected ${path} in the release`);
     }
@@ -138,6 +155,7 @@ export function build(config, { sha, sides, live, toolVersion }) {
     source: `git archive of ${config.archivePaths.join(', ')}; all .env* excluded`,
     patches,
     carriedForwardAssets: carried,
+    builtAssets,
     createdAt: new Date().toISOString(),
     checkedFiles: Object.keys(files).length,
     files,

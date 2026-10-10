@@ -22,8 +22,14 @@ if ! sudo test -d "$DEST"; then
 fi
 UNITS=/home/openclaw/.config/systemd/user
 mkdir -p "$UNITS" /home/openclaw/.cache/developed-release
+PREVIOUS=$(grep -o '/opt/developed-control/developed-release-[0-9a-f]*' "$UNITS/developed-release-poll.service" 2>/dev/null || true)
 sed "s#@TOOL@#$DEST#" "$TMP/$SUB/systemd/developed-release-poll.service" > "$UNITS/developed-release-poll.service"
 cp "$TMP/$SUB/systemd/developed-release-poll.timer" "$UNITS/"
 systemctl --user daemon-reload
+# Keep only the new copy and the one it replaced (a running poll may still use it).
+for old in /opt/developed-control/developed-release-*; do
+  [[ "$old" == "$DEST" || "$old" == "$PREVIOUS" || "$old" == *.tmp ]] && continue
+  sudo rm -rf -- "$old" && echo "removed old $old"
+done
 echo "installed $DEST; poll unit points at it."
 echo "enable with: systemctl --user enable --now developed-release-poll.timer"

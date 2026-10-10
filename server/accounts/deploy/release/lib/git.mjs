@@ -23,6 +23,9 @@ export function changed(repo, from, to, paths) {
   return git(repo, ['diff', '--quiet', from, to, '--', ...paths], { allowFail: true }).status !== 0;
 }
 
+export const subjectsTouching = (repo, from, to, paths) =>
+  git(repo, ['log', '--format=%s', `${from}..${to}`, '--', ...paths]).out.split('\n').filter(Boolean);
+
 export const changedFiles = (repo, from, to, paths) =>
   git(repo, ['diff', '--name-only', from, to, '--', ...paths]).out.split('\n').filter(Boolean);
 

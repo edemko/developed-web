@@ -22,8 +22,9 @@ Run from a checkout (`node developed-release.mjs …`) or from the frozen instal
 2. Probe each **side** (`web`, `api`, `app`) for its live release and the commit it was built from
    (manifest `sourceCommit` → `DEPLOYMENT.json`/`REVISION` → `knownSources` → hex in the name).
 3. Decide (`lib/gates.mjs`, unit-tested):
-   - skip if the head subject has `[no deploy]` (automatic runs only), nothing in a side's
-     `paths` changed, or the target already failed 3 automatic attempts;
+   - skip if nothing in a side's `paths` changed, if (automatic runs only) **every** commit since
+     the live release that touches deployable paths is marked `[no deploy]` — one unmarked commit
+     deploys the whole range — or if the target already failed 3 automatic attempts;
    - **block** if a live commit is not contained in the target (live came from a release branch —
      deploying would drop live-only commits), the live commit is unknown, a changed side is
      `manual`, or `migrationPaths` changed (apply by hand, then `--migrations-applied`).
@@ -31,10 +32,12 @@ Run from a checkout (`node developed-release.mjs …`) or from the frozen instal
    `~/.cache/developed-ecosystem-build.lock`, refusing below 2 GB `MemAvailable`. Public build
    values come only from an allowlist (`publicEnv.keys`). Tests run as part of `steps`.
 5. Seal root-owned into `<releaseRoot>/<rev12>/` with `release-manifest.json` (v2: source commit,
-   sides, previous live sources, patch hashes, file hashes). Web sides carry forward the live
-   release's hashed bundles so open tabs keep working.
+   sides, previous live sources, `builtAssets`, patch hashes, file hashes). Web sides carry forward
+   the live release's **own** hashed bundles (one release back) so open tabs keep working.
 6. Switch sides in `switchOrder`; health-check each; on any failure **every completed side is
    rolled back in reverse**, so web and API never stay on mismatched releases.
+7. Prune: keep live releases, their rollback targets, `protect` pins and the newest
+   `keepReleases` (default 2) others; delete the rest under `releaseRoot`.
 
 Strategies: `web-symlink` (atomic symlink a Caddy root points at, + Cloudflare purge, no reload),
 `instance-swap` (single owner: stop `x@old`, start `x@new`, health, hooks, enable/disable — never
@@ -75,5 +78,6 @@ run `deploy <app>` by hand at least once, then set `"auto": true` in a reviewed 
 ## Not yet supported
 
 Blue-green port swaps with Caddy upstream edits (otazkomat, airsoft, vocabulum) — these must go
-through `/usr/local/bin/reload-public-sites` under `/var/lock/caddy-config.lock`. Automatic pruning
-(`prune` is manual). Migrations are never applied by this tool.
+through `/usr/local/bin/reload-public-sites` under `/var/lock/caddy-config.lock`. Migrations are
+never applied by this tool. Releases outside `releaseRoot` (e.g. My Clinic's pre-tool
+`web/releases/`) are never pruned.

@@ -13,7 +13,7 @@
   ],
   "migrationPaths": ["supabase/migrations"],
   "knownSources": { "supabase-d280d1e": "d280d1eab82042c0727e3c4d73d175e81a691494" },
-  "protect": ["1c102674a293", "supabase-d280d1e"],
+  "protect": ["1c102674a293"],
   "switchOrder": ["web", "api"],
   "sides": {
     "web": {

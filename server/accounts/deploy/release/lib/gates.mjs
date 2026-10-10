@@ -2,7 +2,7 @@
 //
 // input = {
 //   auto: boolean,                 // true when triggered by the poll timer
-//   subject: string,               // target commit subject
+//   unmarkedChange: boolean,       // some commit since a live side touching its paths lacks [no deploy]
 //   migrationsChanged: boolean,    // migration paths differ between any live side and target
 //   migrationsApplied: boolean,    // operator confirmed migrations were applied by hand
 //   force: boolean,                // switch sides even when their paths did not change
@@ -14,11 +14,12 @@
 
 export const MAX_AUTO_ATTEMPTS = 3;
 
+export const isNoDeploy = (subject) => /\[no deploy\]/i.test(subject);
+
 export function decide(input) {
   const skip = (reason) => ({ action: 'skip', reason, sides: [] });
   const block = (reason) => ({ action: 'block', reason, sides: [] });
 
-  if (input.auto && /\[no deploy\]/i.test(input.subject)) return skip('head commit is marked [no deploy]');
   if (input.auto && input.heldAttempts >= MAX_AUTO_ATTEMPTS) {
     return skip(`target failed ${input.heldAttempts} times; held until a new commit lands`);
   }
@@ -36,6 +37,9 @@ export function decide(input) {
     }
   }
   if (!selected.length) return skip('nothing deployable changed since the live release');
+  if (input.auto && !input.unmarkedChange && !input.force) {
+    return skip('every commit touching deployable paths is marked [no deploy]');
+  }
   if (input.migrationsChanged && !input.migrationsApplied) {
     return block('migrations changed since the live release — apply them by hand, then rerun with --migrations-applied');
   }
@@ -58,3 +62,11 @@ export function sourceCandidates({ name, manifest, deployment, revisionFile, kno
 
 // Hashed bundle names Angular/Vite emit (chunk-ABCD1234.js, main-ABCD1234.js, index-AbC_12x.js).
 export const HASHED_ASSET = /^[A-Za-z0-9_-]+-[A-Za-z0-9_]{8}\.(js|css)$/;
+
+// Map a source commit back to a release directory name: exact rev12 name, an operator
+// mapping (knownSources), or a hex token in the name that prefixes the commit.
+export function releaseForSource(config, releases, sha) {
+  return releases.find((r) => r === sha.slice(0, 12))
+    ?? Object.entries(config.knownSources ?? {}).find(([r, s]) => releases.includes(r) && (sha.startsWith(s) || s.startsWith(sha)))?.[0]
+    ?? releases.find((r) => (r.match(/[0-9a-f]{7,40}/g) ?? []).some((t) => sha.startsWith(t)));
+}

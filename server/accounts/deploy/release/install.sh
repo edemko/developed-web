@@ -22,7 +22,7 @@ if ! sudo test -d "$DEST"; then
 fi
 UNITS=/home/openclaw/.config/systemd/user
 mkdir -p "$UNITS" /home/openclaw/.cache/developed-release
-PREVIOUS=$(grep -o '/opt/developed-control/developed-release-[0-9a-f]*' "$UNITS/developed-release-poll.service" 2>/dev/null || true)
+PREVIOUS=$(grep -o '/opt/developed-control/developed-release-[0-9a-f]*' "$UNITS/developed-release-poll.service" 2>/dev/null | head -1 || true)
 sed "s#@TOOL@#$DEST#" "$TMP/$SUB/systemd/developed-release-poll.service" > "$UNITS/developed-release-poll.service"
 cp "$TMP/$SUB/systemd/developed-release-poll.timer" "$UNITS/"
 systemctl --user daemon-reload

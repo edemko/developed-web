@@ -78,6 +78,11 @@ async function deploy(app, { commit, auto = false, flags = {} }) {
   const config = loadApp(app);
   if (!config.onboarded) throw new ReleaseError(`${app} is not onboarded:\n  - ${config.blockers.join('\n  - ')}`);
   if (auto && !config.auto) return;
+  // Timer runs: when origin has not moved since a settled decision, do nothing (no sudo probes).
+  if (auto) {
+    git.fetchBranch(config.repo, config.branch);
+    if (readState(app).settledHead === git.resolve(config.repo, `origin/${config.branch}`)) return;
+  }
   const { target, live, decision } = assess(config, { commit, auto, flags });
   if (decision.action !== 'deploy') {
     const state = readState(app);
@@ -85,7 +90,7 @@ async function deploy(app, { commit, auto = false, flags = {} }) {
     if (auto && decision.action === 'block' && state.lastReason !== decision.reason) {
       notify(`${app}: deploy blocked`, `${short(target)}: ${decision.reason}`, 'high');
     }
-    writeState(app, { ...state, lastReason: decision.reason });
+    writeState(app, { ...state, lastReason: decision.reason, settledHead: auto ? target : state.settledHead });
     if (decision.action === 'block' && !auto) process.exitCode = 1;
     return;
   }
@@ -108,7 +113,8 @@ async function deploy(app, { commit, auto = false, flags = {} }) {
     }
     const switched = await switchSides(config, { release, sha: target, sides: decision.sides, live, order: sideOrder(config) });
     record(app, `live ${release} (${switched.join('+') || 'no change'}) from ${short(target)}`);
-    writeState(app, { target, attempts: 0, deployed: target, lastReason: 'deployed', at: new Date().toISOString() });
+    writeState(app, { target, attempts: 0, deployed: target, settledHead: auto ? target : undefined,
+      lastReason: 'deployed', at: new Date().toISOString() });
     log(`${app}: ${short(target)} is live (${switched.join(' + ')})`);
     if (auto) notify(`${app}: deployed`, `${short(target)} live (${switched.join(' + ')}): ${git.subject(config.repo, target)}`);
   } catch (error) {

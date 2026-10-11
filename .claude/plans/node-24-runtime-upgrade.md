@@ -1,7 +1,7 @@
 # Node 24 runtime upgrade (DevelopED platform): implementation plan
 
-**Status:** in progress — Phases P, 0, 1 done; Phase 2 running; Phase 3 code committed on branch
-`node24-runtime` (2026-10-11). Prepared and reviewed against the live host; refreshed 22:54
+**Status:** in progress — Phases P, 0, 1, 2 done; Phase 3 committed (10ac324), awaiting push +
+`install.sh` (2026-10-11). Prepared and reviewed against the live host; refreshed 22:54
 against the release tool at origin/main 6052e4e. It replaces the draft committed in f5fe96c
 (`.claude/plans/node-24-runtime-upgrade.md`). Tick the boxes and fill in the Execution log as you
 go.
@@ -363,8 +363,8 @@ prints `publicEnv` values.
 | # | Row | Command |
 |---|---|---|
 | 1–8 | every tool-managed app: kestrek, myclinic, screentime, mega-music, otazkomat, karak2, airsoft, vocabulum | `n24-steps.mjs <app>`, one app per run |
-| 10 | developed-accounts (live **d1c3358ccbf7**, branch release/amp-sms-status-20261005) | `n24 test ~/Dev/developed-web d1c3358ccbf7 "server/accounts packages" server/accounts "npm ci --no-audit --no-fund && npm test"` |
-| 11 | central deploy tooling + release tool | `n24 test ~/Dev/developed-web origin/main server/accounts server/accounts "node --test deploy/*.test.mjs deploy/release/*.test.mjs"`. Run it on 22 too and compare the failing sets; some fixtures are host-specific. If tests need `dist/`, prefix `npm ci --no-audit --no-fund && npm run build &&`. |
+| 10 | developed-accounts (live **d1c3358ccbf7**, branch release/amp-sms-status-20261005) | `n24 test ~/Dev/developed-web d1c3358ccbf7 . server/accounts "npm ci --no-audit --no-fund && npm test"` (whole repo: tests read `index.html` at the root) |
+| 11 | central deploy tooling + release tool | `n24 test ~/Dev/developed-web origin/main . server/accounts "npm ci --no-audit --no-fund && npm run build && node --test deploy/*.test.mjs deploy/release/*.test.mjs"` (whole repo: tests read `supabase/migrations`). Run it on 22 too and compare the failing sets; some fixtures are host-specific. If tests need `dist/`, prefix `npm ci --no-audit --no-fund && npm run build &&`. |
 | 12 | kestrek guard | `n24 test ~/Dev/kestrek origin/main deploy deploy "node --test *.test.mjs"` |
 
 Where a step needs a database or browser it cannot reach, note it and rely on the post-switch
@@ -1093,6 +1093,20 @@ follow-ups such as the vocabulum and airsoft repo docs still saying Node 22.)
     - 200: Mailjet, smsgate www, Cloudflare challenges and API, Google, supabase.com, YouTube
     - 404 (an HTTP answer, so TLS is fine): `api.smsgate.sk/`
     - 401 (TLS fine): myclinic's hosted Supabase `/auth/v1/health`
+- **Phase 2** (23:06–23:20, all on Node 24.21.0; logs in `~/.cache/node24/phase2/`):
+  - kestrek: web 213/213 Karma + build; api 813/813 Jest + build.
+  - myclinic: api 899/899 Jest + eslint; web 317/317 Karma + eslint + build. Only
+    `EBADENGINE` warnings, from `engines "22.x"`, which 4g fixes.
+  - screentime, otazkomat, karak2 (pnpm 10.30.3), airsoft and vocabulum: every release step
+    passed.
+  - mega-music: api 113 tests (0 fail); web 13/13.
+  - developed-accounts at live d1c3358ccbf7: 186 tests, 0 fail, 22 skipped.
+  - deploy tooling and release tool at origin/main: 186 tests, 0 fail, 15 skipped.
+  - kestrek guard: 12 tests, 0 fail.
+  - **Deviation:** rows 10 and 11 first archived only `server/accounts`, and their tests failed the
+    same way on 22 and 24 (ENOENT on the root `index.html` and `supabase/migrations`). Re-run on
+    the whole repo, both pass. The table is corrected.
+  - **No Node-24-only failure anywhere.**
 - **Phase 3** (code, worktree `~/.cache/node24/dw-phase3`, branch `node24-runtime`):
   - Done as written. The `deploy()` lock wrapper means the gate sits in `deployUnlocked()`.
   - The tool tests pass 19/19 on both 24.21.0 and 22.23.2.

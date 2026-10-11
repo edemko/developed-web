@@ -15,12 +15,13 @@
     "Every API switch re-pins the hourly session-cleanup owner guard (hook mega-music-cleanup) and runs the job once.",
     "Landing: /downloads/* and /release-data/* stay in the mutable /var/www/megamusic.developed.sk (APK copies, scripts/publish-macos-release.py); the rest is the sealed web/ of a release behind web-current.",
     "The YouTube service (/opt/developed/mega-youtube, server/youtube_*.py) is not managed by this tool yet.",
-    "Migrations are applied by hand; the legacy GitHub Actions deploy job was retired."
+    "Migrations are applied by hand; the legacy GitHub Actions deploy job was retired.",
+    "Markdown runbooks under server/accounts do not restart the API (exclude pathspec); every other change there deploys."
   ],
   "switchOrder": ["api", "web"],
   "sides": {
     "api": {
-      "paths": ["server/accounts"],
+      "paths": ["server/accounts", ":(exclude)server/accounts/**/*.md"],
       "steps": [
         "cd server/accounts",
         "npm ci --ignore-scripts --no-audit --no-fund",

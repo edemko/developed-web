@@ -57,7 +57,7 @@ with `"auto": true`. Pause everything without touching configs:
 Legacy per-app autodeploys (`kestrek-autodeploy`, `screentime-autodeploy`, mega-music's Actions
 hook) stay frozen behind their root guards; this tool never touches them.
 
-## App status (2026-10-10 survey)
+## App status (2026-10-10 survey, updated 2026-10-11)
 
 | App | Config | Why not auto yet |
 |---|---|---|
@@ -66,7 +66,7 @@ hook) stay frozen behind their root guards; this tool never touches them.
 | mega-music | not onboarded | cleanup-guard pin hook + `zz-managed.conf` instance drop-in to port; legacy Actions hook |
 | myclinic | **auto** (2026-10-10) | API e2e438a + web de58cea released by the tool; web on `web-current` with CSP-hash pre-check |
 | otazkomat | not onboarded | Sections 3–4 need owner sign-off; blue-green 3166/3176 strategy not implemented |
-| screentime | not onboarded | undeployed 8bd3dca must ship by hand before the APK; `-central` release suffix |
+| screentime | **auto** (2026-10-11) | 5c6e178 (8bd3dca reports + package-aware app-update, support widget) released by the tool; webpack build, both central flags baked true |
 | airsoft | not onboarded | live is a release branch (memberships) not on main; dirty tree; hand-made units |
 | vocabulum | not onboarded | live is a release branch not on main; dirty tree; per-feature units |
 | developed-accounts | manual-only by policy | identity provider; coordinated releases |

@@ -72,7 +72,7 @@ root guards; this tool never touches them. mega-music's GitHub SSH deploy was re
 | otazkomat | **auto** (2026-10-11) | 90b7acb (school Sections 1–4, support widget) released by the tool; single-owner API on 3166, web on `web-current` |
 | screentime | **auto** (2026-10-11) | 5c6e178 (8bd3dca reports + package-aware app-update, support widget) released by the tool; webpack build, both central flags baked true |
 | airsoft | **auto** (2026-10-11) | release branches merged into main; template unit `developed-airsoft@<rev12>` on 3162 replaces the include chain; first tool release c7c48752edf5 |
-| vocabulum | not onboarded | live is a release branch not on main; dirty tree; per-feature units |
+| vocabulum | **auto** (2026-10-11) | release branches merged into main; template unit `developed-vocabulum@<rev12>` on 3161 replaces six per-feature units; first tool release 0bc488780106 |
 | developed-accounts | manual-only by policy | identity provider; coordinated releases |
 
 `status` re-derives the live/behind/blocked picture at any time; the blockers live in each
@@ -81,7 +81,7 @@ run `deploy <app>` by hand at least once, then set `"auto": true` in a reviewed 
 
 ## Not yet supported
 
-Blue-green port swaps with Caddy upstream edits (otazkomat, airsoft, vocabulum) — these must go
+Blue-green port swaps with Caddy upstream edits (formerly otazkomat, airsoft, vocabulum) — these must go
 through `/usr/local/bin/reload-public-sites` under `/var/lock/caddy-config.lock`. Migrations are
 never applied by this tool. Releases outside `releaseRoot` (e.g. My Clinic's pre-tool
 `web/releases/`) are never pruned.

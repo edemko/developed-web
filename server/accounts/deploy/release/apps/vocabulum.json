@@ -1,24 +1,120 @@
 {
   "app": "vocabulum",
-  "onboarded": false,
-  "auto": false,
-  "blockers": [
-    "live runs release/word-types-20261004 (5 commits not on main) — reconcile main first",
-    "main working tree is dirty (word types being redone, incl. prisma/schema.prisma)",
-    "one copy-and-append unit per feature release — migrate to developed-vocabulum@<rev> template",
-    "port flip 3161/3171 needs a Caddy edit (or accept same-port stop/start)"
-  ],
+  "onboarded": true,
+  "auto": true,
   "repo": "/home/openclaw/Dev/vocabulary-builder",
   "branch": "main",
   "releaseRoot": "/opt/developed-apps/vocabulum/releases",
   "runtimeUser": "developed-vocabulum",
-  "archivePaths": ["."],
-  "migrationPaths": ["supabase/migrations"],
+  "archivePaths": [
+    "app",
+    "components",
+    "hooks",
+    "i18n",
+    "lib",
+    "public",
+    "types",
+    "components.json",
+    "eslint.config.mjs",
+    "next.config.ts",
+    "package.json",
+    "package-lock.json",
+    "postcss.config.mjs",
+    "proxy.ts",
+    "proxy.security.test.ts",
+    "tsconfig.json",
+    "vitest.config.ts"
+  ],
+  "migrationPaths": [
+    "supabase/migrations"
+  ],
+  "notes": [
+    "vocabulum.developed.sk. Template unit developed-vocabulum@<release>.service, single owner of 127.0.0.1:3161; replaces the per-feature units green/footer/native/showcase/favicon/word-types (2026-10-11).",
+    "Migrations are applied by hand and recorded in voc_builder.schema_migrations.",
+    "No NEXT_PUBLIC values: the build needs no env; runtime config comes from the central env file. The Flutter app (apps/flutter) ships separately.",
+    "Keep @next/swc-*: without it Next 16.3 tries to download an SWC fallback into the read-only release at startup and requests hang (first deploy, 2026-10-11)."
+  ],
   "sides": {
     "app": {
-      "paths": ["app", "components", "lib", "i18n", "public", "prisma", "package.json", "package-lock.json"],
-      "live": { "kind": "unit-path", "unit": "developed-vocabulum-word-types.service" },
-      "switch": { "type": "manual" }
+      "paths": [
+        "app",
+        "components",
+        "hooks",
+        "i18n",
+        "lib",
+        "public",
+        "types",
+        "next.config.ts",
+        "package.json",
+        "package-lock.json",
+        "postcss.config.mjs",
+        "proxy.ts"
+      ],
+      "env": {
+        "NEXT_TELEMETRY_DISABLED": "1"
+      },
+      "steps": [
+        "npm ci --no-audit --no-fund",
+        "npx vitest run",
+        "npx tsc --noEmit",
+        "npx next build",
+        "rm -rf .next/cache && mkdir -p .next/cache",
+        "npm prune --omit=dev --no-audit --no-fund"
+      ],
+      "artifacts": [
+        {
+          "from": ".next",
+          "to": ".next"
+        },
+        {
+          "from": "node_modules",
+          "to": "node_modules"
+        },
+        {
+          "from": "public",
+          "to": "public"
+        },
+        {
+          "from": "next.config.ts",
+          "to": "next.config.ts"
+        },
+        {
+          "from": "package.json",
+          "to": "package.json"
+        },
+        {
+          "from": "package-lock.json",
+          "to": "package-lock.json"
+        }
+      ],
+      "verify": [
+        ".next/BUILD_ID",
+        ".next/cache",
+        "node_modules/next/dist/bin/next",
+        "public/developed-support.js"
+      ],
+      "switch": {
+        "type": "instance-swap",
+        "unit": "developed-vocabulum@{release}.service"
+      },
+      "health": [
+        {
+          "url": "http://127.0.0.1:3161/login",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:3161/words",
+          "status": 307
+        },
+        {
+          "url": "http://127.0.0.1:3161/developed-support.js",
+          "status": 200
+        },
+        {
+          "url": "https://vocabulum.developed.sk/login",
+          "status": 200
+        }
+      ]
     }
   }
 }

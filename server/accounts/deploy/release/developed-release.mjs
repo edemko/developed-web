@@ -211,7 +211,10 @@ function prune(config, { keep = 0, apply = false } = {}) {
       // Per-instance files written at switch time (e.g. myclinic's <release>.conf).
       for (const side of Object.values(config.sides)) {
         for (const file of side.switch?.instanceFiles ?? []) {
-          sudo('rm', ['-f', '--', file.path.replaceAll('{release}', release)]);
+          const path = file.path.replaceAll('{release}', release);
+          sudo('rm', ['-f', '--', path]);
+          // Drop the instance's now-empty drop-in directory (e.g. <unit>@<release>.service.d).
+          if (/\.service\.d\/[^/]+$/.test(path)) sudo('rmdir', ['--ignore-fail-on-non-empty', '--', path.replace(/\/[^/]+$/, '')], { allowFail: true });
         }
       }
       record(config.app, `pruned ${release}`);

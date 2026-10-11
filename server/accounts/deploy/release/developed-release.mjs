@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // developed-release — build, seal and switch isolated DevelopED app releases, per app,
 // manually or on push to main (poll). See README.md beside this file.
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { build, HOME, releaseNameFor, releaseSides } from './lib/build.mjs';
+import { build, HOME, releaseNameFor, releaseSides, WORK } from './lib/build.mjs';
 import { listApps, loadApp, sideOrder } from './lib/config.mjs';
 import { decide, releaseForSource } from './lib/gates.mjs';
 import * as git from './lib/git.mjs';
@@ -75,7 +75,35 @@ function assess(config, { commit, auto = false, flags = {} }) {
   return { target, head, live, sides, decision };
 }
 
-async function deploy(app, { commit, auto = false, flags = {} }) {
+// One deploy per app at a time: a manual deploy and the poll must never build the same
+// commit in the same work dir (2026-10-11: they collided on screentime's npm ci).
+function lockApp(app) {
+  const lock = join(WORK, `${app}.deploy.lock`);
+  mkdirSync(WORK, { recursive: true });
+  for (let i = 0; i < 2; i++) {
+    try { mkdirSync(lock); writeFileSync(join(lock, 'pid'), String(process.pid)); return lock; }
+    catch (error) {
+      if (error.code !== 'EEXIST') throw error;
+      let pid = 0;
+      try { pid = Number(readFileSync(join(lock, 'pid'), 'utf8')); } catch { return null; }
+      try { process.kill(pid, 0); return null; }
+      catch (e) { if (e.code === 'EPERM') return null; rmSync(lock, { recursive: true, force: true }); }
+    }
+  }
+  return null;
+}
+
+async function deploy(app, opts) {
+  const lock = lockApp(app);
+  if (!lock) {
+    if (opts.auto) { log(`${app}: skip: another deploy of ${app} is running`); return; }
+    throw new ReleaseError(`another deploy of ${app} is running (${join(WORK, `${app}.deploy.lock`)})`);
+  }
+  try { return await deployUnlocked(app, opts); }
+  finally { rmSync(lock, { recursive: true, force: true }); }
+}
+
+async function deployUnlocked(app, { commit, auto = false, flags = {} }) {
   const config = loadApp(app);
   if (!config.onboarded) throw new ReleaseError(`${app} is not onboarded:\n  - ${config.blockers.join('\n  - ')}`);
   if (auto && !config.auto) return;

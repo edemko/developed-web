@@ -21,7 +21,7 @@
   "switchOrder": ["api", "web"],
   "sides": {
     "api": {
-      "paths": ["server/accounts", ":(exclude)server/accounts/**/*.md"],
+      "paths": ["server/accounts", ":(exclude)server/accounts/*.md"],
       "steps": [
         "cd server/accounts",
         "npm ci --ignore-scripts --no-audit --no-fund",

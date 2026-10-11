@@ -54,8 +54,9 @@ with `"auto": true`. Pause everything without touching configs:
 (`http://127.0.0.1:8080/claude-sessions`, override with `DEVELOPED_RELEASE_NTFY`); history in
 `~/.local/state/developed-release/history.log`; logs via `journalctl --user -u developed-release-poll`.
 
-Legacy per-app autodeploys (`kestrek-autodeploy`, `screentime-autodeploy`, mega-music's Actions
-hook) stay frozen behind their root guards; this tool never touches them.
+Legacy per-app autodeploys (`kestrek-autodeploy`, `screentime-autodeploy`) stay frozen behind their
+root guards; this tool never touches them. mega-music's GitHub SSH deploy was retired on 2026-10-11
+(workflow is test-only; `mega-deploy`'s key backed up under `/var/backups/developed-release/`).
 
 ## App status (2026-10-10 survey, updated 2026-10-11)
 
@@ -63,7 +64,7 @@ hook) stay frozen behind their root guards; this tool never touches them.
 |---|---|---|
 | kestrek | **auto** (2026-10-10) | — |
 | karak2 | not onboarded | no artifact definition; every restart drops sessions/games; weak health |
-| mega-music | not onboarded | cleanup-guard pin hook + `zz-managed.conf` instance drop-in to port; legacy Actions hook |
+| mega-music | **auto** (2026-10-11) | API + landing released by the tool (8ed1d6f); cleanup guard re-pinned by hook; YouTube service still manual |
 | myclinic | **auto** (2026-10-10) | API e2e438a + web de58cea released by the tool; web on `web-current` with CSP-hash pre-check |
 | otazkomat | not onboarded | Sections 3–4 need owner sign-off; blue-green 3166/3176 strategy not implemented |
 | screentime | **auto** (2026-10-11) | 5c6e178 (8bd3dca reports + package-aware app-update, support widget) released by the tool; webpack build, both central flags baked true |

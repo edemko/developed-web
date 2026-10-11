@@ -90,6 +90,8 @@ const strategies = {
     // Single owner: never two API processes (shared state files, single-port bind policy).
     log(`${config.app}: ${name} stop ${oldUnit}, start ${newUnit}`);
     sudo('systemctl', ['stop', oldUnit]);
+    // Next.js exits 143 on SIGTERM; a deliberate stop must not leave the old unit "failed".
+    sudo('systemctl', ['reset-failed', oldUnit], { allowFail: true });
     try {
       sudo('systemctl', ['start', newUnit]);
       await checkHealth(side);

@@ -1,7 +1,7 @@
 {
   "app": "mega-music",
   "onboarded": true,
-  "auto": false,
+  "auto": true,
   "repo": "/home/openclaw/Dev/mega-media-player",
   "branch": "main",
   "releaseRoot": "/opt/developed-apps/mega-music/releases",

@@ -84,6 +84,7 @@ const strategies = {
     const restoreOld = async () => {
       log(`${config.app}: restoring ${oldUnit}`);
       sudo('systemctl', ['stop', newUnit], { allowFail: true });
+      sudo('systemctl', ['reset-failed', newUnit], { allowFail: true });
       sudo('systemctl', ['start', oldUnit]);
       sudo('systemctl', ['enable', '--quiet', oldUnit], { allowFail: true });
       sudo('systemctl', ['disable', '--quiet', newUnit], { allowFail: true });

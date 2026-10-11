@@ -37,11 +37,14 @@ export function sudoWrite(path, content, mode = '0644') {
   sudo('chown', ['root:root', path]);
 }
 
-export function httpStatus(url, headers = []) {
+// socket: probe a private Unix socket (root-only app sockets, so curl runs via sudo).
+export function httpStatus(url, headers = [], socket = null) {
   const args = ['-s', '-o', '/dev/null', '-m', '10', '-w', '%{http_code}'];
   for (const header of headers) args.push('-H', header);
+  if (socket) args.push('--unix-socket', socket);
   args.push(url);
-  return Number(run('curl', args, { allowFail: true }).out) || 0;
+  const out = socket ? sudo('curl', args, { allowFail: true }).out : run('curl', args, { allowFail: true }).out;
+  return Number(out) || 0;
 }
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

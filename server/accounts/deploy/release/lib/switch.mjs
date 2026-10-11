@@ -12,15 +12,16 @@ export async function checkHealth(side, { wait = 30 } = {}) {
   const [first, ...rest] = side.health;
   let status = 0;
   for (let i = 0; i < wait; i += 1) {
-    status = httpStatus(first.url, first.headers);
+    status = httpStatus(first.url, first.headers, first.socket);
     if (status === first.status) break;
     await sleep(1000);
   }
   const failures = [];
-  if (status !== first.status) failures.push(`${first.url} -> ${status} (want ${first.status})`);
+  const where = (c) => (c.socket ? `${c.socket} ${c.url}` : c.url);
+  if (status !== first.status) failures.push(`${where(first)} -> ${status} (want ${first.status})`);
   for (const check of rest) {
-    const got = httpStatus(check.url, check.headers);
-    if (got !== check.status) failures.push(`${check.url} -> ${got} (want ${check.status})`);
+    const got = httpStatus(check.url, check.headers, check.socket);
+    if (got !== check.status) failures.push(`${where(check)} -> ${got} (want ${check.status})`);
   }
   if (failures.length) throw new ReleaseError(`health checks failed:\n  ${failures.join('\n  ')}`);
 }

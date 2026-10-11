@@ -6,42 +6,129 @@
   "branch": "main",
   "releaseRoot": "/opt/developed-apps/karak2/releases",
   "runtimeUser": "developed-karak2",
-  "archivePaths": ["backend", "frontend", "gateway", "packages", "deploy", "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "turbo.json", "tsconfig.base.json"],
-  "migrationPaths": ["backend/db"],
+  "archivePaths": [
+    "backend",
+    "frontend",
+    "gateway",
+    "packages",
+    "deploy",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "turbo.json",
+    "tsconfig.base.json"
+  ],
+  "migrationPaths": [
+    "backend/db"
+  ],
   "notes": [
     "One service (deploy/run.mjs starts Nest backend, Next frontend and the identity gateway); a release switch restarts it, which signs everyone out locally and drops in-memory games.",
     "backend/db SQL has no ledger: any change there blocks until applied by hand (deploy/README.md order), then --migrations-applied.",
-    "Production deps only: a full install builds and tests, then 'pnpm install --prod --offline' relinks the workspace (pnpm prune --prod breaks workspace links). frontend's sharp is build-only.",
-    "Frontend build cache (.next/cache) is dropped from releases."
+    "Slim release: full install, test, build, then a clean 'pnpm install --prod --offline' (reinstalling on top keeps dev tools; 'pnpm prune --prod' breaks workspace links), minus build-only @next/swc binaries and browser-only pixi.js (bundled into .next; a guard fails the build if the server ever requires it). Verified: Next renders every page without either.",
+    "Health: the backend /health does a database round trip; publicly /health and /api/health are SUPERADMIN-only, so deploy checks use the private sockets."
   ],
   "sides": {
     "app": {
-      "paths": ["backend", "frontend", "gateway", "packages", "deploy/run.mjs", "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml"],
-      "env": { "CI": "true", "NEXT_TELEMETRY_DISABLED": "1" },
+      "paths": [
+        "backend",
+        "frontend",
+        "gateway",
+        "packages",
+        "deploy/run.mjs",
+        "package.json",
+        "pnpm-lock.yaml",
+        "pnpm-workspace.yaml"
+      ],
+      "env": {
+        "CI": "true",
+        "NEXT_TELEMETRY_DISABLED": "1"
+      },
       "steps": [
         "pnpm install --frozen-lockfile",
         "pnpm test",
         "pnpm build",
         "rm -rf frontend/.next/cache",
-        "pnpm install --prod --frozen-lockfile --offline"
+        "rm -rf node_modules backend/node_modules frontend/node_modules gateway/node_modules packages/*/node_modules",
+        "pnpm install --prod --frozen-lockfile --offline",
+        "find node_modules/.pnpm -maxdepth 1 -name '@next+swc-*' -exec rm -rf {} +",
+        "if grep -rqE 'require\\(\"pixi\\.js' frontend/.next/server; then echo 'pixi.js is required server-side; keep it' >&2; exit 1; fi",
+        "find node_modules/.pnpm -maxdepth 1 -name 'pixi.js@*' -exec rm -rf {} + && rm -f frontend/node_modules/pixi.js"
       ],
       "artifacts": [
-        { "from": "backend", "to": "backend" },
-        { "from": "frontend", "to": "frontend" },
-        { "from": "gateway", "to": "gateway" },
-        { "from": "packages", "to": "packages" },
-        { "from": "deploy", "to": "deploy" },
-        { "from": "node_modules", "to": "node_modules" },
-        { "from": "package.json", "to": "package.json" },
-        { "from": "pnpm-lock.yaml", "to": "pnpm-lock.yaml" },
-        { "from": "pnpm-workspace.yaml", "to": "pnpm-workspace.yaml" }
+        {
+          "from": "backend",
+          "to": "backend"
+        },
+        {
+          "from": "frontend",
+          "to": "frontend"
+        },
+        {
+          "from": "gateway",
+          "to": "gateway"
+        },
+        {
+          "from": "packages",
+          "to": "packages"
+        },
+        {
+          "from": "deploy",
+          "to": "deploy"
+        },
+        {
+          "from": "node_modules",
+          "to": "node_modules"
+        },
+        {
+          "from": "package.json",
+          "to": "package.json"
+        },
+        {
+          "from": "pnpm-lock.yaml",
+          "to": "pnpm-lock.yaml"
+        },
+        {
+          "from": "pnpm-workspace.yaml",
+          "to": "pnpm-workspace.yaml"
+        }
       ],
-      "verify": ["deploy/run.mjs", "backend/dist/main.js", "frontend/.next/BUILD_ID", "frontend/server.mjs", "gateway/server.mjs", "frontend/node_modules/next", "gateway/node_modules/@developed/ecosystem-auth"],
-      "switch": { "type": "symlink-restart", "link": "/opt/developed-apps/karak2/current", "unit": "developed-karak2.service" },
+      "verify": [
+        "deploy/run.mjs",
+        "backend/dist/main.js",
+        "frontend/.next/BUILD_ID",
+        "frontend/server.mjs",
+        "gateway/server.mjs",
+        "frontend/node_modules/next",
+        "gateway/node_modules/@developed/ecosystem-auth"
+      ],
+      "switch": {
+        "type": "symlink-restart",
+        "link": "/opt/developed-apps/karak2/current",
+        "unit": "developed-karak2.service"
+      },
       "health": [
-        { "url": "https://karak2.developed.sk/health", "status": 200 },
-        { "url": "https://karak2.developed.sk/api/heroes", "status": 401 },
-        { "url": "https://karak2.developed.sk/", "status": 303 }
+        {
+          "socket": "/run/karak2/api.sock",
+          "url": "http://localhost/health",
+          "status": 200
+        },
+        {
+          "socket": "/run/karak2/web.sock",
+          "url": "http://localhost/",
+          "status": 200
+        },
+        {
+          "url": "https://karak2.developed.sk/health",
+          "status": 401
+        },
+        {
+          "url": "https://karak2.developed.sk/api/heroes",
+          "status": 401
+        },
+        {
+          "url": "https://karak2.developed.sk/",
+          "status": 303
+        }
       ]
     }
   }

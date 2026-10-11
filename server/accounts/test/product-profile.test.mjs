@@ -46,21 +46,24 @@ test('email remains pending and password uses the central revoking identity muta
   assert.equal(calls.length,0);
 });
 
-test('profile SMS uses explicit sender and v2 without retrying an ambiguous send', async () => {
-  const a = { config: { smsGateKey: 'fixture-key', smsGateFrom: 'DevelopED' } };
+test('profile SMS uses SMS Gate v1 (json/send_message) without retrying an ambiguous send', async () => {
+  const a = { config: { smsGateKey: 'fixture-key' } };
   let calls = 0;
   const ok = await sendProfileSms(a,'+421911111111','Fixture code',async(url,init)=>{
-    calls++; assert.equal(url,'https://api.smsgate.sk/v2/messages');
-    assert.equal(init.headers['X-API-KEY'],'fixture-key');
-    assert.equal(JSON.parse(init.body).sms.from,'DevelopED');
-    assert.equal(JSON.parse(init.body).channels[0].ttl,300);
-    return Response.json({messages:[{messageId:123}]});
+    calls++; assert.equal(url,'https://api.smsgate.sk/json/send_message');
+    assert.equal(init.method,'POST'); assert.equal(init.redirect,'error');
+    assert.ok(!String(url).includes('/v2/'));
+    const form = new URLSearchParams(init.body);
+    assert.equal(form.get('token'),'fixture-key'); assert.equal(form.get('to'),'+421911111111');
+    assert.equal(form.get('text'),'Fixture code'); assert.equal(form.has('sender'),false);
+    assert.equal(init.headers['X-API-KEY'],undefined);
+    return Response.json({result:{status:'success',code:'OK'},messages:[{status:'success',code:'OK',message_id:110156285}]});
   });
-  assert.equal(ok.ok,true); assert.equal(calls,1);
+  assert.deepEqual(ok,{ok:true,status:'accepted',messageId:'110156285'}); assert.equal(calls,1);
   calls=0;
   assert.equal((await sendProfileSms(a,'+421911111111','Fixture',async()=>{calls++;throw new Error('timeout');})).status,'ambiguous');
   assert.equal(calls,1);
-  assert.equal((await sendProfileSms({config:{smsGateKey:'fixture'}},'+421911111111','Fixture',async()=>assert.fail())).status,'not_configured');
+  assert.equal((await sendProfileSms({config:{}},'+421911111111','Fixture',async()=>assert.fail())).status,'not_configured');
 });
 
 test('product profile display name shares the central 100-character single-line limit', async () => {
@@ -82,11 +85,13 @@ test('product profile display name shares the central 100-character single-line 
 });
 
 test('profile SMS distinguishes rejection from uncertainty and keeps safe error codes', async () => {
-  const a={config:{smsGateKey:'fixture-secret',smsGateFrom:'DevelopED'}};
+  const a={config:{smsGateKey:'fixture-secret'}};
   for (const [payload,http,status,code] of [
-    [{code:'NO_CREDIT',description:'fixture-secret'},400,'rejected','NO_CREDIT'],
-    [{error:{code:10}},200,'rejected','10'],
-    [{messages:[]},200,'ambiguous','INVALID_RESPONSE'],
+    [{result:{status:'error',code:'NO_CREDIT',description:'fixture-secret'}},200,'rejected','NO_CREDIT'],
+    [{result:{status:'success',code:'OK'},messages:[{status:'error',code:'BAD_NUMBER'}]},200,'rejected','BAD_NUMBER'],
+    [{result:{status:'error',code:'fixture-secret'}},200,'rejected','PROVIDER_REJECTED'],
+    [{result:{status:'success',code:'OK'},messages:[]},200,'ambiguous','INVALID_RESPONSE'],
+    [{result:{code:'AUTH_FAILED'}},401,'rejected','AUTH_FAILED'],
     [{},503,'ambiguous','HTTP_503'],
   ]) {
     let calls=0;

@@ -13,34 +13,40 @@ export function deliveryStatus(code: unknown): DeliveryStatus {
   return 'unknown';
 }
 
+// ONLY the SMS Gate v1 (JSON) API is approved: the provider deprecated v2 and
+// said it must not be used. Never add a v2 call here. v1 cannot choose a
+// sender, so the message leaves from the account's default sender identifier.
 // Acceptance is not delivery. Never retry a send after an uncertain response.
+const isOk = (item: any) => String(item?.status ?? '').toLowerCase() === 'success' || String(item?.code ?? '').toUpperCase() === 'OK';
+
 export async function sendProfileSms(a: Accounts, phone: string, message: string, fetcher = fetch): Promise<SmsResult> {
-  const from = a.config.smsGateFrom;
-  if (!a.config.smsGateKey || !from || !/^[A-Za-z0-9][A-Za-z0-9 ._-]{0,10}$/.test(from)) {
-    return { ok: false, status: 'not_configured', errorCode: 'NOT_CONFIGURED' };
-  }
+  if (!a.config.smsGateKey) return { ok: false, status: 'not_configured', errorCode: 'NOT_CONFIGURED' };
+  const key = a.config.smsGateKey;
   try {
-    const response = await fetcher('https://api.smsgate.sk/v2/messages', {
+    const response = await fetcher('https://api.smsgate.sk/json/send_message', {
       method: 'POST', redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(8000),
-      headers: { 'X-API-KEY': a.config.smsGateKey, 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ recipients: [{ phone }], channels: [{ type: 'sms', ttl: 300 }], sms: { from, text: message, unicode: false } }),
+      headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+      body: new URLSearchParams({ token: key, to: phone, text: message }).toString(),
     });
     if (!response.ok) {
       const error = await response.json().catch(() => null);
+      const code = error?.result?.code ?? error?.code;
       return { ok: false, status: response.status >= 500 ? 'ambiguous' : 'rejected',
-        errorCode: error?.error?.code || error?.code ? safeCode(error?.error?.code ?? error.code, a.config.smsGateKey) : `HTTP_${response.status}` };
+        errorCode: code ? safeCode(code, key) : `HTTP_${response.status}` };
     }
     const data = await response.json();
     const item = Array.isArray(data?.messages) ? data.messages[0] : null;
-    if (data?.error || data?.code || item?.error) return { ok: false, status: 'rejected', errorCode: safeCode((item?.error ?? data.error ?? data).code, a.config.smsGateKey) };
-    if (!Number.isSafeInteger(item?.messageId) || item.messageId <= 0) return { ok: false, status: 'ambiguous', errorCode: 'INVALID_RESPONSE' };
-    return { ok: true, status: 'accepted', messageId: String(item.messageId) };
+    if (!isOk(data?.result ?? data)) return { ok: false, status: 'rejected', errorCode: safeCode(item?.code ?? data?.result?.code ?? data?.code, key) };
+    if (item && !isOk(item)) return { ok: false, status: 'rejected', errorCode: safeCode(item.code, key) };
+    const id = String(item?.message_id ?? data?.message_id ?? '');
+    if (!/^[0-9]{1,20}$/.test(id)) return { ok: false, status: 'ambiguous', errorCode: 'INVALID_RESPONSE' };
+    return { ok: true, status: 'accepted', messageId: id };
   } catch (error) {
     return { ok: false, status: 'ambiguous', errorCode: error instanceof Error && ['TimeoutError', 'AbortError'].includes(error.name) ? 'TIMEOUT' : 'TRANSPORT_ERROR' };
   }
 }
 
-// Legacy check_message also accepts IDs returned by v2. Only the status itself
+// check_message (v1). Only the status itself
 // proves delivery: the provider supplies deliveryDateTime for EXPIRED too.
 export async function checkProfileSms(a: Accounts, id: string, fetcher = fetch): Promise<{ status: DeliveryStatus; errorCode?: string }> {
   if (!a.config.smsGateKey || !/^[0-9]{1,20}$/.test(id)) return { status: 'unknown' };

@@ -67,3 +67,11 @@ No build process. Open `index.html` in a browser.
 - Translations: add keys to both `en` and `sk` objects in `translations.js`
 - To add a project card: add HTML in `#projects`, add translation keys, follow existing card pattern
 - Contact form submits via Web3Forms API
+
+## SMS Gate: v1 (JSON) API only
+
+**Only the SMS Gate v1 JSON API (`https://api.smsgate.sk/json/...`) is approved for use.**
+The provider has deprecated v2 (`/v2/messages`) and told us it must not be used.
+Do not add, restore or "fall back to" any v2 call. v1 cannot choose a sender, so
+messages leave from the account default until the provider adds the new
+identifiers. See the Airsoft Marketplace repo's `docs/sms-delivery-investigation.md` (2026-10-11); in this repo the sender is `server/accounts/src/profile-sms.ts`.

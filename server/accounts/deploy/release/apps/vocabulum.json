@@ -32,7 +32,7 @@
     "vocabulum.developed.sk. Template unit developed-vocabulum@<release>.service, single owner of 127.0.0.1:3161; replaces the per-feature units green/footer/native/showcase/favicon/word-types (2026-10-11).",
     "Migrations are applied by hand and recorded in voc_builder.schema_migrations.",
     "No NEXT_PUBLIC values: the build needs no env; runtime config comes from the central env file. The Flutter app (apps/flutter) ships separately.",
-    "Keep @next/swc-*: without it Next 16.3 tries to download an SWC fallback into the read-only release at startup and requests hang (first deploy, 2026-10-11)."
+    "Next standalone output (next.config.ts output: 'standalone'): the release is the traced server (~85 MB) run as `node server.js`. It needs no @next/swc; plain `next start` without swc tries to download an SWC fallback into the read-only release and hangs (first deploy, 2026-10-11)."
   ],
   "sides": {
     "app": {
@@ -58,39 +58,40 @@
         "npx vitest run",
         "npx tsc --noEmit",
         "npx next build",
-        "rm -rf .next/cache && mkdir -p .next/cache",
-        "npm prune --omit=dev --no-audit --no-fund"
+        "mkdir -p .next/standalone/.next/cache"
       ],
       "artifacts": [
         {
-          "from": ".next",
+          "from": ".next/standalone/.next",
           "to": ".next"
         },
         {
-          "from": "node_modules",
+          "from": ".next/static",
+          "to": ".next/static"
+        },
+        {
+          "from": ".next/standalone/node_modules",
           "to": "node_modules"
+        },
+        {
+          "from": ".next/standalone/server.js",
+          "to": "server.js"
+        },
+        {
+          "from": ".next/standalone/package.json",
+          "to": "package.json"
         },
         {
           "from": "public",
           "to": "public"
-        },
-        {
-          "from": "next.config.ts",
-          "to": "next.config.ts"
-        },
-        {
-          "from": "package.json",
-          "to": "package.json"
-        },
-        {
-          "from": "package-lock.json",
-          "to": "package-lock.json"
         }
       ],
       "verify": [
+        "server.js",
         ".next/BUILD_ID",
         ".next/cache",
-        "node_modules/next/dist/bin/next",
+        ".next/static",
+        "node_modules/next/package.json",
         "public/developed-support.js"
       ],
       "switch": {

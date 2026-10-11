@@ -1,29 +1,70 @@
 {
   "app": "otazkomat",
-  "onboarded": false,
+  "onboarded": true,
   "auto": false,
-  "blockers": [
-    "main carries Sections 3–4, which still need the owner's separate release authorization",
-    "true blue-green across ports 3166/3176 with a Caddy upstream + static-root edit — needs a blue-green strategy (or symlink/snippet conversion) in this tool",
-    "per-instance release-port.conf drop-in and port env must be generated",
-    "readiness.cjs is hard-coded per release"
-  ],
   "repo": "/home/openclaw/Dev/otazkomat",
   "branch": "main",
   "releaseRoot": "/opt/developed-apps/otazkomat/releases",
   "runtimeUser": "developed-otazkomat",
   "archivePaths": ["backend", "frontend", "shared"],
   "migrationPaths": ["supabase/migrations"],
+  "notes": [
+    "educatio.sk: school features Sections 1-4 live; Sections 5 (student portal) and 6 (parent portal) not started (docs/school-delivery-plan.md).",
+    "Migrations are applied by hand and recorded in otazkomat.schema_migrations.",
+    "Single owner on 127.0.0.1:3166 (stop old, start new); the former 3166/3176 blue-green with Caddy upstream edits is retired.",
+    "Legacy static release otazkomat-school-<rev12> under /opt/developed-static maps to its commit via the hex token."
+  ],
+  "switchOrder": ["api", "web"],
   "sides": {
-    "web": {
-      "paths": ["frontend"],
-      "live": { "kind": "caddy-root", "prefix": "/opt/developed-static/releases/otazkomat-school-" },
-      "switch": { "type": "manual" }
-    },
     "api": {
       "paths": ["backend", "shared"],
-      "switch": { "type": "manual" },
-      "live": { "kind": "units", "pattern": "developed-otazkomat@*.service" }
+      "steps": [
+        "cd backend",
+        "npm ci --no-audit --no-fund",
+        "npx jest --ci",
+        "npm prune --omit=dev --no-audit --no-fund"
+      ],
+      "artifacts": [
+        { "from": "backend", "to": "backend" },
+        { "from": "shared", "to": "shared" }
+      ],
+      "verify": ["backend/server.js", "backend/node_modules/express/package.json", "shared"],
+      "switch": {
+        "type": "instance-swap",
+        "unit": "developed-otazkomat@{release}.service",
+        "instanceFiles": [
+          { "path": "/etc/developed-apps/otazkomat-{release}-port.env", "content": "HOST=127.0.0.1\nPORT=3166\n", "mode": "0644" },
+          {
+            "path": "/etc/systemd/system/developed-otazkomat@{release}.service.d/release-port.conf",
+            "content": "[Service]\nEnvironmentFile=/etc/developed-apps/otazkomat-{release}-port.env\nSocketBindAllow=ipv4:tcp:3166\n",
+            "mode": "0644"
+          }
+        ]
+      },
+      "health": [
+        { "url": "http://127.0.0.1:3166/health", "status": 200 },
+        { "url": "https://educatio.sk/health", "status": 200 }
+      ]
+    },
+    "web": {
+      "paths": ["frontend", "shared"],
+      "env": { "VITE_API_URL": "https://educatio.sk" },
+      "steps": [
+        "cd frontend",
+        "npm ci --no-audit --no-fund",
+        "npx vitest run",
+        "npm run build"
+      ],
+      "artifacts": [{ "from": "frontend/dist", "to": "web" }],
+      "carryForwardAssets": "web",
+      "carryForwardSubdir": "assets",
+      "verify": ["web/index.html", "web/developed-support.js"],
+      "switch": { "type": "web-symlink", "link": "/opt/developed-apps/otazkomat/web-current", "dir": "web" },
+      "cloudflareZone": "ff09e27586fa47d3f220968e487c6774",
+      "health": [
+        { "url": "https://educatio.sk/", "status": 200 },
+        { "url": "https://educatio.sk/developed-support.js", "status": 200 }
+      ]
     }
   }
 }

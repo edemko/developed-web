@@ -55,7 +55,7 @@ export function sourceCandidates({ name, manifest, deployment, revisionFile, kno
 }
 
 // Hashed bundle names Angular/Vite emit (chunk-ABCD1234.js, main-ABCD1234.js, index-AbC_12x.js).
-export const HASHED_ASSET = /^[A-Za-z0-9_-]+-[A-Za-z0-9_]{8}\.(js|css)$/;
+export const HASHED_ASSET = /^[A-Za-z0-9_-]+-[A-Za-z0-9_-]{8}\.(js|css)$/;
 
 // Map a source commit back to a release directory name: exact rev12 name, an operator
 // mapping (knownSources), or a hex token in the name that prefixes the commit.

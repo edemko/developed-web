@@ -67,7 +67,7 @@ test('release names come from the first segment under the release root', () => {
 });
 
 test('hashed asset pattern', () => {
-  for (const ok of ['chunk-ZLA7I3LM.js', 'main-UVJ7ZVJV.js', 'styles-ABCDEFGH.css', 'index-B3x_Kd9a.js']) assert.ok(HASHED_ASSET.test(ok), ok);
+  for (const ok of ['chunk-ZLA7I3LM.js', 'main-UVJ7ZVJV.js', 'styles-ABCDEFGH.css', 'index-B3x_Kd9a.js', 'index-Bd-5L4Ui.js']) assert.ok(HASHED_ASSET.test(ok), ok);
   for (const no of ['index.html', 'developed-support.js', 'favicon.ico', 'chunk-ZLA7I3LM.js.map']) assert.ok(!HASHED_ASSET.test(no), no);
 });
 

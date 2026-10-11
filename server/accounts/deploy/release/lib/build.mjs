@@ -134,9 +134,12 @@ export function build(config, { sha, sides, live, toolVersion }) {
       run('find', [stage, '-path', join(stage, prune.dir, '*'), '-name', prune.name, '-delete']);
     }
     if (side.carryForwardAssets) {
-      const dir = join(stage, side.carryForwardAssets);
+      // carryForwardSubdir: bundlers that emit into a subfolder (Vite: assets/).
+      const sub = side.carryForwardSubdir ?? '';
+      const dir = join(stage, side.carryForwardAssets, sub);
       builtAssets[name] = hashedAssets(dir);
-      carried += carryForward(dir, live[name]?.path, liveBuiltAssets(live[name], name)).length;
+      const liveDir = live[name]?.path ? join(live[name].path, sub) : null;
+      carried += carryForward(dir, liveDir, liveBuiltAssets(live[name], name)).length;
     }
     for (const path of side.verify ?? []) {
       if (!existsSync(join(stage, path))) throw new ReleaseError(`expected ${path} in the release`);

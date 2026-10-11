@@ -2,7 +2,6 @@
 //
 // input = {
 //   auto: boolean,                 // true when triggered by the poll timer
-//   unmarkedChange: boolean,       // some commit since a live side touching its paths lacks [no deploy]
 //   migrationsChanged: boolean,    // migration paths differ between any live side and target
 //   migrationsApplied: boolean,    // operator confirmed migrations were applied by hand
 //   force: boolean,                // switch sides even when their paths did not change
@@ -13,8 +12,6 @@
 // returns { action: 'deploy'|'skip'|'block', reason, sides: string[] }
 
 export const MAX_AUTO_ATTEMPTS = 3;
-
-export const isNoDeploy = (subject) => /\[no deploy\]/i.test(subject);
 
 export function decide(input) {
   const skip = (reason) => ({ action: 'skip', reason, sides: [] });
@@ -37,9 +34,6 @@ export function decide(input) {
     }
   }
   if (!selected.length) return skip('nothing deployable changed since the live release');
-  if (input.auto && !input.unmarkedChange && !input.force) {
-    return skip('every commit touching deployable paths is marked [no deploy]');
-  }
   if (input.migrationsChanged && !input.migrationsApplied) {
     return block('migrations changed since the live release — apply them by hand, then rerun with --migrations-applied');
   }

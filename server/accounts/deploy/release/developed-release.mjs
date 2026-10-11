@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build, HOME, releaseNameFor, releaseSides } from './lib/build.mjs';
 import { listApps, loadApp, sideOrder } from './lib/config.mjs';
-import { decide, isNoDeploy, releaseForSource } from './lib/gates.mjs';
+import { decide, releaseForSource } from './lib/gates.mjs';
 import * as git from './lib/git.mjs';
 import { probe } from './lib/live.mjs';
 import { log, ReleaseError, run, sudo, sudoTest } from './lib/sh.mjs';
@@ -51,7 +51,6 @@ function assess(config, { commit, auto = false, flags = {} }) {
   const live = probe(config);
   const sides = {};
   let migrationsChanged = false;
-  let unmarkedChange = false;
   for (const [name, side] of Object.entries(config.sides)) {
     const liveSource = live[name].source;
     const contained = Boolean(liveSource) && git.isAncestor(config.repo, liveSource, target);
@@ -63,13 +62,10 @@ function assess(config, { commit, auto = false, flags = {} }) {
       manual: side.switch.type === 'manual',
     };
     if (contained && git.changed(config.repo, liveSource, target, config.migrationPaths ?? [])) migrationsChanged = true;
-    if (contained && sides[name].changed &&
-        git.subjectsTouching(config.repo, liveSource, target, side.paths).some((s) => !isNoDeploy(s))) unmarkedChange = true;
   }
   const state = readState(config.app);
   const decision = decide({
     auto,
-    unmarkedChange,
     migrationsChanged,
     migrationsApplied: Boolean(flags['migrations-applied']),
     force: Boolean(flags.force),

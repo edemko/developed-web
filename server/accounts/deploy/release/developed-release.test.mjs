@@ -1,17 +1,18 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { listApps, loadApp, liveSpec, validate } from './lib/config.mjs';
-import { decide, HASHED_ASSET, isNoDeploy, MAX_AUTO_ATTEMPTS, releaseForSource, sourceCandidates } from './lib/gates.mjs';
+import { decide, HASHED_ASSET, MAX_AUTO_ATTEMPTS, releaseForSource, sourceCandidates } from './lib/gates.mjs';
 import { carryForward } from './lib/build.mjs';
 import { mkdtempSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { releaseDirOf, releaseNameOf } from './lib/live.mjs';
 import { dropinFor, pinGuard } from './hooks/kestrek-notifications.mjs';
+import { cleanupDropin, pinCleanup } from './hooks/mega-music-cleanup.mjs';
 import { inlineHashes, missingHashes, siteBlock } from './hooks/csp-hashes.mjs';
 
 const side = (over = {}) => ({ liveSource: 'a'.repeat(40), liveContained: true, liveIsTarget: false, changed: true, manual: false, ...over });
-const input = (over = {}) => ({ auto: true, unmarkedChange: true, migrationsChanged: false, migrationsApplied: false,
+const input = (over = {}) => ({ auto: true, migrationsChanged: false, migrationsApplied: false,
   force: false, heldAttempts: 0, sides: { web: side(), api: side() }, ...over });
 
 test('deploys every changed side', () => {
@@ -19,11 +20,9 @@ test('deploys every changed side', () => {
   assert.deepEqual(decide(input({ sides: { web: side({ changed: false }), api: side() } })).sides, ['api']);
 });
 
-test('[no deploy] skips automatic runs only when every relevant commit is marked', () => {
-  assert.equal(decide(input({ unmarkedChange: false })).action, 'skip');
-  assert.equal(decide(input({ unmarkedChange: false, auto: false })).action, 'deploy');
-  assert.ok(isNoDeploy('docs: x [No Deploy]'));
-  assert.ok(!isNoDeploy('fix: pickers'));
+test('a push to main deploys: commit subjects carry no opt-out', () => {
+  assert.equal(decide(input()).action, 'deploy');
+  assert.equal(decide(input({ auto: false })).action, 'deploy');
 });
 
 test('refuses to drop live-only commits', () => {
@@ -115,10 +114,8 @@ test('csp-hashes finds inline scripts and handlers, ignores external and data sc
   assert.deepEqual(missingHashes(html, block), handlers);
 });
 
-test('[no deploy] check does not mask "nothing changed"', () => {
-  assert.match(decide(input({ unmarkedChange: false, sides: { app: side({ changed: false }) } })).reason, /nothing deployable/);
-  assert.match(decide(input({ unmarkedChange: false })).reason, /marked \[no deploy\]/);
-  assert.equal(decide(input({ unmarkedChange: false, force: true })).action, 'deploy');
+test('unchanged paths still skip', () => {
+  assert.match(decide(input({ sides: { app: side({ changed: false }) } })).reason, /nothing deployable/);
 });
 
 test('rollback targets map back to release names', () => {
@@ -139,4 +136,20 @@ test('carry-forward copies only the live build\'s own bundles', () => {
   assert.deepEqual(carryForward(stage, live, ['main-AAAAAAAA.js', 'chunk-SHAREDSS.js']), ['main-AAAAAAAA.js']);
   assert.ok(!readdirSync(stage).includes('chunk-OLDOLDOL.js'));
   assert.deepEqual(carryForward(stage, live, null).sort(), ['chunk-OLDOLDOL.js']); // legacy: all missing hashed
+});
+
+test('mega-music cleanup guard and module are pinned to the new release', () => {
+  const guardSource = "export const guardPath = '/opt/x/v11/session-cleanup-owner-check.mjs';\nexport const apiUnit = 'mega-music-accounts-isolated@old.service';\n";
+  const moduleSource = "export const release = '/opt/developed-apps/mega-music/releases/4ca877f89a3d';\nexport const modulePath = '/opt/x/v11/session-cleanup.mjs';\n";
+  const dir = '/opt/developed-control/mega-music-session-cleanup-abc123def456';
+  const unit = 'mega-music-accounts-isolated@abc123def456.service';
+  const p = pinCleanup({ guardSource, moduleSource, dir, apiUnit: unit });
+  assert.ok(p.guard.includes(`export const guardPath = '${dir}/session-cleanup-owner-check.mjs';`));
+  assert.ok(p.guard.includes(`export const apiUnit = '${unit}';`));
+  assert.ok(p.module.includes(`export const modulePath = '${dir}/session-cleanup.mjs';`));
+  assert.ok(p.module.includes('releases/4ca877f89a3d'));
+  assert.throws(() => pinCleanup({ guardSource: 'x', moduleSource, dir, apiUnit: unit }), /changed shape/);
+  const dropin = cleanupDropin(unit, p.guardPath, p.modulePath);
+  assert.ok(dropin.includes(`ExecStartPre=+/opt/developed-runtimes/node-v22.23.2/bin/node ${p.guardPath}`));
+  assert.ok(dropin.includes(`ExecStart=\nExecStart=/opt/developed-runtimes/node-v22.23.2/bin/node ${p.modulePath}`));
 });

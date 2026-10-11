@@ -22,9 +22,9 @@ Run from a checkout (`node developed-release.mjs …`) or from the frozen instal
 2. Probe each **side** (`web`, `api`, `app`) for its live release and the commit it was built from
    (manifest `sourceCommit` → `DEPLOYMENT.json`/`REVISION` → `knownSources` → hex in the name).
 3. Decide (`lib/gates.mjs`, unit-tested):
-   - skip if nothing in a side's `paths` changed, if (automatic runs only) **every** commit since
-     the live release that touches deployable paths is marked `[no deploy]` — one unmarked commit
-     deploys the whole range — or if the target already failed 3 automatic attempts;
+   - skip if nothing in a side's `paths` changed, or if the target already failed 3 automatic
+     attempts. There is no commit-message opt-out: a push to `main` means deploy. Work that must
+     not ship stays on a local or feature branch until it is ready;
    - **block** if a live commit is not contained in the target (live came from a release branch —
      deploying would drop live-only commits), the live commit is unknown, a changed side is
      `manual`, or `migrationPaths` changed (apply by hand, then `--migrations-applied`).

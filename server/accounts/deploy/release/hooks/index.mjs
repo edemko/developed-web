@@ -6,9 +6,11 @@
 // Checks run after build, before any side switches: check({ config, name, side, releaseDir }).
 import { cspHashes } from './csp-hashes.mjs';
 import { kestrekNotifications } from './kestrek-notifications.mjs';
+import { megaMusicCleanup } from './mega-music-cleanup.mjs';
 
 export const hooks = {
   'kestrek-notifications': kestrekNotifications,
+  'mega-music-cleanup': megaMusicCleanup,
 };
 
 export const checks = {

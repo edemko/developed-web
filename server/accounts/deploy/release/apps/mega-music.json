@@ -1,28 +1,62 @@
 {
   "app": "mega-music",
-  "onboarded": false,
+  "onboarded": true,
   "auto": false,
-  "blockers": [
-    "each API release needs a new session-cleanup owner guard pinned to the unit name (cleanup-v1..v11) — port it to a hook like kestrek-notifications",
-    "each new instance needs the zz-managed.conf drop-in (env files + port 3178) — add as switch.instanceFiles",
-    "legacy GitHub Actions deploy.yml is still wired (blocked only by /etc/developed/mega-music-isolation.guard) — retire it",
-    "landing site /var/www/megamusic.developed.sk is mutable and has drifted from the repo",
-    "local main has unpushed commits"
-  ],
   "repo": "/home/openclaw/Dev/mega-media-player",
   "branch": "main",
   "releaseRoot": "/opt/developed-apps/mega-music/releases",
   "runtimeUser": "developed-mega-music",
-  "archivePaths": ["server/accounts"],
+  "archivePaths": ["server/accounts", "website"],
   "migrationPaths": ["supabase/migrations"],
   "protect": ["4ca877f89a3d"],
+  "knownSources": { "megamusic.developed.sk": "1951be0f646fc1be9eaab992c35784c83b164cf4" },
+  "notes": [
+    "4ca877f89a3d stays: the session-cleanup module loads pg from it.",
+    "Every API switch re-pins the hourly session-cleanup owner guard (hook mega-music-cleanup) and runs the job once.",
+    "Landing: /downloads/* and /release-data/* stay in the mutable /var/www/megamusic.developed.sk (APK copies, scripts/publish-macos-release.py); the rest is the sealed web/ of a release behind web-current.",
+    "The YouTube service (/opt/developed/mega-youtube, server/youtube_*.py) is not managed by this tool yet.",
+    "Migrations are applied by hand; the legacy GitHub Actions deploy job was retired."
+  ],
+  "switchOrder": ["api", "web"],
   "sides": {
     "api": {
       "paths": ["server/accounts"],
-      "switch": { "type": "instance-swap", "unit": "mega-music-accounts-isolated@{release}.service" },
+      "steps": [
+        "cd server/accounts",
+        "npm ci --ignore-scripts --no-audit --no-fund",
+        "npm test",
+        "npm prune --omit=dev --no-audit --no-fund"
+      ],
+      "artifacts": [{ "from": "server/accounts", "to": "." }],
+      "verify": ["index.mjs", "node_modules/pg/package.json"],
+      "switch": {
+        "type": "instance-swap",
+        "unit": "mega-music-accounts-isolated@{release}.service",
+        "instanceFiles": [{
+          "path": "/etc/systemd/system/mega-music-accounts-isolated@{release}.service.d/zz-managed.conf",
+          "content": "[Service]\nEnvironmentFile=\nEnvironmentFile=/etc/developed-apps/mega-music-managed.env\nEnvironmentFile=/etc/developed-apps/mega-music-device-playback.env\nSocketBindAllow=\nSocketBindAllow=ipv4:tcp:3178\n",
+          "mode": "0644"
+        }]
+      },
+      "hooks": ["mega-music-cleanup"],
       "health": [
         { "url": "http://127.0.0.1:3178/api/music/health", "status": 200 },
         { "url": "https://megamusic.developed.sk/app/", "status": 200 }
+      ]
+    },
+    "web": {
+      "paths": ["website"],
+      "steps": [
+        "node --test website/test/*.test.cjs",
+        "rm -rf website/dist/downloads website/dist/release-data"
+      ],
+      "artifacts": [{ "from": "website/dist", "to": "web" }],
+      "verify": ["web/index.html"],
+      "switch": { "type": "web-symlink", "link": "/opt/developed-apps/mega-music/web-current", "dir": "web" },
+      "health": [
+        { "url": "https://megamusic.developed.sk/", "status": 200 },
+        { "url": "https://megamusic.developed.sk/release-data/macos.json", "status": 200 },
+        { "url": "https://megamusic.developed.sk/downloads/mega-music-1.0.5.apk", "status": 410 }
       ]
     }
   }

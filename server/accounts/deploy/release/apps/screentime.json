@@ -6,23 +6,39 @@
   "branch": "main",
   "releaseRoot": "/opt/developed-apps/screentime/releases",
   "runtimeUser": "developed-screentime",
-  "archivePaths": ["web", "supabase/migrations"],
-  "migrationPaths": ["supabase/migrations"],
+  "archivePaths": [
+    "web",
+    "supabase/migrations"
+  ],
+  "migrationPaths": [
+    "supabase/migrations"
+  ],
   "notes": [
     "Migrations are applied by hand with psql and recorded in screentime.schema_migrations.",
     "Central-enabled builds only: both ECOSYSTEM flags are true at build time (the public one is baked in). Legacy *-central release names map to their commit via the hex token.",
     "Webpack build: default Turbopack rejects the symlinked vendor package (docs/ecosystem-accounts.md).",
     "UID 983 may bind only 3167, so the swap is stop old, start new (sub-second gap).",
-    "Android APKs are published separately with scripts/build-apk.sh; deploying never publishes an APK."
+    "Android APKs are published separately with scripts/build-apk.sh; deploying never publishes an APK.",
+    "Next standalone output (web/next.config.ts output: 'standalone'), run as `node server.js` (~80 MB release, was 487 MB). @developed/ecosystem-auth is bundled by webpack; pg and the AWS SDK are traced."
   ],
   "sides": {
     "app": {
-      "paths": ["web"],
-      "env": { "NEXT_TELEMETRY_DISABLED": "1" },
+      "paths": [
+        "web"
+      ],
+      "env": {
+        "NEXT_TELEMETRY_DISABLED": "1"
+      },
       "publicEnv": {
         "file": "/etc/developed-accounts/host-env-staging/screentime.central.env",
-        "keys": ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"],
-        "set": { "ECOSYSTEM_AUTH_ENABLED": "true", "NEXT_PUBLIC_ECOSYSTEM_AUTH_ENABLED": "true" }
+        "keys": [
+          "NEXT_PUBLIC_SUPABASE_URL",
+          "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+        ],
+        "set": {
+          "ECOSYSTEM_AUTH_ENABLED": "true",
+          "NEXT_PUBLIC_ECOSYSTEM_AUTH_ENABLED": "true"
+        }
       },
       "steps": [
         "cd web",
@@ -31,25 +47,67 @@
         "npx tsc --noEmit",
         "npx eslint --quiet",
         "npm run build -- --webpack",
-        "rm -rf .next/cache && mkdir -p .next/cache",
-        "npm prune --omit=dev --no-audit --no-fund"
+        "mkdir -p .next/standalone/.next/cache"
       ],
       "artifacts": [
-        { "from": "web/.next", "to": ".next" },
-        { "from": "web/node_modules", "to": "node_modules" },
-        { "from": "web/public", "to": "public" },
-        { "from": "web/package.json", "to": "package.json" },
-        { "from": "web/package-lock.json", "to": "package-lock.json" },
-        { "from": "web/next.config.ts", "to": "next.config.ts" }
+        {
+          "from": "web/.next/standalone/.next",
+          "to": ".next"
+        },
+        {
+          "from": "web/.next/static",
+          "to": ".next/static"
+        },
+        {
+          "from": "web/.next/standalone/node_modules",
+          "to": "node_modules"
+        },
+        {
+          "from": "web/.next/standalone/server.js",
+          "to": "server.js"
+        },
+        {
+          "from": "web/.next/standalone/package.json",
+          "to": "package.json"
+        },
+        {
+          "from": "web/public",
+          "to": "public"
+        }
       ],
-      "verify": [".next/BUILD_ID", ".next/cache", "node_modules/next/dist/bin/next", "public/developed-support.js"],
-      "switch": { "type": "instance-swap", "unit": "developed-screentime@{release}.service" },
+      "verify": [
+        "server.js",
+        ".next/BUILD_ID",
+        ".next/cache",
+        ".next/static",
+        "node_modules/next/package.json",
+        "public/developed-support.js"
+      ],
+      "switch": {
+        "type": "instance-swap",
+        "unit": "developed-screentime@{release}.service"
+      },
       "health": [
-        { "url": "http://127.0.0.1:3167/", "status": 200 },
-        { "url": "http://127.0.0.1:3167/api/v1/app-update", "status": 200 },
-        { "url": "http://127.0.0.1:3167/api/v1/app-update?package=unknown", "status": 400 },
-        { "url": "http://127.0.0.1:3167/developed-support.js", "status": 200 },
-        { "url": "https://screentime.developed.sk/", "status": 200 }
+        {
+          "url": "http://127.0.0.1:3167/",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:3167/api/v1/app-update",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:3167/api/v1/app-update?package=unknown",
+          "status": 400
+        },
+        {
+          "url": "http://127.0.0.1:3167/developed-support.js",
+          "status": 200
+        },
+        {
+          "url": "https://screentime.developed.sk/",
+          "status": 200
+        }
       ]
     }
   }

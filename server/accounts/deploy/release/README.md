@@ -66,7 +66,7 @@ root guards; this tool never touches them. mega-music's GitHub SSH deploy was re
 | karak2 | not onboarded | no artifact definition; every restart drops sessions/games; weak health |
 | mega-music | **auto** (2026-10-11) | API + landing released by the tool (8ed1d6f); cleanup guard re-pinned by hook; YouTube service still manual |
 | myclinic | **auto** (2026-10-10) | API e2e438a + web de58cea released by the tool; web on `web-current` with CSP-hash pre-check |
-| otazkomat | not onboarded | Sections 3–4 need owner sign-off; blue-green 3166/3176 strategy not implemented |
+| otazkomat | **auto** (2026-10-11) | 90b7acb (school Sections 1–4, support widget) released by the tool; single-owner API on 3166, web on `web-current` |
 | screentime | **auto** (2026-10-11) | 5c6e178 (8bd3dca reports + package-aware app-update, support widget) released by the tool; webpack build, both central flags baked true |
 | airsoft | not onboarded | live is a release branch (memberships) not on main; dirty tree; hand-made units |
 | vocabulum | not onboarded | live is a release branch not on main; dirty tree; per-feature units |

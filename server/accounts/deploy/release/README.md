@@ -63,7 +63,7 @@ root guards; this tool never touches them. mega-music's GitHub SSH deploy was re
 | App | Config | Why not auto yet |
 |---|---|---|
 | kestrek | **auto** (2026-10-10) | — |
-| karak2 | not onboarded | no artifact definition; every restart drops sessions/games; weak health |
+| karak2 | **auto** (2026-10-11) | slim production-deps release a6ed1c50aa26 (760 MB vs 980 MB); a release restarts the one service (local sign-out, in-memory games dropped) |
 | mega-music | **auto** (2026-10-11) | API + landing released by the tool (8ed1d6f); cleanup guard re-pinned by hook; YouTube service still manual |
 | myclinic | **auto** (2026-10-10) | API e2e438a + web de58cea released by the tool; web on `web-current` with CSP-hash pre-check |
 | otazkomat | **auto** (2026-10-11) | 90b7acb (school Sections 1–4, support widget) released by the tool; single-owner API on 3166, web on `web-current` |

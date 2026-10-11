@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { releaseDirOf, releaseNameOf } from './lib/live.mjs';
 import { dropinFor, pinGuard } from './hooks/kestrek-notifications.mjs';
 import { cleanupDropin, pinCleanup } from './hooks/mega-music-cleanup.mjs';
+import { buildNodeBin, DEFAULT_NODE, nodeVersion, runtimeNode, runtimeProblem, switchUnit } from './lib/runtime.mjs';
 import { inlineHashes, missingHashes, siteBlock } from './hooks/csp-hashes.mjs';
 
 const side = (over = {}) => ({ liveSource: 'a'.repeat(40), liveContained: true, liveIsTarget: false, changed: true, manual: false, ...over });
@@ -71,14 +72,38 @@ test('hashed asset pattern', () => {
   for (const no of ['index.html', 'developed-support.js', 'favicon.ico', 'chunk-ZLA7I3LM.js.map']) assert.ok(!HASHED_ASSET.test(no), no);
 });
 
-test('kestrek guard pinning rewrites exactly the two constants', () => {
-  const src = "export const guardPath = '/old';\nexport const nodePath = '/n';\nexport const apiUnit = 'developed-kestrek@old.service';\n";
-  const out = pinGuard(src, '/opt/developed-control/kestrek-notifications-abc/g.mjs', 'developed-kestrek@abc.service');
+test('kestrek guard pinning rewrites exactly the three constants', () => {
+  const n24 = '/opt/developed-runtimes/node-v24.21.0/bin/node';
+  const src = "export const guardPath = '/old';\nexport const nodePath = '/n';\nexport const apiUnit = 'developed-kestrek@old.service';\nexport const workerUnit = 'w';\n";
+  const out = pinGuard(src, '/opt/developed-control/kestrek-notifications-abc/g.mjs', 'developed-kestrek@abc.service', n24);
   assert.match(out, /guardPath = '\/opt\/developed-control\/kestrek-notifications-abc\/g\.mjs'/);
   assert.match(out, /apiUnit = 'developed-kestrek@abc\.service'/);
-  assert.match(out, /nodePath = '\/n'/);
-  assert.throws(() => pinGuard('no constants here', '/g', 'u'), /changed shape/);
-  assert.match(dropinFor('developed-kestrek@abc.service', '/g'), /^ExecStartPre=$/m);
+  assert.match(out, /nodePath = '\/opt\/developed-runtimes\/node-v24\.21\.0\/bin\/node'/);
+  assert.match(out, /workerUnit = 'w'/);
+  assert.throws(() => pinGuard('no constants here', '/g', 'u', n24), /changed shape/);
+  assert.throws(() => pinGuard("export const guardPath = '/x';\nexport const apiUnit = 'u';\n", '/g', 'u', n24), /changed shape/);
+  const dropin = dropinFor('developed-kestrek@abc.service', '/g', n24);
+  assert.match(dropin, /^ExecStartPre=$/m);
+  assert.match(dropin, /^ExecStartPre=\+\/opt\/developed-runtimes\/node-v24\.21\.0\/bin\/node \/g$/m);
+});
+
+test('node runtime defaults to 22.23.2 and follows config.node', () => {
+  assert.equal(nodeVersion({}), DEFAULT_NODE);
+  assert.equal(buildNodeBin({}), '/home/openclaw/.nvm/versions/node/v22.23.2/bin');
+  assert.equal(runtimeNode({}), '/opt/developed-runtimes/node-v22.23.2/bin/node');
+  assert.equal(buildNodeBin({ node: '24.21.0' }), '/home/openclaw/.nvm/versions/node/v24.21.0/bin');
+  assert.equal(runtimeNode({ node: '24.21.0' }), '/opt/developed-runtimes/node-v24.21.0/bin/node');
+});
+
+test('unit runtime gate', () => {
+  const v22 = '/opt/developed-runtimes/node-v22.23.2/bin/node', v24 = '/opt/developed-runtimes/node-v24.21.0/bin/node';
+  const unit = `[Service]\nExecStart=${v24} dist/main.js\n# drop-in\nExecStartPre=${v24} /opt/x/assert.mjs kestrek\n`;
+  assert.equal(runtimeProblem(unit, v24), null);
+  assert.match(runtimeProblem(unit, v22), /does not name/);
+  assert.match(runtimeProblem(`${unit}ExecStartPre=${v22} /g.mjs\n`, v24), /also names .*node-v22\.23\.2/);
+  assert.equal(switchUnit({ switch: { type: 'instance-swap', unit: 'developed-kestrek@{release}.service' } }), 'developed-kestrek@.service');
+  assert.equal(switchUnit({ switch: { type: 'symlink-restart', unit: 'developed-karak2.service', link: '/x' } }), 'developed-karak2.service');
+  assert.equal(switchUnit({ switch: { type: 'web-symlink', link: '/x' } }), null);
 });
 
 test('config validation', () => {
@@ -88,6 +113,8 @@ test('config validation', () => {
   assert.throws(() => validate({ ...structuredClone(base), blockers: [] }), /blockers/);
   assert.throws(() => validate({ ...structuredClone(base), auto: true }), /auto requires onboarded/);
   assert.throws(() => validate({ ...structuredClone(base), releaseRoot: '/home/x' }), /releaseRoot/);
+  assert.throws(() => validate({ ...structuredClone(base), node: '24' }), /exact version/);
+  assert.doesNotThrow(() => validate({ ...structuredClone(base), node: '24.21.0' }));
   const swap = structuredClone(base);
   swap.sides.app = { paths: ['a'], switch: { type: 'instance-swap', unit: 'developed-x.service' } };
   assert.throws(() => validate(swap), /@\{release\}\.service/);
@@ -139,17 +166,19 @@ test('carry-forward copies only the live build\'s own bundles', () => {
 });
 
 test('mega-music cleanup guard and module are pinned to the new release', () => {
-  const guardSource = "export const guardPath = '/opt/x/v11/session-cleanup-owner-check.mjs';\nexport const apiUnit = 'mega-music-accounts-isolated@old.service';\n";
+  const guardSource = "export const guardPath = '/opt/x/v11/session-cleanup-owner-check.mjs';\nexport const nodePath = '/n';\nexport const apiUnit = 'mega-music-accounts-isolated@old.service';\n";
   const moduleSource = "export const release = '/opt/developed-apps/mega-music/releases/4ca877f89a3d';\nexport const modulePath = '/opt/x/v11/session-cleanup.mjs';\n";
   const dir = '/opt/developed-control/mega-music-session-cleanup-abc123def456';
   const unit = 'mega-music-accounts-isolated@abc123def456.service';
-  const p = pinCleanup({ guardSource, moduleSource, dir, apiUnit: unit });
+  const n24 = '/opt/developed-runtimes/node-v24.21.0/bin/node';
+  const p = pinCleanup({ guardSource, moduleSource, dir, apiUnit: unit, nodePath: n24 });
   assert.ok(p.guard.includes(`export const guardPath = '${dir}/session-cleanup-owner-check.mjs';`));
   assert.ok(p.guard.includes(`export const apiUnit = '${unit}';`));
+  assert.ok(p.guard.includes(`export const nodePath = '${n24}';`));
   assert.ok(p.module.includes(`export const modulePath = '${dir}/session-cleanup.mjs';`));
   assert.ok(p.module.includes('releases/4ca877f89a3d'));
-  assert.throws(() => pinCleanup({ guardSource: 'x', moduleSource, dir, apiUnit: unit }), /changed shape/);
-  const dropin = cleanupDropin(unit, p.guardPath, p.modulePath);
-  assert.ok(dropin.includes(`ExecStartPre=+/opt/developed-runtimes/node-v22.23.2/bin/node ${p.guardPath}`));
-  assert.ok(dropin.includes(`ExecStart=\nExecStart=/opt/developed-runtimes/node-v22.23.2/bin/node ${p.modulePath}`));
+  assert.throws(() => pinCleanup({ guardSource: 'x', moduleSource, dir, apiUnit: unit, nodePath: n24 }), /changed shape/);
+  const dropin = cleanupDropin(unit, p.guardPath, p.modulePath, n24);
+  assert.ok(dropin.includes(`ExecStartPre=+${n24} ${p.guardPath}`));
+  assert.ok(dropin.includes(`ExecStart=\nExecStart=${n24} ${p.modulePath}`));
 });

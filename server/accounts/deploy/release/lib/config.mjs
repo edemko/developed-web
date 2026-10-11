@@ -2,6 +2,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { NODE_VERSION } from './runtime.mjs';
 import { ReleaseError } from './sh.mjs';
 
 export const appsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'apps');
@@ -16,6 +17,7 @@ export function validate(config) {
   need(typeof config.repo === 'string' && config.repo.startsWith('/'), 'repo must be an absolute path');
   need(typeof config.branch === 'string', 'branch is required');
   need(typeof config.releaseRoot === 'string' && config.releaseRoot.startsWith('/opt/'), 'releaseRoot must live under /opt');
+  need(config.node === undefined || NODE_VERSION.test(config.node), 'node must be an exact version such as 24.21.0');
   need(config.sides && Object.keys(config.sides).length > 0, 'at least one side is required');
   need(!config.auto || config.onboarded, 'auto requires onboarded');
   need(config.onboarded || (Array.isArray(config.blockers) && config.blockers.length > 0),

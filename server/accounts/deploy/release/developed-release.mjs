@@ -9,6 +9,7 @@ import { listApps, loadApp, sideOrder } from './lib/config.mjs';
 import { decide, releaseForSource } from './lib/gates.mjs';
 import * as git from './lib/git.mjs';
 import { probe } from './lib/live.mjs';
+import { assertRuntime, nodeVersion } from './lib/runtime.mjs';
 import { log, ReleaseError, run, sudo, sudoTest } from './lib/sh.mjs';
 import { switchSides } from './lib/switch.mjs';
 import { adoptWebSymlink } from './lib/adopt.mjs';
@@ -128,12 +129,17 @@ async function deployUnlocked(app, { commit, auto = false, flags = {} }) {
     decision.sides = decision.sides.filter((s) => only.includes(s));
     if (!decision.sides.length) { log(`${app}: nothing selected by --sides=${flags.sides}`); return; }
   }
-  if (flags['dry-run']) { log(`${app}: would deploy ${decision.sides.join(' + ')} at ${short(target)}`); return; }
+  if (flags['dry-run']) {
+    assertRuntime(config, decision.sides);
+    log(`${app}: would deploy ${decision.sides.join(' + ')} at ${short(target)} on Node ${nodeVersion(config)}`);
+    return;
+  }
 
   const state = readState(app);
   const attempts = state.target === target ? (state.attempts ?? 0) + 1 : 1;
   writeState(app, { target, attempts, lastReason: decision.reason, at: new Date().toISOString() });
   try {
+    assertRuntime(config, decision.sides);
     const release = releaseNameFor(target);
     const existing = releaseSides(config, release);
     if (existing) {
@@ -174,6 +180,7 @@ function buildOnly(app, flags) {
   const sha = git.resolve(config.repo, flags._[1] ?? `origin/${config.branch}`);
   if (!sha || !git.isAncestor(config.repo, sha, `origin/${config.branch}`)) throw new ReleaseError('commit must be on the branch');
   const sides = flags.sides ? String(flags.sides).split(',') : Object.keys(config.sides);
+  assertRuntime(config, sides);
   const { dest } = build(config, { sha, sides, live: probe(config), toolVersion });
   record(app, `build ${releaseNameFor(sha)} ok (${sides.join('+')}, not switched)`);
   log(`${app}: sealed ${dest} — switch with: developed-release switch ${app} ${releaseNameFor(sha)}`);
@@ -186,7 +193,7 @@ function status(apps) {
     try {
       const { target, live, sides, decision } = assess(config, {});
       const mode = config.auto ? 'auto' : config.onboarded ? 'manual' : 'not onboarded';
-      console.log(`\n${app}  [${mode}]  origin/${config.branch} ${short(target)}`);
+      console.log(`\n${app}  [${mode}]  origin/${config.branch} ${short(target)}  node ${nodeVersion(config)}`);
       for (const [name, info] of Object.entries(sides)) {
         const l = live[name];
         if (l.error) { console.log(`  ${name.padEnd(4)} ? ${l.error}`); continue; }

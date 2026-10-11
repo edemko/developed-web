@@ -61,6 +61,18 @@ Legacy per-app autodeploys (`kestrek-autodeploy`, `screentime-autodeploy`) stay 
 root guards; this tool never touches them. mega-music's GitHub SSH deploy was retired on 2026-10-11
 (workflow is test-only; `mega-deploy`'s key backed up under `/var/backups/developed-release/`).
 
+## Node runtime
+
+Each app config may pin `"node": "<exact version>"` (default `22.23.2`). Builds run with
+`~/.nvm/versions/node/v<node>/bin` first in `PATH`; services must run
+`/opt/developed-runtimes/node-v<node>/bin/node` (root-owned, no symlinks — the guards reject them).
+The tool never edits unit files. Before a deploy, `--dry-run` or build it checks with `systemctl cat`
+that each switched unit (instance-swap template or symlink-restart unit, with drop-ins) names
+exactly that runtime, and refuses otherwise. To move an app: switch its unit files by hand and
+restart the live instance, then set `node` in a reviewed commit and reinstall. The
+`kestrek-notifications` and `mega-music-cleanup` hooks pin their guard's `nodePath` and their
+drop-ins to the same runtime. `install.sh` runs the tool itself on the Node in its `NODE` line.
+
 ## App status (2026-10-10 survey, updated 2026-10-11)
 
 | App | Config | Why not auto yet |

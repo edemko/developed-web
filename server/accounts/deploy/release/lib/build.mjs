@@ -4,10 +4,10 @@ import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, write
 import { join, relative } from 'node:path';
 import { HASHED_ASSET } from './gates.mjs';
 import * as git from './git.mjs';
+import { buildNodeBin, nodeVersion } from './runtime.mjs';
 import { log, ReleaseError, run, sudo, sudoRead, sudoTest } from './sh.mjs';
 
 export const HOME = '/home/openclaw';
-export const BUILD_NODE_BIN = `${HOME}/.nvm/versions/node/v22.23.2/bin`;
 export const BUILD_LOCK = `${HOME}/.cache/developed-ecosystem-build.lock`;
 export const WORK = `${HOME}/.cache/developed-release`;
 const MIN_MEM_MB = 2048;
@@ -35,9 +35,9 @@ export function publicEnv(config, spec) {
   return { ...values, ...(spec.set ?? {}) };
 }
 
-function baseEnv() {
+function baseEnv(config) {
   return {
-    PATH: `${BUILD_NODE_BIN}:/usr/local/bin:/usr/bin:/bin`,
+    PATH: `${buildNodeBin(config)}:/usr/local/bin:/usr/bin:/bin`,
     HOME,
     LANG: 'C.UTF-8',
     CI: 'true',
@@ -113,8 +113,8 @@ export function build(config, { sha, sides, live, toolVersion }) {
   // One locked bash per side so concurrent ecosystem builds never overlap on this small host.
   for (const name of sides) {
     const side = config.sides[name];
-    log(`${config.app}: building ${name} (waiting for the shared build lock)`);
-    const env = { ...baseEnv(), ...(side.env ?? {}), ...publicEnv(config, side.publicEnv) };
+    log(`${config.app}: building ${name} on Node ${nodeVersion(config)} (waiting for the shared build lock)`);
+    const env = { ...baseEnv(config), ...(side.env ?? {}), ...publicEnv(config, side.publicEnv) };
     run('flock', ['-w', '1800', BUILD_LOCK, 'bash', '-o', 'pipefail', '-ec', side.steps.join('\n')],
       { cwd: src, env, stream: true });
   }
@@ -155,6 +155,7 @@ export function build(config, { sha, sides, live, toolVersion }) {
     sides,
     previous: Object.fromEntries(sides.map((s) => [s, live[s]?.source ?? null])),
     builtBy: `developed-release ${toolVersion}`,
+    node: nodeVersion(config),
     source: `git archive of ${config.archivePaths.join(', ')}; all .env* excluded`,
     patches,
     carriedForwardAssets: carried,

@@ -1,7 +1,8 @@
 # Node 24 runtime upgrade (DevelopED platform): implementation plan
 
-**Status:** ready for implementation (prepared 2026-10-11, reviewed against the live host;
-refreshed 22:54 against the release tool at origin/main 6052e4e). It replaces the draft committed in f5fe96c
+**Status:** in progress — Phases P, 0, 1 done; Phase 2 running; Phase 3 code committed on branch
+`node24-runtime` (2026-10-11). Prepared and reviewed against the live host; refreshed 22:54
+against the release tool at origin/main 6052e4e. It replaces the draft committed in f5fe96c
 (`.claude/plans/node-24-runtime-upgrade.md`). Tick the boxes and fill in the Execution log as you
 go.
 
@@ -299,8 +300,9 @@ each phase.
    ```bash
    bash -c 'source ~/.nvm/nvm.sh && nvm install 24.21.0 && nvm alias default 22.23.2'
    cat ~/.nvm/alias/default; ~/.nvm/versions/node/v24.21.0/bin/npm -v     # 22.23.2 / 11.x
-   ~/.nvm/versions/node/v24.21.0/bin/corepack enable                      # pnpm shim: karak2's steps call bare `pnpm`
-   PATH=~/.nvm/versions/node/v24.21.0/bin:$PATH; command -v pnpm         # …/v24.21.0/bin/pnpm
+   N24=/home/openclaw/.nvm/versions/node/v24.21.0/bin                    # pnpm shim: karak2's steps call bare `pnpm`
+   env PATH="$N24:/usr/local/bin:/usr/bin:/bin" "$N24/corepack" enable --install-directory "$N24"
+   env PATH="$N24:/usr/local/bin:/usr/bin:/bin" bash -c 'command -v pnpm'   # …/v24.21.0/bin/pnpm
    ```
 5. **yt-dlp stderr check.** yt-dlp passes `--permission` to Node ≥ 23.5 and fails on any stderr.
    This must print `clean`:
@@ -1057,3 +1059,46 @@ through the switched `ExecReload` line.
 
 (Add dated entries: what changed, a summary of the verification output, any rollback, and
 follow-ups such as the vocabulum and airsoft repo docs still saying Node 22.)
+
+### 2026-10-11
+
+- **Phase P:** plan committed as 90147f3 (local; not pushed yet).
+- **Phase 0** (23:03–23:05):
+  - Auto-deploys paused (`/etc/developed-apps/developed-release-paused`). The kestrek-69 session
+    was told and acknowledged; its 05:00 apt upgrade and reboot skips itself while the pause file
+    exists.
+  - Backup at `/var/backups/node24/2026-10-11` (root 0700). Helper at `~/.cache/node24/n24`.
+    Baseline in `~/.cache/node24/baseline.txt`.
+  - 14 live Node services, all on v22.23.2:
+    - accounts and its mail worker
+    - airsoft@b5c63f84e8be, vocabulum@8eda31c52320, otazkomat@90b7acba840e,
+      screentime@c23f1b00478b
+    - kestrek@771023221bec and its notifications worker
+    - myclinic@e24baea3c7dd, mega-music@8ed1d6f1fef9
+    - karak2, data-boundary, download-relay, mega-youtube-front
+  - 38 unit and script files name v22. mega-music already had `NRestarts=1` before the job.
+  - ALL-HEALTH matched the table exactly. 5.1 GB RAM and 44 GB disk free.
+- **Phase 1** (23:04–23:10):
+  - Downloaded v24.21.0. `gpgv` reported a good signature (Antoine du Hamel, EDDSA
+    5BE8A3F6…B168D356), and the sha256 matched.
+  - Installed `/opt/developed-runtimes/node-v24.21.0/bin/node` with the same layout as v22
+    (root:root 0755, nlink 1, `cmp`-identical to the tarball). It reports OpenSSL 3.5.8.
+  - `bind-boundary.mjs --check` on v24 exited 0 ("no attachments or pins changed").
+  - nvm 24.21.0 installed with npm 11.19.0; the default stays 22.23.2.
+  - **Deviation:** plain `corepack enable` resolved through the v22 node first in `PATH` and
+    created no v24 `pnpm` shim. Fixed with `--install-directory` and a v24-only `PATH`; pnpm
+    10.30.3 now resolves from the v24 bin dir. Step 4 above is corrected.
+  - yt-dlp stderr check: clean.
+  - TLS: every probed host completed the handshake:
+    - 200: Mailjet, smsgate www, Cloudflare challenges and API, Google, supabase.com, YouTube
+    - 404 (an HTTP answer, so TLS is fine): `api.smsgate.sk/`
+    - 401 (TLS fine): myclinic's hosted Supabase `/auth/v1/health`
+- **Phase 3** (code, worktree `~/.cache/node24/dw-phase3`, branch `node24-runtime`):
+  - Done as written. The `deploy()` lock wrapper means the gate sits in `deployUnlocked()`.
+  - The tool tests pass 19/19 on both 24.21.0 and 22.23.2.
+  - The pinning code accepts the real guard sources at kestrek and mega-music origin/main
+    (`nodePath` rewritten to v24; the cleanup module names no Node).
+  - Gate, called directly on all 8 onboarded apps: PASS with the current config, and refused
+    with `node: 24.21.0` ("…@.service does not name …node-v24.21.0…").
+  - `status` shows `node 22.23.2` for every app.
+  - Not yet pushed or installed.

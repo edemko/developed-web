@@ -5,6 +5,8 @@
 set -euo pipefail
 REPO=/home/openclaw/Dev/developed-web
 SUB=server/accounts/deploy/release
+# Node that runs the tool itself (tests + poll unit). App builds use each app's "node".
+NODE=/home/openclaw/.nvm/versions/node/v24.21.0/bin/node
 git -C "$REPO" fetch --quiet origin main
 SHA=$(git -C "$REPO" rev-parse --verify "${1:-origin/main}^{commit}")
 git -C "$REPO" merge-base --is-ancestor "$SHA" origin/main || { echo "commit must be on origin/main" >&2; exit 1; }
@@ -13,7 +15,7 @@ TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 git -C "$REPO" archive "$SHA" "$SUB" | tar -x -C "$TMP"
 printf '%s\n' "${SHA:0:12}" > "$TMP/$SUB/VERSION"
-/home/openclaw/.nvm/versions/node/v22.23.2/bin/node --test "$TMP/$SUB/developed-release.test.mjs" >/dev/null
+"$NODE" --test "$TMP/$SUB/developed-release.test.mjs" >/dev/null
 if ! sudo test -d "$DEST"; then
   sudo cp -a "$TMP/$SUB" "$DEST.tmp"
   sudo chown -R root:root "$DEST.tmp"
@@ -23,7 +25,7 @@ fi
 UNITS=/home/openclaw/.config/systemd/user
 mkdir -p "$UNITS" /home/openclaw/.cache/developed-release
 PREVIOUS=$(grep -o '/opt/developed-control/developed-release-[0-9a-f]*' "$UNITS/developed-release-poll.service" 2>/dev/null | head -1 || true)
-sed "s#@TOOL@#$DEST#" "$TMP/$SUB/systemd/developed-release-poll.service" > "$UNITS/developed-release-poll.service"
+sed -e "s#@TOOL@#$DEST#" -e "s#@NODE@#$NODE#" "$TMP/$SUB/systemd/developed-release-poll.service" > "$UNITS/developed-release-poll.service"
 cp "$TMP/$SUB/systemd/developed-release-poll.timer" "$UNITS/"
 systemctl --user daemon-reload
 # Keep only the new copy and the one it replaced (a running poll may still use it).

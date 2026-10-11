@@ -1,30 +1,31 @@
 // KešTrek's notification worker runs an ExecStartPre ownership guard pinned to the exact
-// API unit name (kestrek repo: deploy/notifications-owner-check.mjs). Every API switch
-// installs a guard copy pinned to the new unit and a drop-in pointing the worker at it.
+// API unit name and Node runtime (kestrek repo: deploy/notifications-owner-check.mjs). Every
+// API switch installs a guard copy pinned to the new unit and the app's Node runtime
+// (config.node), and a drop-in pointing the worker at it.
 import { showFile } from '../lib/git.mjs';
+import { runtimeNode } from '../lib/runtime.mjs';
 import { ReleaseError, run, sleep, sudo, sudoRead, sudoTest, sudoWrite } from '../lib/sh.mjs';
 
 const WORKER = 'developed-kestrek-notifications.service';
 const DROPIN = `/etc/systemd/system/${WORKER}.d/api-release.conf`;
-const RUNTIME_NODE = '/opt/developed-runtimes/node-v22.23.2/bin/node';
 
-export function pinGuard(source, guardPath, apiUnit) {
-  const pinned = source
-    .replace(/^export const guardPath = .*$/m, `export const guardPath = '${guardPath}';`)
-    .replace(/^export const apiUnit = .*$/m, `export const apiUnit = '${apiUnit}';`);
-  if (!pinned.includes(`export const guardPath = '${guardPath}';`) || !pinned.includes(`export const apiUnit = '${apiUnit}';`)) {
-    throw new ReleaseError('notification guard changed shape — cannot pin it');
+export function pinGuard(source, guardPath, apiUnit, nodePath) {
+  let pinned = source;
+  for (const [name, value] of Object.entries({ guardPath, apiUnit, nodePath })) {
+    const line = `export const ${name} = '${value}';`;
+    pinned = pinned.replace(new RegExp(`^export const ${name} = .*$`, 'm'), line);
+    if (!pinned.includes(line)) throw new ReleaseError('notification guard changed shape — cannot pin it');
   }
   return pinned;
 }
 
-export const dropinFor = (apiUnit, guardPath) => [
+export const dropinFor = (apiUnit, guardPath, nodePath) => [
   '# Managed by developed-release — pins the worker guard to the live API release.',
   '[Unit]',
   `After=${apiUnit}`,
   '[Service]',
   'ExecStartPre=',
-  `ExecStartPre=+${RUNTIME_NODE} ${guardPath}`,
+  `ExecStartPre=+${nodePath} ${guardPath}`,
   '',
 ].join('\n');
 
@@ -38,7 +39,8 @@ async function restartWorker() {
 export const kestrekNotifications = {
   async after({ config, sha, release, newUnit }, onUndo) {
     const guardPath = `/opt/developed-control/kestrek-notifications-${release}/notifications-owner-check.mjs`;
-    const guard = pinGuard(showFile(config.repo, sha, 'deploy/notifications-owner-check.mjs'), guardPath, newUnit);
+    const nodePath = runtimeNode(config);
+    const guard = pinGuard(showFile(config.repo, sha, 'deploy/notifications-owner-check.mjs'), guardPath, newUnit, nodePath);
     const previous = sudoTest('-f', DROPIN) ? sudoRead(DROPIN) + '\n' : null;
     onUndo(async () => {
       if (previous === null) sudo('rm', ['-f', DROPIN]);
@@ -46,7 +48,7 @@ export const kestrekNotifications = {
       if (!(await restartWorker())) throw new ReleaseError(`${WORKER} not active after restoring its guard`);
     });
     sudoWrite(guardPath, guard);
-    sudoWrite(DROPIN, dropinFor(newUnit, guardPath));
+    sudoWrite(DROPIN, dropinFor(newUnit, guardPath, nodePath));
     if (!(await restartWorker())) throw new ReleaseError(`${WORKER} failed its ownership guard`);
   },
 };

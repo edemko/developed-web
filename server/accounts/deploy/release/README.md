@@ -10,7 +10,7 @@ developed-release deploy <app> [commit] [--dry-run] [--migrations-applied] [--fo
 developed-release build  <app> [commit] [--sides=web,api]   build + seal only
 developed-release switch <app> <release>   switch an already sealed release
 developed-release poll                     timer entry point: deploy every "auto" app
-developed-release prune  <app> [--keep=3] [--apply]
+developed-release prune  <app> [--keep=0] [--apply]
 ```
 
 Run from a checkout (`node developed-release.mjs …`) or from the frozen installed copy
@@ -36,8 +36,11 @@ Run from a checkout (`node developed-release.mjs …`) or from the frozen instal
    the live release's **own** hashed bundles (one release back) so open tabs keep working.
 6. Switch sides in `switchOrder`; health-check each; on any failure **every completed side is
    rolled back in reverse**, so web and API never stay on mismatched releases.
-7. Prune: keep live releases, their rollback targets, `protect` pins and the newest
-   `keepReleases` (default 2) others; delete the rest under `releaseRoot`.
+7. Prune: keep live releases and functional `protect` pins (kestrek's notification worker and
+   mega-music's cleanup job load code from them); delete the rest under `releaseRoot`. The apps are in
+   development, so no rollback copies are kept by default (`keepReleases: N` keeps N more plus each
+   side's previous release). The switch-time automatic rollback on failed health checks still works:
+   it runs before pruning.
 
 Strategies: `web-symlink` (atomic symlink a Caddy root points at, + Cloudflare purge, no reload),
 `instance-swap` (single owner: stop `x@old`, start `x@new`, health, hooks, enable/disable — never

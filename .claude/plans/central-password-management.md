@@ -411,4 +411,6 @@ Prerequisite: C1 is live.
   not rendered. Web 78 tests (2 new); API 229. Pushed at 11:34. The invite rewire is O.2.
 - **Small follow-up:** Vocabulum `/register` still goes to central `/register` without
   `?app=vocabulum`.
+- kestrek d86574f is live (11:36:33): recovery returns 303 to `developed.sk/forgot-password`, and
+  register returns 303 to `register?app=kestrek`. otazkomat d8b8b1f (web) is live (11:36:47).
 

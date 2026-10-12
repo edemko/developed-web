@@ -980,7 +980,7 @@ through the switched `ExecReload` line.
 ## Phase 5: Unpause and prove auto-deploy on 24
 
 - [x] Run `sudo rm /etc/developed-apps/developed-release-paused`.
-- [ ] On the next real merge to any tool-managed app, follow
+- [x] On the next real merge to any tool-managed app, follow
   `journalctl --user -u developed-release-poll -f`. Check:
   - the log says "on Node 24.21.0";
   - the manifest has `"node": "24.21.0"`;
@@ -1211,4 +1211,16 @@ follow-ups such as the vocabulum and airsoft repo docs still saying Node 22.)
   `current` → `ae87c89…` and the worker on `mail-workers/ae87c89…`. Details in
   `server/accounts/deploy/password-policy-checkpoint-20261012.md`. It ran on Node 24, and the
   worker guard passed.
+- **Phase 5 proof (2026-10-12):** the first real auto-deploys after unpause all built on Node 24.21.0:
+  - AMP 4743fac (11:30)
+  - Vocabulum 4b79112 (11:31)
+  - kestrek d86574f, web and API (11:36)
+  - otazkomat d8b8b1f, web (11:36)
+
+  Each manifest has `"node": "24.21.0"` and each instance exe is v24. The kestrek hook wrote
+  `kestrek-notifications-d86574f4de71` with `nodePath` v24 and a v24 drop-in, and the worker
+  restarted with `ownershipVerified`. The mega-music cleanup hook is still unproven until mega-music
+  deploys. ALL-HEALTH matched.
+  - Follow-up for Phase 7: the guard copies `kestrek-notifications-771023221bec` and `…-node24`
+    are no longer referenced.
 

@@ -55,7 +55,7 @@ test('profile SMS uses SMS Gate v1 (json/send_message) without retrying an ambig
     assert.ok(!String(url).includes('/v2/'));
     const form = new URLSearchParams(init.body);
     assert.equal(form.get('token'),'fixture-key'); assert.equal(form.get('to'),'+421911111111');
-    assert.equal(form.get('text'),'Fixture code'); assert.equal(form.has('sender'),false);
+    assert.equal(form.get('text'),'Fixture code'); assert.equal(form.has('sender'),false); assert.equal(form.has('from'),false);
     assert.equal(init.headers['X-API-KEY'],undefined);
     return Response.json({result:{status:'success',code:'OK'},messages:[{status:'success',code:'OK',message_id:110156285}]});
   });
@@ -104,9 +104,11 @@ test('profile SMS distinguishes rejection from uncertainty and keeps safe error 
 test('profile delivery requires DELIVERED, handles ERROR and never returns provider secrets', async () => {
   const {checkProfileSms}=await import('../dist/profile-sms.js');
   const a={config:{smsGateKey:'fixture-secret'}};
-  for(const [code,status] of [['SENT','sent'],['QUEUED','accepted'],['DELIVERED','delivered'],['EXPIRED','failed'],['ERROR','failed'],['UNDELIVERABLE','failed'],['NEW_STATUS','unknown']]) {
+  for(const [code,status] of [['SENT','sent'],['QUEUED','accepted'],['DELIVERED','delivered'],['EXPIRED','failed'],['ERROR','accepted'],['PROCESSING','accepted'],['UNDELIVERABLE','failed'],['NEW_STATUS','unknown']]) {
     const result=await checkProfileSms(a,'123',async(url,init)=>{
-      assert.equal(url.searchParams.get('message_id'),'123');assert.equal(init.redirect,'error');
+      assert.equal(url.search,'');assert.equal(init.method,'POST');
+      const form=new URLSearchParams(init.body);
+      assert.equal(form.get('token'),'fixture-secret');assert.equal(form.get('message_id'),'123');assert.equal(init.redirect,'error');
       return Response.json({result:{code:'OK'},code,deliveryDateTime:'2026-10-05 15:56:00'});
     });
     assert.equal(result.status,status);

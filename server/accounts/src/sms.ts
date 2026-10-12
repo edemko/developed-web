@@ -36,6 +36,7 @@ function providerId(value: unknown): string | undefined {
 
 export async function sendSms(accounts: Accounts, phone: string, message: string, fetcher = fetch): Promise<ProviderResult> {
   if (!accounts.config.smsGateKey) return { ok: false, status: 'not_configured' };
+  // Omit `from` to use the shared account default MyClinic.
   const body = new URLSearchParams({ token: accounts.config.smsGateKey, to: phone, text: message });
   try {
     const response = await fetcher('https://api.smsgate.sk/json/send_message', {
@@ -51,8 +52,10 @@ export async function sendSms(accounts: Accounts, phone: string, message: string
     const itemStatus = String(item?.status || '').toLowerCase();
     const itemCode = String(item?.code || '').toUpperCase();
     const messageId = providerId(item?.message_id ?? data.message_id);
-    const accepted = (resultStatus === 'success' || resultCode === 'OK')
-      && ((item && (itemStatus === 'success' || itemCode === 'OK')) || (!item && Boolean(messageId)));
+    const accepted = resultStatus !== 'error' && (!resultCode || resultCode === 'OK')
+      && (resultStatus === 'success' || resultCode === 'OK')
+      && itemStatus !== 'error' && (!itemCode || itemCode === 'OK')
+      && Boolean(item && messageId && (itemStatus === 'success' || itemCode === 'OK'));
     return accepted
       ? { ok: true, status: 'accepted', ...(messageId ? { messageId } : {}) }
       : { ok: false, status: (resultStatus === 'success' || resultCode === 'OK') ? 'malformed' : providerToken(itemCode || resultCode, 'rejected') };

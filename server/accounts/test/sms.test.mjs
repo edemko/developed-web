@@ -21,6 +21,7 @@ test('SMS Gate transport uses a bounded POST and accepts only a concrete message
   assert.deepEqual(accepted, { ok: true, status: 'accepted', messageId: '100427' });
   assert.equal(calls[0].url, 'https://api.smsgate.sk/json/send_message');
   assert.equal(calls[0].init.method, 'POST');
+  assert.equal(new URLSearchParams(calls[0].init.body).has('from'), false);
   assert.equal(String(calls[0].url).includes('private-token'), false);
   assert.deepEqual(await sendSms(accounts, '+421900000001', 'private code', async () =>
     new Response(JSON.stringify({ result: { status: 'success', code: 'OK' } }), { status: 200 })),
@@ -81,4 +82,12 @@ test('OTP challenge is session, app and invitation bound and becomes single-use'
     assert.equal(sent.filter(item => item.verified).length, 1);
     await assert.rejects(service.consume(query, 'session-a', 'app_airsoft', { phoneChallenge: started.challengeId, invitation }), error => error.code === 'phone_verification_required');
   } finally { globalThis.fetch = originalFetch; }
+});
+
+test('registration SMS requires a message ID and rejects contradictory acceptance', async () => {
+  for (const item of [{status:'success',code:'OK'}, {status:'error',code:'OK',message_id:123}]) {
+    const result=await sendSms({config:{smsGateKey:'fixture'}},'+421900000001','code',async()=>
+      Response.json({result:{status:'success',code:'OK'},messages:[item]}));
+    assert.equal(result.ok,false);
+  }
 });

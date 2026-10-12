@@ -424,13 +424,36 @@ async function start() {
     }
   }
 
-  function loginPage() {
-    heading(t('login'), t('loginIntro'), true);
+  async function loginPage() {
+    heading(t('login'), null);
+    const params = new URLSearchParams(location.search);
+    const next = safeContinuation(params.get('next'), location.origin);
+    const authorizationId = next.startsWith('/account/authorize?') ? new URLSearchParams(next.split('?')[1]).get('authorization_id') : null;
+    let app = null;
+    try {
+      if (authorizationId) app = (await api(`/authorization-app?authorization_id=${encodeURIComponent(authorizationId)}`)).app;
+      else if (/^[a-z0-9-]{1,64}$/.test(params.get('app') || ''))
+        app = (await availableApps()).find(item => item.slug === params.get('app')) || null;
+    } catch { /* The account explanation still works if app context is unavailable. */ }
+    const layout = el('div', undefined, 'login-layout');
+    const story = el('section', undefined, 'login-story');
+    story.append(el('p', t('account'), 'eyebrow'), el('h1', t('loginHero')), el('p', t('loginIntro'), 'login-lede'));
+    if (app) {
+      const destination = el('div', undefined, 'login-destination');
+      destination.append(appIcon(app), el('span', t('loginDestination')), el('strong', app.name));
+      story.append(destination);
+    }
+    const explanation = el('div', undefined, 'login-explanation');
+    explanation.append(el('strong', t('loginSharedTitle')), el('p', t('loginSharedBody')));
+    story.append(explanation);
+    const card = panel();
+    card.classList.add('login-card');
+    card.append(el('p', t('loginCardEyebrow'), 'eyebrow'), el('h2', t('login')));
     const form = el('form');
     const email = field(form, 'email', { type: 'email', required: true, autocomplete: 'username', maxLength: 254 });
     const password = field(form, 'password', { type: 'password', required: true, autocomplete: 'current-password', maxLength: 128 });
     bindForm(form, t('login'), async () => {
-      const appSlug = new URLSearchParams(location.search).get('app');
+      const appSlug = params.get('app');
       const result = await api('/login', 'POST', { email: email.value.trim(), password: password.value, ...(appSlug && /^[a-z0-9-]{1,64}$/.test(appSlug) ? { appSlug } : {}) });
       password.value = '';
       if (result.mfa) { await bootstrap(); await mfaPage(); return; }
@@ -441,14 +464,15 @@ async function start() {
         location.assign(redirect);
         return;
       }
-      const next = new URLSearchParams(location.search).get('next');
-      location.assign(safeContinuation(next, location.origin));
+      location.assign(next);
     });
-    panel().append(form);
+    card.append(form);
     const links = el('div', undefined, 'links');
-    const next = safeContinuation(new URLSearchParams(location.search).get('next'), location.origin);
-    links.append(link(t('forgot'), '/forgot-password'), link(t('register'), `/register?next=${encodeURIComponent(next)}`));
-    main.append(links);
+    const registerUrl = app?.slug && !authorizationId ? `/register?app=${encodeURIComponent(app.slug)}` : `/register?next=${encodeURIComponent(next)}`;
+    links.append(link(t('forgot'), '/forgot-password'), link(t('register'), registerUrl));
+    card.append(links);
+    layout.append(story, card);
+    main.replaceChildren(layout);
   }
 
   async function registerPage() {

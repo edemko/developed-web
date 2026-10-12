@@ -49,6 +49,7 @@ test('browser account and report flows retain safe state and render user text in
       else if (path === '/resend-verification') result = { ok: true };
       else if (path === '/login') { authenticated = true; result = { user }; }
       else if (path === '/apps' || path === '/catalog') result = { apps: launchCatalog.apps.map(app => ({ ...app, id: app.appId, available: true, plan: 'free' })) };
+      else if (path === '/authorization-app') result = { app: { id: 'app_kestrek', slug: 'kestrek', name: 'KešTrek', icon: '/assets/projects/kestrek.svg' } };
       else if (path === '/logout' || path === '/logout-all') { authenticated = false; result = { ok: true }; }
       else if (path === '/profile/avatar') { user.avatarUrl = request.method() === 'DELETE' ? null : `${new URL(request.url()).origin}/api/account/avatars/fixture.jpg`; result = { avatarUrl: user.avatarUrl }; }
       else if (path === '/security') result = { sessions: [] };
@@ -183,6 +184,19 @@ test('browser account and report flows retain safe state and render user text in
     await page.goto(`${base}/report-bug/unknown`);
     await page.getByText('This reporting link does not identify an available source.').waitFor();
     assert.equal(await page.getByRole('button', { name: 'Send bug report' }).count(), 0);
+    await page.goto(`${base}/login`);
+    await page.getByRole('heading', { name: 'One account for your DevelopED apps.' }).waitFor();
+    await page.getByText('Your DevelopED account is required to access all connected apps', { exact: false }).waitFor();
+    await page.goto(`${base}/login?next=${encodeURIComponent('/account/authorize?authorization_id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')}`);
+    await page.getByText('Continue to').waitFor();
+    await page.locator('.login-destination').getByText('KešTrek').waitFor();
+    assert.equal(new URL(await page.locator('.login-destination img').getAttribute('src')).pathname, '/assets/projects/kestrek.svg');
+    assert.equal(await page.locator('.login-card a').last().getAttribute('href'), '/register?next=%2Faccount%2Fauthorize%3Fauthorization_id%3Daaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+    for (const width of [320, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+      assert.equal(await page.locator('.login-card').isVisible(), true);
+    }
     await page.goto(`${base}/login`);
     await page.getByLabel('Email', { exact: true }).fill('owner@example.test');
     await page.getByLabel('Password', { exact: true }).fill('long-test-password-only');

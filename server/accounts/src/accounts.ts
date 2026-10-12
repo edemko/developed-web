@@ -6,6 +6,7 @@ import { claims, diagnostics, email, equal, fail, hash, HttpError, language, lin
 import { credentialMail, credentialLifetime, queueMail, securityMail, reportMail, registrationMail } from './mail.js';
 import { prepareImage, reportSourceUrl } from './images.js';
 import { SmsVerification } from './sms.js';
+import { catalogApp } from './catalog.js';
 
 export interface Context { session: Row; user: Row | null; cookie?: string; trustCookie?: string; candidate?: Row; mfa?: { mode: 'enroll' | 'challenge' } }
 export class Accounts {
@@ -453,6 +454,17 @@ export class Accounts {
       join auth.oauth_authorizations o on o.client_id=oc.client_id
       where o.authorization_id=$1 and o.expires_at>now() and o.status='pending' and o.redirect_uri=oc.callback_url and a.published`, [id]);
     return app?.app_id || null;
+  }
+  async authorizationApp(authorizationId: string | null): Promise<{ id: string; slug: string; name: string; icon: string | null } | null> {
+    if (!authorizationId || !/^[a-zA-Z0-9]{32}$/.test(authorizationId)) return null;
+    const [app] = await this.db.query(`select a.app_id as id,a.slug,c.name,c.icon from auth.oauth_authorizations o
+      join accounts.oauth_clients oc on oc.client_id=o.client_id and oc.enabled
+      join accounts.app_settings a on a.app_id=oc.app_id and a.published
+      join core.apps c on c.id=a.app_id and c.status='ACTIVE' and c.deleted_at is null
+      where o.authorization_id=$1 and o.expires_at>now() and o.status='pending' and o.redirect_uri=oc.callback_url`, [authorizationId]);
+    if (!app || this.config.surfaceAppId && app.id !== this.config.surfaceAppId) return null;
+    const result = catalogApp(app);
+    return { id: result.id, slug: result.slug, name: result.name, icon: result.icon };
   }
   async registrationApp(slugInput: unknown, byId = false): Promise<Row> {
     const key = text(slugInput, 80, true);

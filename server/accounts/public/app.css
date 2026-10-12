@@ -28,6 +28,22 @@ p { line-height: 1.65; }
 .lede { max-width: 720px; margin-top: 0; }
 .eyebrow { text-transform: uppercase; color: var(--accent); letter-spacing: .16em; font-size: .75rem; font-weight: 650; }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: .75rem; padding: 1.6rem; margin-block: 1.5rem; }
+.login-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(340px, .9fr); gap: clamp(2rem, 6vw, 6rem); align-items: center; min-height: min(680px, calc(100dvh - 230px)); }
+.login-story { position: relative; padding: 2rem 0 2rem 1.5rem; border-left: 2px solid var(--primary-light); }
+.login-story::before { content: ''; position: absolute; z-index: -1; width: min(520px, 90%); aspect-ratio: 1; top: -7rem; left: -5rem; border-radius: 50%; background: radial-gradient(circle, #4f46e527, transparent 68%); pointer-events: none; }
+.login-story h1 { max-width: 650px; font-size: clamp(2.4rem, 5vw, 4.6rem); line-height: 1.06; }
+.login-lede { max-width: 520px; color: #d1d5db; font-size: 1.12rem; }
+.login-destination { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem .9rem; width: fit-content; max-width: 100%; padding: .8rem 1rem; margin-top: 2rem; border: 1px solid #6861b0; border-radius: 1rem; background: #24213a; box-shadow: 0 16px 45px #0004; }
+.login-destination .app-icon { width: 44px; height: 44px; border-radius: .6rem; background: #171525; font-size: 1rem; }
+.login-destination span { color: #c8c6e7; }
+.login-destination strong { font-size: 1.08rem; overflow-wrap: anywhere; }
+.login-explanation { max-width: 520px; margin-top: 2rem; padding-top: 1.4rem; border-top: 1px solid var(--line); }
+.login-explanation strong { color: #e4e1ff; }
+.login-explanation p { margin: .45rem 0 0; color: #c2c5cf; }
+.login-card { width: 100%; margin: 0; padding: clamp(1.5rem, 3vw, 2.5rem); border-color: #484469; border-radius: 1.25rem; background: linear-gradient(150deg, #252338, #1d1d22 65%); box-shadow: 0 25px 75px #0006; }
+.login-card h2 { font-size: 1.8rem; margin-bottom: 1.5rem; }
+.login-card form button[type=submit] { width: 100%; margin-top: .5rem; }
+.login-card .links { justify-content: space-between; padding-top: .4rem; }
 .narrow { max-width: 490px; margin-inline: auto; }
 .stack { display: grid; gap: 1rem; }
 form { display: grid; gap: 1rem; }
@@ -91,7 +107,7 @@ dialog { color: #fff; background: #1f1f1f; border: 1px solid var(--line); border
 dialog::backdrop { background: #050b17cc; }
 .mfa-qr { display: block; background: #fff; padding: .5rem; margin-block: 1rem; max-width: 100%; height: auto; }
 footer { border-top: 1px solid var(--line); padding-block: 1.5rem; display: flex; flex-wrap: wrap; gap: 1.5rem; font-size: .85rem; }
-@media(max-width: 760px) { .header-inner, main, footer { width: calc(100% - 2rem); } .header-inner { flex-wrap: wrap; gap: .35rem .75rem; } .brand-group { gap: 1rem; } nav { gap: .5rem; margin-left: auto; } .language { max-width: 7rem; } .register-link { padding: .65rem .75rem; } .apps-menu-items { position: fixed; left: 1rem; top: 80px; width: min(320px, calc(100vw - 2rem)); max-height: calc(100dvh - 100px); } main { padding-block: 2rem; } .panel { padding: 1.1rem; } .two-column { grid-template-columns: 1fr; } .app-grid { grid-template-columns: 1fr; } .app-tile { min-height: 190px; } }
+@media(max-width: 760px) { .header-inner, main, footer { width: calc(100% - 2rem); } .header-inner { flex-wrap: wrap; gap: .35rem .75rem; } .brand-group { gap: 1rem; } nav { gap: .5rem; margin-left: auto; } .language { max-width: 7rem; } .register-link { padding: .65rem .75rem; } .apps-menu-items { position: fixed; left: 1rem; top: 80px; width: min(320px, calc(100vw - 2rem)); max-height: calc(100dvh - 100px); } main { padding-block: 2rem; } .panel { padding: 1.1rem; } .login-layout { grid-template-columns: 1fr; gap: 1.5rem; min-height: 0; } .login-story { padding: .5rem 0 .5rem 1rem; } .login-story h1 { font-size: clamp(2rem, 8vw, 3.2rem); } .login-destination, .login-explanation { margin-top: 1.2rem; } .login-card { max-width: 540px; margin-inline: auto; } .two-column { grid-template-columns: 1fr; } .app-grid { grid-template-columns: 1fr; } .app-tile { min-height: 190px; } }
 @media(max-width: 480px) { nav { width: 100%; justify-content: flex-end; } .apps-menu-items { top: 128px; max-height: calc(100dvh - 148px); } }
 @media(max-width: 760px) { .language-menu .language-options { position: fixed; right: 1rem; left: auto; top: 128px; } }
 @media(prefers-reduced-motion: no-preference) { button, a { transition: background .15s, border-color .15s; } }

@@ -42,6 +42,9 @@ export const messages = {
 // confirmation remains separate from an email-bound invitation acceptance.
 const accountUpdates = {
   en: {
+    loginHero: 'One account for your DevelopED apps.', loginCardEyebrow: 'DevelopED account',
+    loginDestination: 'Continue to', loginSharedTitle: 'Why am I here?',
+    loginSharedBody: 'DevelopED handles sign-in for its apps. Your DevelopED account is required to access all connected apps. After signing in, you will return to your app.',
     appsMenu: 'Apps', logout: 'Log out of this browser', logoutAll: 'Log out of all apps and devices', logoutConfirm: 'Log out of this browser?', logoutAllConfirm: 'Log out of all apps and devices?',
     logoutLocalNote: 'Sign out of DevelopED and its apps in this browser. Other browsers, devices and native mobile apps stay signed in.',
     securityIntro: 'Manage your account security across DevelopED. Sign out of this browser and its apps, or explicitly sign out of all apps and devices.',
@@ -51,6 +54,9 @@ const accountUpdates = {
     invalidInvitation: 'This invitation is invalid, expired or already used. Ask for a new invitation.', accountExists: 'An account already exists for this invitation. Sign in or reset your password.'
   },
   sk: {
+    loginHero: 'Jeden účet pre vaše aplikácie DevelopED.', loginCardEyebrow: 'Účet DevelopED',
+    loginDestination: 'Pokračovať do', loginSharedTitle: 'Prečo som tu?',
+    loginSharedBody: 'DevelopED zabezpečuje prihlasovanie do svojich aplikácií. Účet DevelopED je potrebný na prístup ku všetkým zapojeným aplikáciám. Po prihlásení sa vrátite do svojej aplikácie.',
     appsMenu: 'Aplikácie', logout: 'Odhlásiť tento prehliadač', logoutAll: 'Odhlásiť zo všetkých aplikácií a zariadení', logoutConfirm: 'Odhlásiť tento prehliadač?', logoutAllConfirm: 'Odhlásiť zo všetkých aplikácií a zariadení?',
     logoutLocalNote: 'Odhlásite sa z DevelopED a jeho aplikácií v tomto prehliadači. Ostatné prehliadače, zariadenia a natívne mobilné aplikácie zostanú prihlásené.',
     securityIntro: 'Spravujte zabezpečenie účtu v DevelopED. Odhláste tento prehliadač a jeho aplikácie alebo výslovne všetky aplikácie a zariadenia.',
@@ -60,6 +66,9 @@ const accountUpdates = {
     invalidInvitation: 'Pozvánka je neplatná, vypršala alebo už bola použitá. Požiadajte o novú pozvánku.', accountExists: 'Pre túto pozvánku už účet existuje. Prihláste sa alebo si obnovte heslo.'
   },
   cs: {
+    loginHero: 'Jeden účet pro vaše aplikace DevelopED.', loginCardEyebrow: 'Účet DevelopED',
+    loginDestination: 'Pokračovat do', loginSharedTitle: 'Proč jsem tady?',
+    loginSharedBody: 'DevelopED zajišťuje přihlašování do svých aplikací. Účet DevelopED je potřeba pro přístup ke všem zapojeným aplikacím. Po přihlášení se vrátíte do své aplikace.',
     appsMenu: 'Aplikace', logout: 'Odhlásit tento prohlížeč', logoutAll: 'Odhlásit ze všech aplikací a zařízení', logoutConfirm: 'Odhlásit tento prohlížeč?', logoutAllConfirm: 'Odhlásit ze všech aplikací a zařízení?',
     logoutLocalNote: 'Odhlásíte se z DevelopED a jeho aplikací v tomto prohlížeči. Ostatní prohlížeče, zařízení a nativní mobilní aplikace zůstanou přihlášené.',
     securityIntro: 'Spravujte zabezpečení účtu v DevelopED. Odhlaste tento prohlížeč a jeho aplikace nebo výslovně všechny aplikace a zařízení.',
@@ -69,6 +78,9 @@ const accountUpdates = {
     invalidInvitation: 'Pozvánka je neplatná, vypršela nebo již byla použita. Požádejte o novou pozvánku.', accountExists: 'Pro tuto pozvánku již účet existuje. Přihlaste se nebo obnovte heslo.'
   },
   uk: {
+    loginHero: 'Один обліковий запис для застосунків DevelopED.', loginCardEyebrow: 'Обліковий запис DevelopED',
+    loginDestination: 'Перейти до', loginSharedTitle: 'Чому я тут?',
+    loginSharedBody: 'DevelopED забезпечує вхід до своїх застосунків. Обліковий запис DevelopED потрібен для доступу до всіх підключених застосунків. Після входу ви повернетеся до свого застосунку.',
     appsMenu: 'Застосунки', logout: 'Вийти в цьому браузері', logoutAll: 'Вийти з усіх застосунків і пристроїв', logoutConfirm: 'Вийти в цьому браузері?', logoutAllConfirm: 'Вийти з усіх застосунків і пристроїв?',
     logoutLocalNote: 'Вийти з DevelopED та його застосунків у цьому браузері. Інші браузери, пристрої та нативні мобільні застосунки залишаться активними.',
     securityIntro: 'Керуйте безпекою облікового запису DevelopED. Вийдіть у цьому браузері та його застосунках або окремо в усіх застосунках і на всіх пристроях.',

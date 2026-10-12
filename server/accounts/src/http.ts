@@ -79,7 +79,7 @@ function createSingleAccountServer(accounts: Accounts) {
           if (next.pathname !== '/account/authorize' || !/^[a-zA-Z0-9]{32}$/.test(next.searchParams.get('authorization_id') || '')) return fail(503,'provider_unavailable');
           res.writeHead(303,{Location:`/account/authorize?authorization_id=${next.searchParams.get('authorization_id')}`});return res.end();
         }
-        const allowed = /^(?:\/(?:login|register|verify-email|forgot-password|reset-password|profile|security|account\/authorize)|\/account-assets\/[a-z0-9.-]+|\/api\/account\/(?:session|login|register|logout|logout-all|resend-verification|forgot-password|reset-password|verify-email|reauthenticate|invitation\/preview|mfa(?:\/(?:enroll|verify))?|profile(?:\/(?:password|email|avatar))?|security|authorize|catalog))$/;
+        const allowed = /^(?:\/(?:login|register|verify-email|forgot-password|reset-password|profile|security|account\/authorize)|\/account-assets\/[a-z0-9.-]+|\/api\/account\/(?:session|login|register|logout|logout-all|resend-verification|forgot-password|reset-password|verify-email|reauthenticate|invitation\/preview|mfa(?:\/(?:enroll|verify))?|profile(?:\/(?:password|email|avatar))?|security|authorize|catalog|authorization-app))$/;
         if (url.pathname === '/apps') {res.writeHead(303,{Location:'/api/music/auth/start'});return res.end();}
         if (!allowed.test(url.pathname)) return fail(404,'not_found');
       }
@@ -209,6 +209,8 @@ function createSingleAccountServer(accounts: Accounts) {
           where a.published and a.public_listing and c.status='ACTIVE' and c.deleted_at is null order by c.sort_order,c.name`);
         return json(res, { apps: apps.map(catalogApp) });
       }
+      if (path === '/authorization-app' && method === 'GET')
+        return json(res, { app: await accounts.authorizationApp(url.searchParams.get('authorization_id')) });
       const avatarMatch = /^\/avatars\/([a-f0-9-]{36})\.jpg$/.exec(path);
       if (avatarMatch && ['GET', 'HEAD'].includes(method)) {
         const [avatar] = await accounts.db.query('select image from accounts.avatars where id=$1', [uuid(avatarMatch[1])]);

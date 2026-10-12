@@ -1,3 +1,5 @@
+> Latest UI-only release: [Vocabulum callback repair](vocabulum-callback-checkpoint-20261012.md). Backend behavior and the password-retirement observation logger are preserved.
+
 > Current SMS status release: [5 October checkpoint](sms-status-checkpoint-20261005.md). This supersedes the API release pins below.
 
 > Private Karak II integration: [3 October checkpoint](../../../docs/karak2-identity-deployment-2026-10-03.md). Central API now uses a minimal public-catalog visibility patch; other pending main-branch features remain undeployed.

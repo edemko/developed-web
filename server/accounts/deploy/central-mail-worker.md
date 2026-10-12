@@ -1,6 +1,8 @@
 # Separate central mail worker — active after reviewed start
 
-Current API/mail pins are recorded in the newest release checkpoint,
+Current UI-only API/mail repin: [Vocabulum callback checkpoint](vocabulum-callback-checkpoint-20261012.md). The backend and worker implementations remain unchanged.
+
+Previous API/mail pins are recorded in the release checkpoint,
 [central-password-observation-checkpoint-20261012.md](central-password-observation-checkpoint-20261012.md):
 API release `44d932828a74…`, launcher bundle `mail-workers/44d932828a74…`, both on Node
 24.21.0 (`/opt/developed-runtimes/node-v24.21.0/bin/node`; the guard's `NODE` pin moved from

@@ -1,6 +1,8 @@
 # Central account automatic releases
 
-Status: sealed baseline live; automatic UI mode being activated and verified.
+Status: complete. Sealed baseline `7cf9d4100a9a` and first automatic UI release
+`f2c1811702e3` are live; the poll timer is enabled. See
+`server/accounts/deploy/central-auto-baseline-checkpoint-20261012.md`.
 
 ## Objective
 

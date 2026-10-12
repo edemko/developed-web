@@ -43,4 +43,22 @@ Automatic mode is deliberately limited to public UI changes. Source,
 dependencies, migrations and worker files block the poll for a coordinated
 manual release. The generic switch also requires byte-identical worker-imported
 modules and logo before it drains/re-pins the sole worker. The first controlled
-automatic UI release is recorded separately after the poll verifies it.
+automatic UI release is recorded below.
+
+## First automatic release
+
+Commit `f2c1811702e3` changed only a comment in the public account CSS to
+exercise the automatic path without changing appearance. The installed frozen
+tool at `/opt/developed-control/developed-release-b7267913023e` ran through
+the existing enabled poll service. It fetched `origin/main`, built from a clean
+archive, passed account and Chromium browser tests, sealed 306 files, switched
+the API, re-pinned the sole worker and completed with status 0. The worker-imported
+mail, database, security and template modules and logo are byte-identical to
+the baseline. The active API is
+`/opt/developed-accounts/releases/f2c1811702e3`; the worker launcher is
+`/opt/developed-accounts/mail-workers/f2c1811702e3`, with the implementation
+still pinned to the retained sealed baseline. Verification found both services
+active, NRestarts 0, guard/readiness logs, no pending switch receipt, and the
+poll timer active. The public mobile browser showed the account explanation,
+KešTrek destination and login form. The temporary candidate service and its
+port permission were removed after the release.

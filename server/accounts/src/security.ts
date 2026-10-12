@@ -52,7 +52,7 @@ export function email(value: unknown): string {
   return clean;
 }
 export function password(value: unknown): string {
-  if (typeof value !== 'string' || value.length < 15 || value.length > 128) return fail(400, 'weak_password');
+  if (typeof value !== 'string' || value.length < 6 || value.length > 128) return fail(400, 'weak_password');
   return value;
 }
 export function passwordInput(value: unknown): string {

@@ -1,9 +1,13 @@
 # Node 24 runtime upgrade (DevelopED platform): implementation plan
 
 **Status:** in progress — Phases P and 0–4 done (2026-10-12): every live service runs Node
-24.21.0. End-to-end checks passed and auto-deploys were unpaused at 11:02. Still owed: the first real
-Node 24 auto-deploy, the eight `node24-runtime` app-repo merges, Phase 6 docs and the
-maintenance reschedule. Prepared and reviewed against the live host; refreshed 22:54
+24.21.0. End-to-end checks passed, auto-deploys were unpaused at 11:02, and the first real auto-deploys
+built on Node 24 (AMP, Vocabulum, kestrek, otazkomat). Still owed:
+- the eight local `node24-runtime` app-repo branches (Erik merges);
+- the mega-music cleanup hook proof on its next deploy;
+- Phase 6 docs;
+- the `vps-maintenance` reschedule;
+- Phase 7 (not before 2026-10-26). Prepared and reviewed against the live host; refreshed 22:54
 against the release tool at origin/main 6052e4e. It replaces the draft committed in f5fe96c
 (`.claude/plans/node-24-runtime-upgrade.md`). Tick the boxes and fill in the Execution log as you
 go.

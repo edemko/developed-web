@@ -2,6 +2,82 @@
 
 **Status:** in progress (started 2026-10-12). C0, C1, A done; V.1–V.3, K.1 and O.1 (hide) done. Next: C2 (after 24 h), V.4/O.2 invitations, cleanups K/S/M, D.
 
+## Handoff (2026-10-12 11:45): read this first
+
+Implementation moves to another agent from here. The state below is verified live.
+
+**What is live**
+- **Central** (`developed-accounts`, manual-only, never auto-deployed):
+  - `/opt/developed-accounts/current` → `releases/9fde1f13808d760935c60af9ff5880486396eb0e`, from
+    branch `release/central-password-20261012` (pushed);
+  - mail worker → `/opt/developed-accounts/mail-workers/9fde1f13…` (drop-in
+    `/etc/systemd/system/developed-accounts-mail-worker.service.d/browser-family-release.conf`);
+  - main carries the same code (36beea3).
+- **Apps:** AMP 4743fac, Vocabulum 4b79112, kestrek d86574f and otazkomat d8b8b1f are live via
+  developed-release on Node 24.21.0.
+
+**The next central release**
+1. Branch from `release/central-password-20261012`, **not** `main`. `main` has about 750 lines of
+   unreleased central work that must not ship by accident.
+2. Cherry-pick each commit onto `main` afterwards.
+3. Follow `server/accounts/deploy/central-password-c1-checkpoint-20261012.md` step by step:
+   - build and test on Node 24;
+   - stage a copy of the live release with only the changed `dist/`/`public/` files, and check
+     `diff -r` against the build;
+   - make a new mail-worker bundle when `security.js`, `mail.js`, `db.js` or `mail-templates.js`
+     changes (update `API_RELEASE` and the override hash);
+   - cut over: stop the worker → switch `current` → restart the API → repoint the drop-in →
+     start the worker;
+   - write a checkpoint doc.
+
+**Working rules learned the hard way**
+- **Dirty main checkout:** `~/Dev/developed-web` has another session's uncommitted SMS files
+  (`AGENTS.md`, `server/accounts/src/{profile-sms,sms}.ts`, two tests,
+  `docs/sms-gate-v1-audit-*.md`). Never stage or stash them. Do central work in
+  `git worktree`s under `~/.cache/`.
+- **Pushing deploys:** a push to an app's `main` deploys within about 4 minutes (poll timer,
+  Node 24). Watch `~/.local/state/developed-release/history.log` and
+  `journalctl --user -u developed-release-poll`. Prove a change first on a clean archive:
+  `REF=<commit> ~/.nvm/versions/node/v24.21.0/bin/node ~/.cache/node24/n24-steps-ref.mjs <app>`
+  runs the app's exact release steps.
+- **Health:** `~/.cache/node24/all-health.sh` runs every health probe and prints
+  `ALL-HEALTH: all match`.
+- **Shell traps (zsh):**
+  - `$var:path` is read as a variable modifier; write `${var}:path`.
+  - `echo ===` fails.
+  - `pkill -f <pattern>` kills its own shell when the pattern is in the command.
+- **Pre-existing failure:** central browser test `ui.browser` "Launch fixture" times out on the old
+  release too; it was not caused by this work.
+- **App repos:** each has a local, unpushed branch `node24-runtime` from the Node 24 plan, waiting
+  for Erik's merge. It is unrelated to this plan; leave it alone. kestrek's still merges cleanly.
+
+**Next, in order**
+1. **V.4 and O.2: admin invitations through central.** Central's
+   `POST /api/account/internal/invitations` is live. It takes the app server key in
+   `Authorization: Bearer` and a body of `{ accessToken, email, language }`, and always answers
+   `{accepted:true}`.
+   - Each app needs a migration for a pending-membership table (email → role and
+     org/organisation), a call to central from the admin action, and a claim step on first OIDC
+     login by verified email.
+   - Migrations block that app's deploy until applied by hand (see
+     `~/workspace/docs/features/supabase-platform-reference.md`). Then run
+     `developed-release deploy <app> --migrations-applied`.
+   - Vocabulum students with `…@voc-builder.local` addresses cannot be invited. Document this.
+2. **C2, not before 2026-10-13 11:30 and only with zero calls in 24 h:** remove the embedded
+   registration API (`/api/account/registration/*`, CORS) and the `password` action of
+   `/internal/profile/*` from central. AMP stopped calling both at 11:30:34.
+3. **Small fixes and cleanup:**
+   - Vocabulum `/register` → `CENTRAL_REGISTRATION_URL + '?app=vocabulum'`;
+   - V.5 (delete the Vocabulum `legacy-*` password forms and helpers), V.6;
+   - K.2–K.5 (kestrek dead legacy code; Flutter default `ECOSYSTEM_AUTH_ENABLED=true`);
+   - S (screentime legacy branch); M (Mega Music legacy password code).
+4. **D: docs.** Note that myclinic is exempt from this policy.
+
+**Related open items from the Node 24 plan** (`.claude/plans/node-24-runtime-upgrade.md`):
+- Phase 6 docs; Phase 7 (retire Node 22, not before 2026-10-26).
+- The mega-music cleanup hook is still unproven on Node 24 until mega-music deploys.
+- The 05:00 `vps-maintenance` reboot skipped on 2026-10-12 and must be rescheduled by Erik.
+
 ## Context
 
 Every DevelopED app signs in with the same central account (`developed-accounts`, source

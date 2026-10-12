@@ -24,7 +24,7 @@ test('branded registration follows the central invitation/open/closed switch',{s
  assert.equal(await page.locator('input[type="password"]').count(),0);
  assert.equal(await page.evaluate(()=>document.documentElement.dataset.product),'mega-music');
  mode='open';await page.reload();await page.locator('input[type="password"]').waitFor();
- assert.equal(await page.locator('input[type="password"]').getAttribute('minlength'),'15');
+ assert.equal(await page.locator('input[type="password"]').getAttribute('minlength'),'6');
  assert.equal(await page.locator('input[type="email"]').count(),1);
  await page.getByText(/creating a DevelopED ecosystem account/).waitFor();
  assert.equal(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor),'rgb(18, 18, 18)');

@@ -454,7 +454,7 @@ async function start() {
     const name = field(form, 'name', { required: true, autocomplete: 'name', maxLength: 100 });
     const email = field(form, 'email', { type: 'email', required: true, autocomplete: 'email', maxLength: 254, value: invitationEmail || '' });
     if (invitationEmail) { email.readOnly = true; email.setAttribute('aria-readonly', 'true'); form.append(el('small', t('invitedEmailHelp'))); }
-    const password = field(form, 'password', { type: 'password', required: true, autocomplete: 'new-password', minLength: 15, maxLength: 128 });
+    const password = field(form, 'password', { type: 'password', required: true, autocomplete: 'new-password', minLength: 6, maxLength: 128 });
     form.append(el('small', t('passwordHelp')));
     const card = panel();
     bindForm(form, t('register'), async () => {
@@ -519,7 +519,7 @@ async function start() {
   }
 
   function newPasswordFields(form) {
-    const password = field(form, 'newPassword', { type: 'password', required: true, minLength: 15, maxLength: 128, autocomplete: 'new-password' });
+    const password = field(form, 'newPassword', { type: 'password', required: true, minLength: 6, maxLength: 128, autocomplete: 'new-password' });
     form.append(el('small', t('passwordHelp')));
     const repeat = field(form, 'repeatPassword', { type: 'password', required: true, maxLength: 128, autocomplete: 'new-password' });
     const validate = () => repeat.setCustomValidity(password.value === repeat.value ? '' : t('passwordMismatch'));
@@ -834,7 +834,7 @@ async function start() {
         const actionForm = el('form', undefined, 'stack');
         const actionOptions = [[user.locked ? 'unlock' : 'lock', t(user.locked ? 'unlock' : 'lock')], ['send-reset', t('sendReset')], ['revoke-sessions', t('revokeSessions')], ['set-password', t('setPassword')]];
         const selected = select(actionForm, 'accountActions', actionOptions, actionOptions[0][0]);
-        const password = field(actionForm, 'newPassword', { type: 'password', minLength: 15, maxLength: 128, autocomplete: 'new-password' });
+        const password = field(actionForm, 'newPassword', { type: 'password', minLength: 6, maxLength: 128, autocomplete: 'new-password' });
         const force = checkbox(actionForm, 'forcePassword', true);
         const update = () => { const set = selected.value === 'set-password'; password.parentElement.hidden = !set; force.parentElement.hidden = !set; password.required = set; };
         selected.addEventListener('change', update); update();

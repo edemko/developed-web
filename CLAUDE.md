@@ -1,5 +1,8 @@
 # DevelopED website
 
+Work on `main` unless the user explicitly requests another branch. Validate
+before pushing; do not create branches or branch-based worktrees by default.
+
 Landing page for B2B custom web applications, internal systems and AI automation.
 
 ## Stack

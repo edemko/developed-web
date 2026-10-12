@@ -43,11 +43,15 @@ test('only bounded safe diagnostic hints are collected', () => {
   assert.deepEqual(diagnosticHints(`?screen=https://private.test/a?secret=1&version=${'x'.repeat(81)}`, 'en'), { locale: 'en' });
 });
 
-test('only authorization results allow the exact native KešTrek callback', () => {
+test('only authorization results allow exact registered native app callbacks', () => {
   const origin = 'https://www.developed.sk';
-  for (const value of ['sk.kestrek://oauth/callback?code=opaque-code&state=opaque-state', 'sk.kestrek://oauth/callback?error=access_denied&state=opaque-state']) {
-    assert.equal(safeAuthorizationUrl(value, origin), value);
-    assert.equal(safeHttpsUrl(value, origin), null);
+  const schemes = ['sk.kestrek', 'sk.developed.megamusic', 'sk.developed.vocabulum'];
+  for (const scheme of schemes) {
+    for (const result of ['code=opaque-code', 'error=access_denied']) {
+      const value = `${scheme}://oauth/callback?${result}&state=opaque-state`;
+      assert.equal(safeAuthorizationUrl(value, origin), value);
+      assert.equal(safeHttpsUrl(value, origin), null);
+    }
   }
   assert.equal(safeAuthorizationUrl('https://kestrek.sk/auth/callback?code=opaque&state=state', origin), 'https://kestrek.sk/auth/callback?code=opaque&state=state');
   for (const value of [
@@ -59,7 +63,12 @@ test('only authorization results allow the exact native KešTrek callback', () =
     'sk.kestrek://oauth/callback?code=a&state=%0A', 'sk.kestrek://oauth/callback?code=a&state=',
     'sk.kestrek:/callback?code=a&state=b', 'other-app://oauth/callback?code=a&state=b',
     'javascript:alert(1)', null,
-  ]) assert.equal(safeAuthorizationUrl(value, origin), null, value);
+  ]) {
+    for (const scheme of schemes) {
+      const candidate = value?.replace('sk.kestrek', scheme) ?? value;
+      assert.equal(safeAuthorizationUrl(candidate, origin), null, candidate);
+    }
+  }
 });
 
 test('email credentials are read from fragments and immediately removed from history', () => {

@@ -47,7 +47,7 @@ export function safeIconUrl(value, origin) {
   } catch { return null; }
 }
 
-// Only authorization responses may open the registered native KešTrek callback.
+// Only authorization responses may open registered native app callbacks.
 // Tiles, login continuations, avatars and every other link remain HTTPS-only.
 export function safeAuthorizationUrl(value, origin) {
   const https = safeHttpsUrl(value, origin);
@@ -55,7 +55,7 @@ export function safeAuthorizationUrl(value, origin) {
   if (typeof value !== 'string') return null;
   try {
     const url = new URL(value);
-    if (!['sk.kestrek:','sk.developed.megamusic:'].includes(url.protocol) || url.hostname !== 'oauth' || url.pathname !== '/callback'
+    if (!['sk.kestrek:','sk.developed.megamusic:','sk.developed.vocabulum:'].includes(url.protocol) || url.hostname !== 'oauth' || url.pathname !== '/callback'
       || url.port || url.username || url.password || url.hash || url.href !== value) return null;
     const keys = [...url.searchParams.keys()];
     if (keys.some(key => !['code', 'state', 'error'].includes(key)) || new Set(keys).size !== keys.length) return null;

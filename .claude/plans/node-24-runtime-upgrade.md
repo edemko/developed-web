@@ -1,7 +1,8 @@
 # Node 24 runtime upgrade (DevelopED platform): implementation plan
 
-**Status:** in progress — Phases P, 0, 1, 2 done; Phase 3 committed (10ac324), awaiting push +
-`install.sh` (2026-10-11). Prepared and reviewed against the live host; refreshed 22:54
+**Status:** in progress — Phases P and 0–4 done (2026-10-12): every live service runs Node
+24.21.0. Waiting on Erik's end-to-end checks, the eight `node24-runtime` app-repo merges and the
+Phase 5 unpause. Prepared and reviewed against the live host; refreshed 22:54
 against the release tool at origin/main 6052e4e. It replaces the draft committed in f5fe96c
 (`.claude/plans/node-24-runtime-upgrade.md`). Tick the boxes and fill in the Execution log as you
 go.
@@ -237,16 +238,16 @@ each phase.
 
 ## Phase P: Publish this plan
 
-- [ ] Replace `~/Dev/developed-web/.claude/plans/node-24-runtime-upgrade.md` with this file.
-- [ ] `git add` only that path, then commit `Node 24 runtime upgrade: implementation plan`.
-- [ ] Push only after asking **(ask)**.
+- [x] Replace `~/Dev/developed-web/.claude/plans/node-24-runtime-upgrade.md` with this file.
+- [x] `git add` only that path, then commit `Node 24 runtime upgrade: implementation plan`.
+- [x] Push only after asking **(ask)**.
 
 ## Phase 0: Preflight (no service changes)
 
-- [ ] Ask Erik to stop other deploy sessions.
-- [ ] Run `sudo touch /etc/developed-apps/developed-release-paused`. The poll unit's
+- [x] Ask Erik to stop other deploy sessions.
+- [x] Run `sudo touch /etc/developed-apps/developed-release-paused`. The poll unit's
   `ConditionPathExists` then skips every run.
-- [ ] **Working dir, backup, helper:**
+- [x] **Working dir, backup, helper:**
   ```bash
   mkdir -p ~/.cache/node24 && B=/var/backups/node24/$(date +%F)
   sudo install -d -o root -g root -m 0700 "$B" "$B/etc/systemd" "$B/etc/jasom" "$B/usr/local/sbin" "$B/home/openclaw/.config/systemd"
@@ -257,7 +258,7 @@ each phase.
   echo "$B" > ~/.cache/node24/backup-dir
   ```
   Then write `~/.cache/node24/n24` (above) and `chmod 0755` it.
-- [ ] **Baseline.** Save it to `~/.cache/node24/baseline.txt` and summarise it in the Execution log:
+- [x] **Baseline.** Save it to `~/.cache/node24/baseline.txt` and summarise it in the Execution log:
   ```bash
   { for u in $(systemctl list-units --type=service --state=active --plain --no-legend | awk '{print $1}'); do
       pid=$(systemctl show -p MainPID --value "$u"); [ "$pid" -gt 0 ] 2>/dev/null || continue
@@ -270,7 +271,7 @@ each phase.
   ```
   `status` gives each app's **live source commit**, which Phase 2 uses. Run ALL-HEALTH once and
   record the codes.
-- [ ] Check `df -h /` (26 GB free on 2026-10-11) and `free -h`.
+- [x] Check `df -h /` (26 GB free on 2026-10-11) and `free -h`.
 
 ## Phase 1: Install Node 24 next to 22 (no service changes)
 
@@ -598,19 +599,19 @@ comments.
 
 ### 4a. Canary: Mega/JASOM helpers (no direct users)
 
-- [ ] **mega-youtube-front:** Procedure U with the socket row.
-- [ ] **download-relay:** Procedure U, then the TCP row.
+- [x] **mega-youtube-front:** Procedure U with the socket row.
+- [x] **download-relay:** Procedure U, then the TCP row.
 - [ ] **mega-youtube-isolated** (Python; `Environment=YTDLP_JS_RUNTIME=node:/opt/…`):
   1. Check that it is idle: `sudo journalctl -u mega-youtube-isolated --since -10min -q | tail`.
   2. Run Procedure U. `verify` shows the python exe, so only `is-active` counts.
   3. **Ask Erik to run one YouTube import in Mega Music** and watch
      `sudo journalctl -u mega-youtube-isolated -f`. It must succeed with no JS-runtime error.
-- [ ] **JASOM yt-dlp runtime** (`/etc/jasom/worker.env`):
+- [x] **JASOM yt-dlp runtime** (`/etc/jasom/worker.env`):
   ```bash
   sudo grep -c 'node-v22.23.2' /etc/jasom/worker.env      # 1
   sudo sed -i 's#/opt/developed-runtimes/node-v22.23.2/#/opt/developed-runtimes/node-v24.21.0/#' /etc/jasom/worker.env
   ```
-- [ ] **JASOM `PATH` runtime.** `/opt/jasom/runtime-node` is a root symlink to the v22 directory.
+- [x] **JASOM `PATH` runtime.** `/opt/jasom/runtime-node` is a root symlink to the v22 directory.
   Swap it atomically:
   ```bash
   readlink /opt/jasom/runtime-node        # /opt/developed-runtimes/node-v22.23.2
@@ -632,9 +633,9 @@ comments.
 
 ### 4b. myclinic
 
-- [ ] Run Procedure U on `$(~/.cache/node24/n24 live developed-myclinic)`. It switches the
+- [x] Run Procedure U on `$(~/.cache/node24/n24 live developed-myclinic)`. It switches the
   template's `Environment=PATH=` and `ExecStart`. Use the myclinic health row.
-- [ ] **Cron user drop-in:**
+- [x] **Cron user drop-in:**
   ```bash
   F=~/.config/systemd/user/myclinic-cron@.service.d/runtime-target.conf
   grep -c node-v22.23.2 "$F"     # 1
@@ -650,7 +651,7 @@ comments.
 
 ### 4c. screentime
 
-- [ ] Run Procedure U on `$(~/.cache/node24/n24 live developed-screentime)`. It covers the template
+- [x] Run Procedure U on `$(~/.cache/node24/n24 live developed-screentime)`. It covers the template
   `ExecStart` and `central-production.conf`. Use the screentime row. UID 983 may bind only 3167, so
   the restart has a sub-second gap.
 
@@ -840,16 +841,16 @@ For each repo:
 
 ### 4h. otazkomat, airsoft, vocabulum, karak2 (tool-managed; each separately), then their config
 
-- [ ] **otazkomat:** Procedure U on `$(~/.cache/node24/n24 live developed-otazkomat)`. This covers
+- [x] **otazkomat:** Procedure U on `$(~/.cache/node24/n24 live developed-otazkomat)`. This covers
   the template and `central-production.conf`.
-- [ ] **airsoft:** Procedure U on `$(~/.cache/node24/n24 live developed-airsoft)`. The template
+- [x] **airsoft:** Procedure U on `$(~/.cache/node24/n24 live developed-airsoft)`. The template
   holds both the `ExecStartPre` and `node …/server.js` lines.
-- [ ] **vocabulum:** Procedure U on `$(~/.cache/node24/n24 live developed-vocabulum)`, which has
+- [x] **vocabulum:** Procedure U on `$(~/.cache/node24/n24 live developed-vocabulum)`, which has
   the same shape as airsoft.
-- [ ] **karak2:** Procedure U on `developed-karak2.service`. Its children inherit
+- [x] **karak2:** Procedure U on `developed-karak2.service`. Its children inherit
   `process.execPath`. **A restart drops every session and running game, so ask Erik for the
   time.**
-- [ ] **Config:**
+- [x] **Config:**
   1. Set `"node": "24.21.0"` in `apps/otazkomat.json`, `apps/airsoft.json`, `apps/vocabulum.json`
      and `apps/karak2.json`, and run the tool tests.
   2. Commit `developed-release: otazkomat, airsoft, vocabulum and karak2 run Node 24.21.0` and push
@@ -938,20 +939,20 @@ Use a quiet window. Read `deploy/central-mail-worker.md` and
 `Requires=` them, so a restart cascades. Use `reload` only: it re-runs `--apply` atomically,
 through the switched `ExecReload` line.
 
-- [ ] **developed-data-boundary:** `deps` is `(none)`, so Procedure U applies with the data
+- [x] **developed-data-boundary:** `deps` is `(none)`, so Procedure U applies with the data
   boundary row. Then run ALL-HEALTH.
-- [ ] **green-provider-boundary:**
+- [x] **green-provider-boundary:**
   1. `n24 switch`, then `daemon-reload`.
   2. `sudo /opt/developed-runtimes/node-v24.21.0/bin/node /opt/developed-control/green-provider/green-provider-load-boundary.mjs --check`
   3. `sudo systemctl reload green-provider-boundary.service`
   4. `is-active`; the journal must be clean.
   5. A central sign-in still works.
-- [ ] **bind-boundary:**
+- [x] **bind-boundary:**
   1. `n24 switch`, then `daemon-reload`.
   2. `sudo /opt/developed-runtimes/node-v24.21.0/bin/node /opt/developed-control/network/bind-boundary.mjs --check`
   3. `sudo systemctl reload bind-boundary.service`
   4. Run ALL-HEALTH.
-- [ ] **developed-uid-boundary:**
+- [x] **developed-uid-boundary:**
   1. `n24 switch` (the base unit + `managed-music.conf`; the effective lines use
      `network-music-e307109`), then `daemon-reload`.
   2. `sudo /usr/bin/flock --nonblock /run/developed-uid-boundary/loader.lock /opt/developed-runtimes/node-v24.21.0/bin/node /opt/developed-control/network-music-e307109/load-uid-boundary.mjs --check`
@@ -961,16 +962,16 @@ through the switched `ExecReload` line.
 
 ### 4k. Operator side
 
-- [ ] **`/usr/local/sbin/developed-disk-maintenance`** (the line with `/opt/node-v22.23.2/bin/npm`,
+- [x] **`/usr/local/sbin/developed-disk-maintenance`** (the line with `/opt/node-v22.23.2/bin/npm`,
   line 84):
   - Replace it with `    /usr/bin/sudo -u openclaw /usr/bin/rm -rf -- /home/openclaw/.npm/_cacache`.
     That is what `npm cache clean --force` deletes, and it drops the Node dependency.
   - Check with `sudo bash -n /usr/local/sbin/developed-disk-maintenance`. It is backed up in Phase 0.
-- [ ] **Interactive default:**
+- [x] **Interactive default:**
   `bash -c 'source ~/.nvm/nvm.sh && nvm use 24.21.0 && nvm reinstall-packages 22.23.2 && nvm alias default 24.21.0'`.
   This reinstalls the global packages (Claude Code, pnpm/corepack, playwright, pm2, vercel, …). In
   a new shell, check that `node -v` gives v24.21.0 and `claude --version` works.
-- [ ] Leave `/usr/local/sbin/mega-music-deploy` (blocked by its guard; exits 3) and
+- [x] Leave `/usr/local/sbin/mega-music-deploy` (blocked by its guard; exits 3) and
   `/usr/local/bin/{node,npm,claude}` (→ nvm 22.22.2) for Phase 7.
 
 ---
@@ -1116,3 +1117,87 @@ follow-ups such as the vocabulum and airsoft repo docs still saying Node 22.)
     with `node: 24.21.0` ("…@.service does not name …node-v24.21.0…").
   - `status` shows `node 22.23.2` for every app.
   - Not yet pushed or installed.
+
+### 2026-10-12 (quiet window 10:00–10:20, Erik: "continue with your best intentions")
+
+- The 05:00 `vps-maintenance` run skipped itself because of the pause file (no reboot; uptime since
+  2026-10-07). It needs rescheduling after Phase 5.
+- **Phase 3 finished.** Pushed 90147f3, 10ac324 and d00978e. `install.sh` installed
+  `developed-release-d00978e19bf0`; the poll unit runs on nvm v24.21.0. The timer stays enabled and
+  the pause file present.
+- **4a canary** (10:03–10:05): mega-youtube-front (socket 200), download-relay (tcp 1088 open),
+  mega-youtube-isolated (`YTDLP_JS_RUNTIME` → v24), `/etc/jasom/worker.env`, the
+  `/opt/jasom/runtime-node` symlink → v24. jasom-submissions and jasom-web@green restarted while
+  idle (web `/health` 200).
+  - yt-dlp self-check: `--js-runtimes node:<v24>` reports `JS runtimes: node-24.21.0` and the
+    `node` challenge provider. The run then stopped at YouTube's bot check, which is expected
+    without the services' cookies and relay. **A real Mega and JASOM import is still owed.**
+  - JASOM doc: f8a4b7b pushed to jasom main (not a tool app, so no deploy).
+- **4b myclinic** (10:05): API @e24baea3c7dd on v24, 200/200/401/200. The cron drop-in →
+  v24 (`--check` ok); its first v24 run is 2026-10-13 10:01 CEST (the timer is 10:01, not
+  08:00 UTC).
+- **4c screentime** (10:05): @c23f1b00478b on v24, 200/200/200. The `status=143` "Failed" line is
+  the old process exiting during the restart, as expected.
+- **4d kestrek** (10:06): guard copy `kestrek-notifications-771023221bec-node24` (diff: exactly
+  guardPath + nodePath). The API was back at 200 after 4 s; worker `ownershipVerified:true`.
+  200/401/401.
+- **4h unit switches** (10:06–10:08): otazkomat @90b7acba840e (200/200), airsoft @b5c63f84e8be
+  (200/200/200), vocabulum @8eda31c52320 (200/307/200). karak2 had no open connections; it and
+  all its child processes are on v24 (200/200/401).
+- **4j developed-data-boundary** (10:08): restarted on v24, healthz 200.
+- **4e mega-music** (10:08, ten minutes before the hourly cleanup timer; the block took under a
+  minute): copies `mega-music-session-cleanup-8ed1d6f1fef9-node24` (guard: guardPath + nodePath;
+  module: modulePath). API back at 200 after 2 s; the manual job run gave `ownerCheckPassed`,
+  `cleanupCompleted`, `Result=success`.
+- **4f + 4h config** (one commit instead of two, because all eight units were already switched):
+  b95c473 sets `"node": "24.21.0"` in all eight `apps/*.json`. Tests 19/19. The gate, called
+  directly, passes for all eight on 24 and refuses `22.23.2` for every one. `install.sh` installed
+  `developed-release-b95c473bbf75`, and `status` shows `node 24.21.0` for all eight.
+  developed-accounts (not onboarded) still shows the 22 default, which has no effect.
+- **4j boundaries** (10:10): each switched, `--check` on v24 exit 0, then `reload` (never
+  restart): green-provider-boundary, bind-boundary ("Atomic UID bind policy replacement
+  complete"), developed-uid-boundary (`apps:11`). ALL-HEALTH matched after each one. None of the
+  boundary scripts pin a Node path; they trust `process.execPath`.
+- **4i central** (10:10–10:11):
+  - auth-green `ExecStartPre` → v24, `--check` exit 0, no restart.
+  - New bundle `mail-workers/d1c3358ccbf7…-node24` copies the live d1c3358 bundle; the diff is
+    exactly the `NODE` line. The files are 0444 and the dir 0555, all root.
+  - Order: the worker stopped (drained in 0.2 s), then the API restarted (200 after 2 s, exe
+    v24); the worker stayed inactive, as expected.
+  - Started the worker on Erik's standing instruction: the guard passed ("same scoped inputs and
+    no other mail worker verified") and the worker is active on v24.
+  - Source repins (guard, `portal-upgrade-input` and its test, seven unit copies): 5af98c7 pushed.
+    Deploy tests 188, 0 fail, 15 skipped.
+  - **Owed:** Erik's central sign-in and a password-reset mail.
+- **4k:**
+  - `developed-disk-maintenance` line 84 → `rm -rf -- ~/.npm/_cacache` (`bash -n` ok; diff is
+    one line).
+  - nvm default → 24.21.0. Instead of `reinstall-packages` (which installs latest), the same
+    pinned versions went into v24: claude-code 2.1.296, mcporter 0.9.0, playwright 1.62.1, pm2
+    6.0.14 and vercel 59.23.2. Their install scripts needed `--allow-scripts` under npm 11.
+  - Not reinstalled: pnpm (corepack provides it; the global default is pinned to 10.33.2 to match
+    v22; karak2 still resolves its own 10.30.3) and clawhub (OpenClaw is retired).
+  - A clean login shell gets node v24.21.0, npm 11.19.0 and claude 2.1.296 from v24. No cron
+    job uses node.
+  - A stray pm2 daemon started by `pm2 --version` was killed (none was running before).
+- **End state:** all 14 baseline services and every helper or boundary unit are active with
+  `NRestarts=0` and exe v24 (or the v24 env for the Python units). ALL-HEALTH matches. No
+  process runs from a v22 runtime. Only six inactive developed-accounts candidate units plus
+  `mega-music-deploy` still name v22 (Phase 7).
+- **4g/4h repos:** local branch `node24-runtime`, one commit each, not pushed, for Erik to merge:
+  - kestrek dba6398 (guard nodePath, unit copies, engines >=24, docs; deploy tests 12, 0 fail)
+  - my-clinic 3baa605 (.nvmrc 24, engines 24.x incl. lock roots, unit, docs; 4/4)
+  - mega-media-player 7379b8d (cleanup guard, operator execPath, five unit copies, docs; deploy
+    16/16, accounts 113 with 0 fail, relay 11/11)
+  - screentime 3cb857c, otazkomat 3c44488, karak2 7b3a87a, airsoft-marketplace 75c4d5d,
+    vocabulary-builder a2480c9 (unit copies and runtime docs)
+
+  The kestrek, myclinic and mega-music merges touch side `paths`, so each one deploys; the other
+  five do not. Dated history lines, the legacy nvm units and the one-time operators stay on 22.
+- **Not done yet:**
+  - Phase 5 (unpause) waits for Erik's end-to-end checks. While paused, main has queued commits
+    that deploy on unpause: kestrek 5f95ae8, myclinic 095bc6d, mega-music 48d8c0d, otazkomat
+    ce1ef53, vocabulum 43244a5.
+  - Erik still has to hear about the misrouted peer note (airsoft f906ca3 carried SMS v1 work
+    live at 19:50 on 2026-10-11).
+

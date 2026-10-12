@@ -1,6 +1,7 @@
 # Central password management C2 — prepared, not deployed
 
-Prepared 2026-10-12 from live C1 release `9fde1f13808d760935c60af9ff5880486396eb0e`,
+Prepared 2026-10-12 from C1, then merged with live observation release
+`44d932828a74edab10e72afa7fb6129a0c5e8106`,
 on `release/central-password-c2-20261012`. This branch deliberately excludes unrelated
 unreleased main changes. No runtime symlink, worker bundle, provider setting or database
 is changed by this preparation.
@@ -11,21 +12,32 @@ Retired HTTP routes return 404 before session bootstrap, with no CORS or cookies
 Product email reauthentication and phone/profile functions remain available.
 The shared policy and central/branded account pages remain unchanged.
 
-Validation on Node 24.21.0: TypeScript build, 170 tests passed, 22 opt-in skips.
+Validation on Node 24.21.0: TypeScript build, 171 tests passed, 22 opt-in skips.
 Tests cover all retired paths and methods, no cookie/CORS side effects, central
 registration/invitations, and preserved e-mail reauthentication. No live mail sent.
 
 ## Gate before release
 
-Do not deploy before **2026-10-13 11:30 Europe/Bratislava**, and require a full
-24-hour window with zero application calls to `/api/account/registration/*` and
-`/api/account/internal/profile/password`. AMP stopped its old calls at 11:30:34
-on October 12, so conservatively use 11:31 or later on October 13.
-A grep yielding zero is only useful when the selected access log actually records
-these paths. Use Caddy access logs if the API journal does not record requests.
-Document the exact window and source, excluding intentional operator probes.
+Earliest deployment is **2026-10-13 12:23:07 Europe/Bratislava** with a full
+24-hour window containing zero `legacy_password_api_request` events in
+`journalctl -u developed-accounts`. Observation release `44d9328` started at
+2026-10-12 12:23:07+02:00. Earlier Caddy journals had no access entries, so they
+cannot prove the original 11:30 gate. This preparation retains the observation
+logger, which emits only fixed route-family/method values, never request details.
 
-Recheck the live release before deployment; this candidate was based on C1.
+Example read-only count (full 24-hour window, with journal continuity checked):
+
+```sh
+sudo journalctl -u developed-accounts --since '2026-10-12 12:23:07' \
+  --until '2026-10-13 12:23:07' --no-pager -o cat | \
+  rg -c 'legacy_password_api_request'
+```
+
+`rg -c` exits 1 for zero matches. A truncated/rotated-away journal is not proof.
+Any event needs investigation and a new clean observation window. No live
+retired-endpoint probes were sent after observation began.
+
+Recheck the live release before deployment; this candidate includes the observation release.
 If SMS fixes or other releases ship meanwhile, reconcile this narrowly scoped
 removal onto that live source so the candidate cannot restore old behavior.
 The primary checkout has unrelated uncommitted SMS work, including

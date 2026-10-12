@@ -1,6 +1,6 @@
 # One DevelopED password: shared rule, managed only on developed.sk
 
-**Status:** in progress (started 2026-10-12). Phases C0 and C1 done; A, V and O next.
+**Status:** in progress (started 2026-10-12). C0, C1, A done; V.1–V.3, K.1 and O.1 (hide) done. Next: C2 (after 24 h), V.4/O.2 invitations, cleanups K/S/M, D.
 
 ## Context
 
@@ -382,4 +382,33 @@ Prerequisite: C1 is live.
   - Verified after cutover: `passwordPolicy` in both session payloads; the UI reads it;
     `/register?app=airsoft` returns 200; the AMP embedded session still returns 200; the internal
     invitations route returns 401 without a valid app key; ALL-HEALTH matched.
+- **A (AMP 4743fac)**, live 11:30:34 and the **first real Node 24 auto-deploy** (built on
+  24.21.0, manifest `"node": "24.21.0"`, exe v24).
+  - `/sk/signup` hands over to `www.developed.sk/register?app=airsoft` and keeps the `#invitation`
+    fragment. Forgot/reset return 307 to central recovery. `/api/auth/ecosystem/register` sends
+    303 to `register?app=airsoft`.
+  - The settings page links to developed.sk for the password. The app-hosted change form, the
+    `password` schema and action, the legacy signup/forgot/reset forms, `/api/auth/signup`,
+    `createAirsoftUser` and the legacy settings password form are deleted, along with 207 lines
+    of messages (which still said 15).
+  - Tests 78/78; tsc and next build pass. The legacy login form stays for non-central dev mode.
+- **V.1–V.3 (Vocabulum 4b79112)**, live 11:31:49.
+  - Under central login, `/forgot-password` and `/reset-password` return 307 to developed.sk
+    recovery, and `/change-password` goes to the developed.sk profile (after sign-in).
+  - The `mustChangePassword` flag is ignored through `passwordChangeRequired()` in `lib/auth.ts`
+    and `principal.ts`.
+  - `POST /api/v1/auth/change-password` returns 409 `CENTRAL_LOGIN_REQUIRED`, reusing the
+    existing legacy gate instead of the planned 410.
+  - The old forms moved to `legacy-*.tsx` for non-central mode; their deletion is part of V.5.
+  - Vitest 536 pass; tsc and build pass.
+- **K.1 (kestrek d86574f):**
+  - The central-mode login shows "Forgot password?" → new backend `GET
+    /api/auth/ecosystem/recovery` → central `/forgot-password`.
+  - The `/forgot-password` and `/reset-password` guards go to recovery (they used to start a
+    login), and register goes to `register?app=kestrek`.
+  - Karma 214, Jest 813. Pushed at 11:32.
+- **O.1, hide part only (otazkomat d8b8b1f):** in central mode the admin "Zmeniť heslo" actions are
+  not rendered. Web 78 tests (2 new); API 229. Pushed at 11:34. The invite rewire is O.2.
+- **Small follow-up:** Vocabulum `/register` still goes to central `/register` without
+  `?app=vocabulum`.
 

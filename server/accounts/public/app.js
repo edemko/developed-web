@@ -102,6 +102,9 @@ async function start() {
   let chromeController = new AbortController();
   let appCatalog = null;
   const t = key => translate(language, key);
+  // The one password rule comes from the server (/session passwordPolicy); never hardcode it here.
+  const passwordRule = () => ({ minLength: session?.passwordPolicy?.minLength || 6, maxLength: session?.passwordPolicy?.maxBytes || 72 });
+  const passwordHelp = () => t('passwordHelp').replaceAll('{min}', String(passwordRule().minLength));
   const el = (tag, text, className) => {
     const node = document.createElement(tag);
     if (text !== undefined && text !== null) node.textContent = String(text);
@@ -452,25 +455,31 @@ async function start() {
     heading(t('register'), t(invitationToken ? 'invitedIntro' : 'registerIntro'), true);
     if (musicSurface) {const note=el('p',ecosystemNotice());note.append(' ',link('developed.sk','https://www.developed.sk/'));main.append(note);}
     const continuation = safeContinuation(new URLSearchParams(location.search).get('next'), location.origin);
-    const loginUrl = `/login?next=${encodeURIComponent(continuation)}`;
+    // ?app=<slug> (an app's Sign up link) or the invitation's app: return there after sign-in.
+    const validSlug = value => typeof value === 'string' && /^[a-z0-9-]{1,64}$/.test(value) ? value : null;
+    let appSlug = validSlug(new URLSearchParams(location.search).get('app'));
+    const appLogin = () => appSlug && !continuation.startsWith('/account/authorize?') ? `/login?app=${appSlug}` : `/login?next=${encodeURIComponent(continuation)}`;
+    let loginUrl = appLogin();
     if (session.registrationMode === 'closed') { main.append(el('p', t('registrationClosed'), 'notice'), link(t('login'), loginUrl)); return; }
     if (session.registrationMode === 'invitation' && !invitationToken) {
       main.append(el('p', t('invitationOnly'), 'notice'), link(t('login'), loginUrl)); return;
     }
-    const invitationEmail = invitationToken ? (await api('/invitation/preview', 'POST', { token: invitationToken })).email : null;
+    const preview = invitationToken ? await api('/invitation/preview', 'POST', { token: invitationToken }) : null;
+    const invitationEmail = preview ? preview.email : null;
+    if (validSlug(preview?.app)) { appSlug = preview.app; loginUrl = appLogin(); }
     const form = el('form');
     if (session.registrationMode === 'invitation') form.append(el('p', t('invitationOnly'), 'notice'));
     const name = field(form, 'name', { required: true, autocomplete: 'name', maxLength: 100 });
     const email = field(form, 'email', { type: 'email', required: true, autocomplete: 'email', maxLength: 254, value: invitationEmail || '' });
     if (invitationEmail) { email.readOnly = true; email.setAttribute('aria-readonly', 'true'); form.append(el('small', t('invitedEmailHelp'))); }
-    const password = field(form, 'password', { type: 'password', required: true, autocomplete: 'new-password', minLength: 6, maxLength: 128 });
-    form.append(el('small', t('passwordHelp')));
+    const password = field(form, 'password', { type: 'password', required: true, autocomplete: 'new-password', ...passwordRule() });
+    form.append(el('small', passwordHelp()));
     const card = panel();
     bindForm(form, t('register'), async () => {
       // The preview binds display and request to the invited mailbox. The server
       // independently checks the invitation; DOM/readOnly is not authorization.
       const address = invitationEmail || email.value.trim();
-      const result = await api('/register', 'POST', { email: address, password: password.value, displayName: name.value.trim(), language, ...(invitationToken ? { invitation: invitationToken } : {}), ...(continuation.startsWith('/account/authorize?') ? { continuation } : {}) });
+      const result = await api('/register', 'POST', { email: address, password: password.value, displayName: name.value.trim(), language, ...(invitationToken ? { invitation: invitationToken } : {}), ...(appSlug ? { app: appSlug } : {}), ...(continuation.startsWith('/account/authorize?') ? { continuation } : {}) });
       password.value = '';
       invitationToken = '';
       if (result.emailVerified === true) {
@@ -528,8 +537,8 @@ async function start() {
   }
 
   function newPasswordFields(form) {
-    const password = field(form, 'newPassword', { type: 'password', required: true, minLength: 6, maxLength: 128, autocomplete: 'new-password' });
-    form.append(el('small', t('passwordHelp')));
+    const password = field(form, 'newPassword', { type: 'password', required: true, ...passwordRule(), autocomplete: 'new-password' });
+    form.append(el('small', passwordHelp()));
     const repeat = field(form, 'repeatPassword', { type: 'password', required: true, maxLength: 128, autocomplete: 'new-password' });
     const validate = () => repeat.setCustomValidity(password.value === repeat.value ? '' : t('passwordMismatch'));
     password.addEventListener('input', validate);
@@ -848,7 +857,7 @@ async function start() {
     panel(t('registration')).append(policyForm);
     const inviteForm = el('form');
     const email = field(inviteForm, 'email', { type: 'email', required: true, maxLength: 254 });
-    const invitationTargets = [['', 'DevelopED'], ...apps.filter(app => app.slug === 'airsoft' && app.published && app.joinPolicy !== 'closed').map(app => [app.slug, app.name])];
+    const invitationTargets = [['', 'DevelopED'], ...apps.filter(app => app.published && app.joinPolicy !== 'closed').map(app => [app.slug, app.name])];
     const invitationTarget = select(inviteForm, 'invitationDestination', invitationTargets, '');
     bindForm(inviteForm, t('sendInvitation'), async notice => {
       await sensitive('/admin/invitations', 'POST', { email: email.value.trim(), ...(invitationTarget.value ? { app: invitationTarget.value } : {}) });
@@ -887,7 +896,7 @@ async function start() {
         const actionForm = el('form', undefined, 'stack');
         const actionOptions = [[user.locked ? 'unlock' : 'lock', t(user.locked ? 'unlock' : 'lock')], ['send-reset', t('sendReset')], ['revoke-sessions', t('revokeSessions')], ['set-password', t('setPassword')]];
         const selected = select(actionForm, 'accountActions', actionOptions, actionOptions[0][0]);
-        const password = field(actionForm, 'newPassword', { type: 'password', minLength: 6, maxLength: 128, autocomplete: 'new-password' });
+        const password = field(actionForm, 'newPassword', { type: 'password', ...passwordRule(), autocomplete: 'new-password' });
         const force = checkbox(actionForm, 'forcePassword', true);
         const update = () => { const set = selected.value === 'set-password'; password.parentElement.hidden = !set; force.parentElement.hidden = !set; password.required = set; };
         selected.addEventListener('change', update); update();

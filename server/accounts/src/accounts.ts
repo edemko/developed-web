@@ -280,31 +280,30 @@ export class Accounts {
     if (access) await this.provider.logout(access, 'global').catch(() => {});
   }
   async credential(query: Query, user: Row | null, address: string, purpose: string, lang = 'en', returnAppId: string | null = null) {
-    let actionOrigin = this.config.origin;
-    let route = purpose === 'recovery' ? '/reset-password' : purpose === 'invitation' ? '/register' : '/verify-email';
+    const route = purpose === 'recovery' ? '/reset-password' : purpose === 'invitation' ? '/register' : '/verify-email';
+    // Password management happens only here: invitations for any open app land on this
+    // service's /register; the invitation preview names the app to return to.
     if (purpose === 'invitation' && returnAppId) {
-      const [app] = await query(`select a.slug,a.launch_url from accounts.app_settings a join core.apps c on c.id=a.app_id
+      const [app] = await query(`select a.slug from accounts.app_settings a join core.apps c on c.id=a.app_id
         where a.app_id=$1 and a.published and a.join_policy<>'closed' and c.status='ACTIVE' and c.deleted_at is null`, [returnAppId]);
-      if (!app || app.slug !== 'airsoft') return fail(400, 'invalid_invitation_target');
-      actionOrigin = exactHttps(app.launch_url, this.config.insecureLocal).origin;
-      route = `/${language(lang)}/signup`;
+      if (!app) return fail(400, 'invalid_invitation_target');
     }
     const raw = token();
     if (user) await query(`update accounts.credentials set consumed_at=now() where user_id=$1 and purpose=$2 and consumed_at is null`, [user.id, purpose]);
     await query(`insert into accounts.credentials(token_hash,purpose,user_id,email,security_version,expires_at,return_app_id)
       values($1,$2,$3,$4,$5,now()+$6*interval '1 second',$7)`, [hash(raw), purpose, user?.id || null, address, user?.security_version || 1, credentialLifetime(purpose), returnAppId]);
     const fragment = purpose === 'invitation' ? 'invitation' : 'token';
-    const mailOptions = actionOrigin === this.config.origin ? this.config : { ...this.config, invitationOrigin: actionOrigin, invitationPath: route };
-    await queueMail(query, this.config, credentialMail(address, purpose, `${actionOrigin}${route}#${fragment}=${raw}`, lang, mailOptions));
+    await queueMail(query, this.config, credentialMail(address, purpose, `${this.config.origin}${route}#${fragment}=${raw}`, lang, this.config));
   }
   async invitationPreview(input: unknown) {
     if (typeof input !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(input)) return fail(400, 'invalid_invitation');
-    const [invitation] = await this.db.query(`select email from accounts.credentials where token_hash=$1
-      and purpose='invitation' and consumed_at is null and user_id is null and expires_at>now()`, [hash(input)]);
+    const [invitation] = await this.db.query(`select c.email,a.slug from accounts.credentials c
+      left join accounts.app_settings a on a.app_id=c.return_app_id and a.published
+      where c.token_hash=$1 and c.purpose='invitation' and c.consumed_at is null and c.user_id is null and c.expires_at>now()`, [hash(input)]);
     if (!invitation) return fail(400, 'invalid_invitation');
     // Possession of the high-entropy emailed credential permits this preview.
     // Never consume on preview: mail scanners and a page reload are not signup.
-    return { email: invitation.email as string };
+    return { email: invitation.email as string, app: (invitation.slug as string | null) || null };
   }
   async notifySuperadmins(query: Query, registered: { email: string; displayName: string }, appId: string | null) {
     const [app] = appId ? await query('select name from core.apps where id=$1 and deleted_at is null', [appId]) : [];
@@ -325,7 +324,7 @@ export class Accounts {
     // chooses the identity. Explicit mismatches also fail for direct API callers.
     if (preview && body.email !== undefined && email(body.email) !== address) return fail(400, 'invitation_email_mismatch');
     const returnAppId = this.config.surfaceAppId || requestedAppId || await this.registrationContinuation(body.continuation);
-    let invitationHash: string | null = null;
+    let invitationHash: string | null = null, invitationAppId: string | null = null;
     let phoneChallenge: Row | null = null;
     await this.db.limit(`register:${address}`, 3, 3600);
     await this.db.limit('register:aggregate', this.config.hourlyRegistrationLimit, 3600);
@@ -343,14 +342,17 @@ export class Accounts {
       }
       if (invited) {
         const [valid] = await q(`update accounts.credentials set consumed_at=now() where token_hash=$1 and purpose='invitation'
-          and email=$2 and expires_at>now() and consumed_at is null and user_id is null returning token_hash`, [hash(body.invitation), address]);
+          and email=$2 and expires_at>now() and consumed_at is null and user_id is null returning token_hash,return_app_id`, [hash(body.invitation), address]);
         if (!valid) return fail(400, 'invalid_invitation');
-        invitationHash = valid.token_hash;
+        invitationHash = valid.token_hash; invitationAppId = valid.return_app_id || null;
       }
     });
     const [existing] = await this.db.query('select id from auth.users where lower(email)=$1', [address]);
     if (existing) {
-      if (invitationHash) await this.db.query('update accounts.credentials set user_id=$2 where token_hash=$1 and user_id is null', [invitationHash, existing.id]);
+      if (invitationHash) await this.db.tx(async q => {
+        await q('update accounts.credentials set user_id=$2 where token_hash=$1 and user_id is null', [invitationHash, existing.id]);
+        if (invitationAppId) await this.grantAppAccess(q, existing.id, invitationAppId);
+      });
       // Never verify an existing account or replace its password through signup.
       if (invitationHash) return fail(409, 'account_exists');
       return { accepted: true, emailVerified: false };
@@ -373,6 +375,7 @@ export class Accounts {
       if (phoneChallenge) await this.sms.attach(q, created.id, phoneChallenge);
       if (!invitationHash) await this.credential(q, { id: created.id, security_version: 1 }, address, 'verification', lang, returnAppId);
       if (invitationHash) await q('update accounts.credentials set user_id=$2 where token_hash=$1 and user_id is null', [invitationHash, created.id]);
+      if (invitationAppId) await this.grantAppAccess(q, created.id, invitationAppId);
       if (this.config.surfaceAppId) await q('insert into accounts.product_registrations(user_id,app_id) values($1,$2) on conflict do nothing',[created.id,this.config.surfaceAppId]);
       await this.notifySuperadmins(q, { email: address, displayName: name }, returnAppId);
       await this.db.audit(q, null, created.id, 'registration', 'succeeded');
@@ -451,13 +454,19 @@ export class Accounts {
       where o.authorization_id=$1 and o.expires_at>now() and o.status='pending' and o.redirect_uri=oc.callback_url and a.published`, [id]);
     return app?.app_id || null;
   }
-  async registrationApp(slugInput: unknown): Promise<Row> {
-    const slug = text(slugInput, 80, true);
+  async registrationApp(slugInput: unknown, byId = false): Promise<Row> {
+    const key = text(slugInput, 80, true);
     const [app] = await this.db.query(`select a.app_id,a.slug,a.launch_url,c.name from accounts.app_settings a
-      join core.apps c on c.id=a.app_id where a.slug=$1 and a.published and a.join_policy<>'closed'
-      and c.status='ACTIVE' and c.deleted_at is null`, [slug]);
+      join core.apps c on c.id=a.app_id where ${byId ? 'a.app_id' : 'a.slug'}=$1 and a.published and a.join_policy<>'closed'
+      and c.status='ACTIVE' and c.deleted_at is null`, [key]);
     if (!app) return fail(403, 'registration_unavailable');
     return app;
+  }
+  // An invitation for an app is the admission: grant it as a manual entitlement.
+  async grantAppAccess(q: Query, userId: string, appId: string) {
+    await q(`insert into core.app_access(id,user_id,app_id,role) values($1,$2,$3,'USER') on conflict(user_id,app_id) do nothing`, [`aa_${randomUUID().replaceAll('-', '')}`, userId, appId]);
+    await q(`insert into accounts.entitlements(user_id,app_id,plan,source) select $1,$2,a.free_plan,'manual'
+      from accounts.app_settings a where a.app_id=$2 on conflict(user_id,app_id) do nothing`, [userId, appId]);
   }
   async registrationSurface(slugInput: unknown, originInput: unknown): Promise<Row> {
     if (typeof originInput !== 'string') return fail(403, 'invalid_origin');

@@ -46,7 +46,7 @@ test('product registration CORS exposes only the bounded anonymous flow', async 
 
   const session = await fetch(`${endpoint}/session?app=airsoft`, { headers: { Origin: productOrigin } });
   const state = await session.json();
-  assert.deepEqual(state, { csrfToken: 'csrf-anonymous-session', registrationMode: 'invitation' });
+  assert.deepEqual(state, { csrfToken: 'csrf-anonymous-session', registrationMode: 'invitation', passwordPolicy: { minLength: 6, maxBytes: 72 } });
   assert.match(session.headers.get('set-cookie'), /^developed_local=fixture/);
 
   const submit = await fetch(`${endpoint}/register?app=airsoft`, { method: 'POST', headers: {

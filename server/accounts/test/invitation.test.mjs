@@ -6,22 +6,25 @@ import { hash, HttpError } from '../dist/security.js';
 
 const invitation = 'a'.repeat(43), address = 'invited@example.invalid';
 const input = { invitation, email: address, password: 'a genuinely long test password', displayName: 'Invited', language: 'en' };
-function fixture({ mode = 'invitation', expired = false, consumed = false, existing = false, providerError = false } = {}) {
-  const calls = [], state = { consumed, userId: null };
+function fixture({ mode = 'invitation', expired = false, consumed = false, existing = false, providerError = false, app = null } = {}) {
+  const calls = [], state = { consumed, userId: null, grants: [] };
   const query = async (sql, args = []) => {
-    if (sql.startsWith('select email from accounts.credentials')) {
-      assert.match(sql, /consumed_at is null and user_id is null and expires_at>now\(\)/);
-      return !expired && !state.consumed && !state.userId && args[0] === hash(invitation) ? [{ email: address }] : [];
+    if (sql.startsWith('select c.email,a.slug from accounts.credentials c')) {
+      assert.match(sql, /c\.consumed_at is null and c\.user_id is null and c\.expires_at>now\(\)/);
+      return !expired && !state.consumed && !state.userId && args[0] === hash(invitation) ? [{ email: address, slug: app ? 'vocabulum' : null }] : [];
     }
     if (sql.includes('select registration_mode')) return [{ registration_mode: mode }];
     if (sql.startsWith('update accounts.credentials set consumed_at=now() where token_hash')) {
       assert.match(sql, /consumed_at is null and user_id is null/);
       if (expired || state.consumed || args[0] !== hash(invitation) || args[1] !== address) return [];
-      state.consumed = true; return [{ token_hash: args[0] }];
+      state.consumed = true; return [{ token_hash: args[0], return_app_id: app }];
     }
     if (sql.startsWith('select id from auth.users')) return existing ? [{ id: 'existing-user' }] : [];
     if (sql.startsWith('update accounts.credentials set user_id')) { state.userId = args[1]; return []; }
     if (sql.startsWith('insert into accounts.security_state') || sql.startsWith('update core.profiles')) return [];
+    if (sql.startsWith('insert into core.app_access') || sql.startsWith('insert into accounts.entitlements')) {
+      state.grants.push([sql.split(/[ (]/)[2], sql.startsWith('insert into core.app_access') ? args[1] : args[0], sql.startsWith('insert into core.app_access') ? args[2] : args[1]]); return [];
+    }
     throw new Error(`Unexpected fixture query: ${sql}`);
   };
   const db = { query, tx: async run => run(query), limit: async () => {}, audit: async () => {} };
@@ -40,8 +43,8 @@ function fixture({ mode = 'invitation', expired = false, consumed = false, exist
 
 test('invitation preview is non-consuming and reveals only the bound address', async () => {
   const f = fixture();
-  assert.deepEqual(await f.accounts.invitationPreview(invitation), { email: address });
-  assert.deepEqual(await f.accounts.invitationPreview(invitation), { email: address });
+  assert.deepEqual(await f.accounts.invitationPreview(invitation), { email: address, app: null });
+  assert.deepEqual(await f.accounts.invitationPreview(invitation), { email: address, app: null });
   assert.equal(f.state.consumed, false); assert.deepEqual(f.calls, []);
   for (const value of ['', null, 'x'.repeat(42), 'b'.repeat(43)]) {
     await assert.rejects(f.accounts.invitationPreview(value), error => error.code === 'invalid_invitation');
@@ -141,3 +144,21 @@ test('Airsoft signup no longer requires a phone proof; invitation admission rema
   const denied=fixture();
   await assert.rejects(denied.accounts.register({...input,invitation:undefined},'app_airsoft','anonymous-session'), error=>error.code==='invalid_invitation');
 });
+
+test('an app invitation names its app in the preview and admits the invitee to it', async () => {
+  const f = fixture({ app: 'app_vocabulum' });
+  assert.deepEqual(await f.accounts.invitationPreview(invitation), { email: address, app: 'vocabulum' });
+  assert.deepEqual(await f.accounts.register(input), { accepted: true, emailVerified: true });
+  assert.deepEqual(f.state.grants, [['core.app_access', 'new-user', 'app_vocabulum'], ['accounts.entitlements', 'new-user', 'app_vocabulum']]);
+  const plain = fixture();
+  await plain.accounts.register(input);
+  assert.deepEqual(plain.state.grants, []);
+});
+
+test('an app invitation to an existing account grants the app without touching the identity', async () => {
+  const f = fixture({ existing: true, app: 'app_vocabulum' });
+  await assert.rejects(f.accounts.register(input), error => error.code === 'account_exists');
+  assert.deepEqual(f.calls, []); assert.equal(f.state.userId, 'existing-user');
+  assert.deepEqual(f.state.grants, [['core.app_access', 'existing-user', 'app_vocabulum'], ['accounts.entitlements', 'existing-user', 'app_vocabulum']]);
+});
+

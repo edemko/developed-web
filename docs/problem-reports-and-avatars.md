@@ -1,7 +1,11 @@
 # Problem reports and profile avatars
 
 Source implementation across DevelopED and the seven connected web app repositories.
-Not deployed; no production data or mail delivery was used during validation.
+Central avatar/report code is live; the missing prerequisite migration was applied
+on 12 October 2026 after an isolated restore and HTTP/database rehearsal. See the
+[avatar repair checkpoint](../server/accounts/deploy/avatar-repair-checkpoint-20261012.md)
+for exact live pins, evidence and the Vocabulum sidebar fix. The original
+source-only validation notes below remain historical, not ecosystem-wide deployment evidence.
 
 My Clinic now has a separate implementation in `my-clinic`, with the same
 description, screenshot and source-page reporting flow to `info@developed.sk`.

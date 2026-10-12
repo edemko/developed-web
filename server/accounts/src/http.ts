@@ -114,6 +114,11 @@ function createSingleAccountServer(accounts: Accounts) {
         return res.end(method === 'HEAD' ? undefined : html);
       }
       const path = url.pathname.slice('/api/account'.length);
+      // Observe retirement traffic without recording query strings, credentials, IPs or bodies.
+      const legacyRoute = path.startsWith('/registration/') ? 'registration'
+        : path === '/internal/profile/password' ? 'product-password' : null;
+      if (legacyRoute) console.info(JSON.stringify({ event: 'legacy_password_api_request',
+        route: legacyRoute, method: ['GET', 'POST', 'OPTIONS'].includes(method) ? method : 'OTHER' }));
       // Service is loopback bound. No caller-supplied Forwarded header is trusted.
       // Production reverse proxy must also rate-limit clients before this boundary.
       const address = req.socket.remoteAddress || 'unknown';

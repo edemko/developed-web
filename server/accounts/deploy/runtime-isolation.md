@@ -27,9 +27,12 @@ deployment command. Recheck all live facts immediately before implementation.
 | Shared gateway | `supabase-kong` | loopback 8000/8443 | `kong`, `supabase_default` |
 | Shared database/pooler | `supabase-db`, `supabase-pooler` | DB internal5432; pooler loopback5432/6543 | `supabase_default`; Tailscale also has5432 listener |
 
-The host has systemd255. Node22.23.2 currently lives under openclaw's NVM home;
-`/usr/bin/node` does not exist. Do not install a unit referencing that absent
-binary or bypass `ProtectHome` by running the writable developer runtime.
+The host has systemd255. Services run the root-owned
+`/opt/developed-runtimes/node-v24.21.0/bin/node` (Node 24 since 2026-10-12; node-v22.23.2
+before). `/usr/bin/node` does not exist, and openclaw's NVM copies are for builds only: never
+reference a home-directory Node from a unit or bypass `ProtectHome` to run the writable
+developer runtime. Release-managed apps pin their runtime with `"node"` in
+`deploy/release/apps/<app>.json`; the release tool refuses a unit that names another runtime.
 
 `openclaw` is UID1000 and belongs to `sudo` and `docker`; Docker's socket is
 root:docker0660. Consequently an app running as this identity is potentially
@@ -194,7 +197,7 @@ post-enforcement rollback target.
 
 `ecosystem-app@.service` is a host-app skeleton, not a complete network boundary.
 The instance must be a reviewed short lowercase app name; its root-owned `start`
-launcher uses a reviewed Node22.23+ runtime outside home and the immutable release.
+launcher uses the reviewed root-owned Node runtime (24.21.0) outside home and the immutable release.
 Its service UID/group must already exist and have no privileged memberships.
 Each instance gets only its own `/etc/developed-apps/<app>.env`, root-owned0600;
 systemd reads it before dropping privileges. Runtime code must bind loopback.

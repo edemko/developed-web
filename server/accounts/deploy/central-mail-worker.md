@@ -1,10 +1,16 @@
 # Separate central mail worker — active after reviewed start
 
-Current API/mail pins and coordinated music activation are recorded in
+Current API/mail pins are recorded in the newest release checkpoint,
+[central-password-c1-checkpoint-20261012.md](central-password-c1-checkpoint-20261012.md):
+API release `9fde1f13808d…`, launcher bundle `mail-workers/9fde1f13808d…`, both on Node
+24.21.0 (`/opt/developed-runtimes/node-v24.21.0/bin/node`; the guard's `NODE` pin moved from
+node-v22.23.2 on 2026-10-12). Each central release that changes `API_RELEASE` or a hashed
+module (`mail.js`, `db.js`, `security.js`, `mail-templates.js`) gets a new launcher bundle
+and its own checkpoint. Coordinated music activation is recorded in
 [managed-music-checkpoint-20260921.md](managed-music-checkpoint-20260921.md).
-Earlier release/PID observations below are historical.
+Everything below is historical.
 
-Current2026-09-21 checkpoint: worker PID3525935 is active/enabled, using launcher
+Historical 2026-09-21 checkpoint: worker PID3525935 is active/enabled, using launcher
 bundle `/opt/developed-accounts/mail-workers/a4e05167f90cc5e5f28a871a324f54ab187ce7bc`.
 Its imported mail implementation and WorkingDirectory remain `releases/c561a81`;
 its independent API pin is `releases/ffefcf90c349cfe4154beed40febb5b3aa3c21b9`,

@@ -144,7 +144,8 @@ behind the restricted provider control-plane boundary.
 
 ## Local checks
 
-Node.js **22.23 or newer** is required. From the repository root:
+Node.js **24** is the platform runtime (24.21.0 since 2026-10-12); the suite also passes on 22.23+
+until Node 22 is retired. From the repository root:
 
 ```sh
 npm ci --ignore-scripts --prefix server/accounts
@@ -328,8 +329,8 @@ templates:
 - [developed-accounts.service](deploy/developed-accounts.service): dedicated
   non-login OS service user, resource limits, read-only filesystem and loopback
   Node service. Review the actual Node binary path before installation. This
-  VPS has a reviewed root-owned Node22.23.2 runtime at
-  `/opt/developed-runtimes/node-v22.23.2/bin/node`; the unit intentionally blocks
+  VPS has a reviewed root-owned Node 24.21.0 runtime at
+  `/opt/developed-runtimes/node-v24.21.0/bin/node` (node-v22.23.2 until 2026-10-12); the unit intentionally blocks
   home-directory access and requires the UID, bind and private-provider services.
 - [portal-routes.Caddyfile](deploy/portal-routes.Caddyfile): route additions
   inside the existing canonical site, preserving the separate marketing root

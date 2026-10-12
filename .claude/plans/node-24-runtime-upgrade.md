@@ -1,14 +1,9 @@
 # Node 24 runtime upgrade (DevelopED platform): implementation plan
 
-**Status:** in progress — Phases P and 0–4 done (2026-10-12): every live service runs Node
-24.21.0. End-to-end checks passed, auto-deploys were unpaused at 11:02, and the first real auto-deploys
-built on Node 24 (AMP, Vocabulum, kestrek, otazkomat). Still owed:
-- Phase 6 docs;
-- the `vps-maintenance` reschedule;
-- Phase 7 (not before 2026-10-26). Prepared and reviewed against the live host; refreshed 22:54
-against the release tool at origin/main 6052e4e. It replaces the draft committed in f5fe96c
-(`.claude/plans/node-24-runtime-upgrade.md`). Tick the boxes and fill in the Execution log as you
-go.
+**Status:** Phases P and 0–6 done (2026-10-12). Every live service runs Node 24.21.0, and
+auto-deploys on 24 are proven for six apps. Still open:
+- the `vps-maintenance` reschedule (Erik);
+- **Phase 7** (retire Node 22), not before 2026-10-26, in a separate session.
 
 ## Context
 
@@ -998,7 +993,7 @@ through the switched `ExecReload` line.
 
 ## Phase 6: Docs
 
-- [ ] **developed-web current-state docs.** Update:
+- [x] **developed-web current-state docs.** Update:
   - `server/accounts/README.md:147,331-332`
   - `deploy/runtime-isolation.md:30,197` (line 30 is stale: Node is no longer under nvm home)
   - `deploy/central-runtime.md:11`
@@ -1008,7 +1003,7 @@ through the switched `ExecReload` line.
   In `central-runtime.md`, add a note that `install-central-runtime-guards.mjs` and
   `seal-tailscale-runtime-sockets.mjs` are single-use operators pinned to 22, kept as history. Leave
   dated checkpoints and operator worksheets unchanged. Commit and push **(ask)**.
-- [ ] **Workspace:**
+- [x] **Workspace:**
   - Add a new recipe `~/workspace/docs/config/node-24-runtime-upgrade.md` (Problem/Goal · Steps ·
     Verification · Related files, dated, with the Node version), and link it from the README index.
   - Add the `node` field and the runtime gate to `config/developed-release-tool.md`.
@@ -1238,4 +1233,22 @@ follow-ups such as the vocabulum and airsoft repo docs still saying Node 22.)
     `mega-music-session-cleanup-7379b8d1f86f` has `nodePath` v24 and the v24 drop-in, and the job
     ran `ownerCheckPassed`, `cleanupCompleted`, `Result=success`. kestrek's worker passed
     `ownershipVerified` again. ALL-HEALTH matched.
+- **Phase 6 (2026-10-12):**
+  - developed-web docs:
+    - `server/accounts/README.md`: local checks name Node 24, and the runtime path is v24;
+    - `deploy/central-runtime.md`: Node v24, plus the note that the single-use operators still
+      pin 22;
+    - `deploy/runtime-isolation.md:30`: the stale "Node lives under NVM home" is replaced with
+      the root-owned v24 runtime and the per-app `"node"` gate; `:197` names 24.21.0;
+    - `deploy/central-mail-worker.md`: "current" now points at
+      `central-password-c1-checkpoint-20261012.md` (API and launcher `9fde1f13…`, Node 24);
+      the older checkpoints are labelled historical.
+  - Workspace:
+    - new `docs/config/node-24-runtime-upgrade.md`, indexed;
+    - `config/developed-release-tool.md` gained the `node` field and runtime gate.
+  - **Deviations:**
+    - `operators/central-superadmin-bootstrap.md` is unchanged: it is a dated worksheet for a
+      completed one-time operation, and dated worksheets stay as history.
+    - The disk-maintenance change is in the new recipe, because
+      `vps-maintenance-2026-09-12.md` never described that script.
 

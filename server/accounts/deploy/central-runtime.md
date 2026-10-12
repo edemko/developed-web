@@ -8,7 +8,10 @@ OAuth-client registration or product activation belongs to this operation.
 ## Fixed deployment inputs
 
 - Runtime UID/GID: `developed-accounts`, UID988; no login shell, sudo or Docker.
-- Node: `/opt/developed-runtimes/node-v22.23.2/bin/node`, root-owned.
+- Node: `/opt/developed-runtimes/node-v24.21.0/bin/node`, root-owned (node-v22.23.2 until
+  2026-10-12; `.claude/plans/node-24-runtime-upgrade.md`). The single-use operators
+  `install-central-runtime-guards.mjs` and `seal-tailscale-runtime-sockets.mjs` still pin
+  node-v22.23.2 and are kept as history; repin them before any rerun once Node 22 is retired.
 - Application: `/opt/developed-accounts/releases/c561a81/`; only
   `dist`, `public`, `package.json`, `package-lock.json`, production `node_modules`.
 - Environment: `/etc/developed-accounts/accounts.env`, root-owned0600.

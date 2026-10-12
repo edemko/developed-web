@@ -1,5 +1,9 @@
 # Central password retirement observation — 12 October 2026
 
+A later [UI-only Vocabulum callback repair](vocabulum-callback-checkpoint-20261012.md)
+repins the API/worker while preserving this exact backend and logger. Include
+main commit `14f381f` in any future prepared C2 artifact to avoid regressing mobile login.
+
 Live API release and worker launcher pin:
 `44d932828a74edab10e72afa7fb6129a0c5e8106` on Node 24.21.0.
 Source branch: `release/central-password-observation-20261012`; main equivalent

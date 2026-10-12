@@ -34,7 +34,6 @@ function fixture({ mode = 'invitation', expired = false, consumed = false, exist
     return { id: 'new-user', email: args[0] };
   } };
   const accounts = new Accounts(db, provider, { hourlyRegistrationLimit: 20 });
-  accounts.sms = { consume: async () => ({ id: 'verified-phone' }), attach: async () => {} };
   accounts.registrationContinuation = async () => null;
   accounts.credential = async (...args) => calls.push({ mailPurpose: args[3] });
   return { accounts, calls, state };
@@ -128,10 +127,9 @@ test('provider creation defaults unconfirmed and sends explicit invite-only conf
 
 test('Airsoft signup no longer requires a phone proof; invitation admission remains enforced', async () => {
   const f=fixture();
-  f.accounts.sms.consume=async () => { throw new Error('signup must not require SMS'); };
-  assert.deepEqual(await f.accounts.register(input,'app_airsoft','anonymous-session'), {accepted:true,emailVerified:true});
+  assert.deepEqual(await f.accounts.register(input,'app_airsoft'), {accepted:true,emailVerified:true});
   const denied=fixture();
-  await assert.rejects(denied.accounts.register({...input,invitation:undefined},'app_airsoft','anonymous-session'), error=>error.code==='invalid_invitation');
+  await assert.rejects(denied.accounts.register({...input,invitation:undefined},'app_airsoft'), error=>error.code==='invalid_invitation');
 });
 
 test('an app invitation names its app in the preview and admits the invitee to it', async () => {

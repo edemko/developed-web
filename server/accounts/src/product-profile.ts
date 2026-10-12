@@ -1,7 +1,7 @@
 import { createHmac, randomInt, randomUUID } from 'node:crypto';
 import type { Accounts } from './accounts.js';
 import type { Row, Query } from './db.js';
-import { email, equal, fail, line, password, seal, text, unseal, uuid } from './security.js';
+import { email, equal, fail, line, seal, text, unseal, uuid } from './security.js';
 
 
 export function contactPhone(input: unknown) {
@@ -72,18 +72,11 @@ export class ProductProfile {
         where id=$1 returning *`, [id,result.status,result.errorCode ?? null]);
       return this.challengeInfo(updated!);
     }
-    if (action === 'password' || action === 'email') {
+    if (action === 'email') {
       await a.db.limit(`identity:${user.id}`, 10, 3600);
-      const nextPassword = action === 'password' ? password(body.password) : null;
-      const nextEmail = action === 'email' ? email(body.email) : null;
+      const nextEmail = email(body.email);
       const auth = await a.checkPassword(user, body.currentPassword, body.code, body.factorId);
       await a.provider.logout(auth.access_token, 'local');
-      if (nextPassword) {
-        await a.mutateIdentity(user.id, user.id, 'password_change', { password: nextPassword }, async q => {
-          await q('update accounts.security_state set require_password_change=false where user_id=$1', [user.id]);
-        }, { version: String(user.security_version), email: user.email });
-        return { ok: true, loginRequired: true };
-      }
       await a.db.tx(async q => { await this.locked(q, user); await a.credential(q, user, nextEmail!, 'email_change', user.language, 'app_airsoft'); });
       return { accepted: true };
     }

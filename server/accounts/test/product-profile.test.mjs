@@ -17,7 +17,7 @@ test('product account writes require central subject, web client and app binding
   }
 });
 
-test('email remains pending and password uses the central revoking identity mutation after reauthentication', async () => {
+test('email remains pending after central reauthentication', async () => {
   const user = { id: '11111111-1111-4111-8111-111111111111', email: 'old@example.test', security_version: 4, language: 'sk' };
   const calls = [];
   const query = async sql => sql.startsWith('select *') ? [user] : [];
@@ -37,10 +37,8 @@ test('email remains pending and password uses the central revoking identity muta
   assert.equal(calls.some(c => c[0] === 'mutate'),false);
   assert.deepEqual(calls.at(-1),['pending',user.id,'new@example.test','email_change','app_airsoft']);
   calls.length=0;
-  assert.deepEqual(await service.handle('key','password',{password:'a new long password',currentPassword:'old-secret',code:'123456'}),{ok:true,loginRequired:true});
-  assert.equal(calls[0][0],'reauth');
-  assert.equal(calls[1][0],'logout');
-  assert.deepEqual(calls[2],['mutate',user.id,user.id,'password_change',{password:'a new long password'}]);
+  await assert.rejects(service.handle('key','password',{}), e => e.code === 'not_found');
+  assert.equal(calls.length,0);
   a.checkPassword=async()=>{throw new Error('invalid credentials');}; calls.length=0;
   await assert.rejects(service.handle('key','email',{email:'new@example.test',currentPassword:'bad'}));
   assert.equal(calls.length,0);

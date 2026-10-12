@@ -31,7 +31,7 @@ test('environment transform changes exactly one marketing value and never expose
 test('mail worker drop-in changes only two command lists; no hardening, environment or lifecycle overrides', () => {
   const dropIn = mailWorkerDropIn(revision);
   assert.equal(dropIn.split('\n').filter(Boolean).length, 5);
-  assert.match(dropIn, /ExecStartPre=\+\/opt\/developed-runtimes\/node-v22\.23\.2\/bin\/node /);
+  assert.match(dropIn, /ExecStartPre=\+\/opt\/developed-runtimes\/node-v24\.21\.0\/bin\/node /);
   assert.match(dropIn, new RegExp(`/opt/developed-accounts/mail-workers/${revision}/central-mail-worker-guard\\.mjs`));
   assert.doesNotMatch(dropIn, /Environment|LoadCredential|PartOf|WorkingDirectory|User=|Group=|InaccessiblePaths|Protect|Restart=/);
 });

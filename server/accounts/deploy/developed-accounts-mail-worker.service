@@ -13,8 +13,8 @@ Group=developed-accounts
 WorkingDirectory=/opt/developed-accounts/releases/c561a81
 Environment=NODE_ENV=production
 LoadCredential=mail.json:/etc/developed-accounts/mail-worker.json
-ExecStartPre=+/opt/developed-runtimes/node-v22.23.2/bin/node /opt/developed-accounts/mail-worker/central-mail-worker-guard.mjs
-ExecStart=/opt/developed-runtimes/node-v22.23.2/bin/node /opt/developed-accounts/mail-worker/central-mail-worker.mjs
+ExecStartPre=+/opt/developed-runtimes/node-v24.21.0/bin/node /opt/developed-accounts/mail-worker/central-mail-worker-guard.mjs
+ExecStart=/opt/developed-runtimes/node-v24.21.0/bin/node /opt/developed-accounts/mail-worker/central-mail-worker.mjs
 Restart=no
 TimeoutStartSec=30s
 TimeoutStopSec=100s

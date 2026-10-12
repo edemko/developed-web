@@ -9,8 +9,8 @@ Type=oneshot
 RemainAfterExit=yes
 User=root
 UMask=0077
-ExecStart=/opt/developed-runtimes/node-v22.23.2/bin/node /opt/developed-control/network/bind-boundary.mjs --apply
-ExecReload=/opt/developed-runtimes/node-v22.23.2/bin/node /opt/developed-control/network/bind-boundary.mjs --apply
+ExecStart=/opt/developed-runtimes/node-v24.21.0/bin/node /opt/developed-control/network/bind-boundary.mjs --apply
+ExecReload=/opt/developed-runtimes/node-v24.21.0/bin/node /opt/developed-control/network/bind-boundary.mjs --apply
 # No ExecStop: stopping this loader must not remove kernel protection.
 NoNewPrivileges=yes
 ProtectHome=yes

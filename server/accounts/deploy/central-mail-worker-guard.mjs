@@ -10,7 +10,7 @@ export const RELEASE = '/opt/developed-accounts/releases/c00df88';
 // Both pins use the reviewed branded-music implementation; the separate worker
 // retains its restricted inputs and remains the only mail sender.
 export const API_RELEASE = '/opt/developed-accounts/releases/c00df8808ab6c1b25ad7409681eca943e23d9a45';
-export const NODE = '/opt/developed-runtimes/node-v22.23.2/bin/node';
+export const NODE = '/opt/developed-runtimes/node-v24.21.0/bin/node';
 export const moduleHashes = {
   'mail.js': '0b731e52a225673135cabf0696ef78fa3b399b9d5d79c18c97696a958f8a5a8f',
   'db.js': '0a786d9ad05ae2562d7d2e90ed1126595a580613f28504fa232e9d85d41408f3',

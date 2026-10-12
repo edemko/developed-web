@@ -9,7 +9,7 @@ export const OLD_MARKETING = '/opt/developed-accounts/marketing/initial-20260920
 export const OLD_RELEASE = '/opt/developed-accounts/releases/c561a81';
 export const OLD_PIDS = { api: 3197193, mail: 700440, caddy: 862 };
 export const WORKER_FILES = ['central-mail-worker.mjs', 'central-mail-worker-input.mjs', 'central-mail-worker-guard.mjs'];
-const NODE = '/opt/developed-runtimes/node-v22.23.2/bin/node';
+const NODE = '/opt/developed-runtimes/node-v24.21.0/bin/node';
 const digest = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 function requireKeys(value, expected, message) {

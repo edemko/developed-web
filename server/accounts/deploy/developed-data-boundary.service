@@ -12,7 +12,7 @@ Group=developed-data-boundary
 WorkingDirectory=/opt/developed-control/data-boundary
 EnvironmentFile=/etc/developed-accounts/data-boundary.env
 Environment=DATA_BOUNDARY_PORT=3143
-ExecStart=/opt/developed-runtimes/node-v22.23.2/bin/node /opt/developed-control/data-boundary/public-data-boundary.mjs
+ExecStart=/opt/developed-runtimes/node-v24.21.0/bin/node /opt/developed-control/data-boundary/public-data-boundary.mjs
 Restart=on-failure
 RestartSec=3
 UMask=0077

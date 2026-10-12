@@ -14,6 +14,7 @@ import { log, ReleaseError, run, sudo, sudoTest } from './lib/sh.mjs';
 import { switchSides } from './lib/switch.mjs';
 import { adoptWebSymlink } from './lib/adopt.mjs';
 import { checks } from './hooks/index.mjs';
+import { centralPendingPath } from './lib/central-accounts.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const STATE = `${HOME}/.local/state/developed-release`;
@@ -52,8 +53,14 @@ function assess(config, { commit, auto = false, flags = {} }) {
   const live = probe(config);
   const sides = {};
   let migrationsChanged = false;
+  let protectedChanged = false;
   for (const [name, side] of Object.entries(config.sides)) {
-    const liveSource = live[name].source;
+    // The central legacy releases can be overlays named after several commits.
+    // A hex token in that name is not evidence that the full tree was built from
+    // the token. Require a sealed tool manifest before comparing commits.
+    const sealedCentral = config.app === 'developed-accounts'
+      && !sudoTest('-f', `${live[name].dir}/release-manifest.json`);
+    const liveSource = sealedCentral ? null : live[name].source;
     const contained = Boolean(liveSource) && git.isAncestor(config.repo, liveSource, target);
     sides[name] = {
       liveSource,
@@ -63,11 +70,13 @@ function assess(config, { commit, auto = false, flags = {} }) {
       manual: side.switch.type === 'manual',
     };
     if (contained && git.changed(config.repo, liveSource, target, config.migrationPaths ?? [])) migrationsChanged = true;
+    if (contained && git.changed(config.repo, liveSource, target, config.autoManualPaths ?? [])) protectedChanged = true;
   }
   const state = readState(config.app);
   const decision = decide({
     auto,
     migrationsChanged,
+    protectedChanged,
     migrationsApplied: Boolean(flags['migrations-applied']),
     force: Boolean(flags.force),
     heldAttempts: state.target === target ? state.attempts ?? 0 : 0,
@@ -106,6 +115,8 @@ async function deploy(app, opts) {
 
 async function deployUnlocked(app, { commit, auto = false, flags = {} }) {
   const config = loadApp(app);
+  if (app === 'developed-accounts' && existsSync(centralPendingPath))
+    throw new ReleaseError(`unfinished central switch: ${centralPendingPath}`);
   if (!config.onboarded) throw new ReleaseError(`${app} is not onboarded:\n  - ${config.blockers.join('\n  - ')}`);
   if (auto && !config.auto) return;
   // Timer runs: when origin has not moved since a settled decision, do nothing (no sudo probes).
@@ -199,7 +210,8 @@ function status(apps) {
         if (l.error) { console.log(`  ${name.padEnd(4)} ? ${l.error}`); continue; }
         const behind = info.liveSource && info.liveContained ? git.countBetween(config.repo, info.liveSource, target) : null;
         const ahead = info.liveSource && !info.liveContained ? git.countBetween(config.repo, target, info.liveSource) : 0;
-        const where = behind === null ? `live-only commits: ${ahead}` : `${behind} behind`;
+        const where = !info.liveSource ? 'unsealed live release'
+          : behind === null ? `live-only commits: ${ahead}` : `${behind} behind`;
         console.log(`  ${name.padEnd(4)} ${l.release} (${short(info.liveSource)}) ${l.unit ?? ''} — ${where}`);
       }
       console.log(`  next: ${decision.action} — ${decision.reason}`);

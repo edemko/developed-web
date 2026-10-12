@@ -17,6 +17,7 @@ export const runtimeNode = (config) => `/opt/developed-runtimes/node-v${nodeVers
 export function switchUnit(side) {
   if (side.switch?.type === 'instance-swap') return side.switch.unit.replace('{release}', '');
   if (side.switch?.type === 'symlink-restart') return side.switch.unit;
+  if (side.switch?.type === 'central-accounts') return side.switch.unit;
   return null;
 }
 

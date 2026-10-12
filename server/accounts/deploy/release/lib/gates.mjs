@@ -4,6 +4,7 @@
 //   auto: boolean,                 // true when triggered by the poll timer
 //   migrationsChanged: boolean,    // migration paths differ between any live side and target
 //   migrationsApplied: boolean,    // operator confirmed migrations were applied by hand
+//   protectedChanged: boolean,     // changed files that require a reviewed manual release
 //   force: boolean,                // switch sides even when their paths did not change
 //   heldAttempts: number,          // failed auto attempts already recorded for this target
 //   sides: { [name]: { liveSource: string|null, liveContained: boolean, changed: boolean,
@@ -19,6 +20,9 @@ export function decide(input) {
 
   if (input.auto && input.heldAttempts >= MAX_AUTO_ATTEMPTS) {
     return skip(`target failed ${input.heldAttempts} times; held until a new commit lands`);
+  }
+  if (input.auto && input.protectedChanged) {
+    return block('protected central account paths changed — use a coordinated manual release');
   }
 
   const selected = [];

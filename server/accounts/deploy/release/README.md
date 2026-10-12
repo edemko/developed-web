@@ -44,7 +44,8 @@ Run from a checkout (`node developed-release.mjs …`) or from the frozen instal
 
 Strategies: `web-symlink` (atomic symlink a Caddy root points at, + Cloudflare purge, no reload),
 `instance-swap` (single owner: stop `x@old`, start `x@new`, health, hooks, enable/disable — never
-two processes), `symlink-restart` (repoint `current`, restart one unit), `manual` (probe only).
+two processes), `symlink-restart` (repoint `current`, restart one unit), `central-accounts`
+(coordinated API and sole mail worker switch), `manual` (probe only).
 Hooks (`hooks/`) handle app-specific pins, e.g. `kestrek-notifications` reinstalls the worker's
 ownership guard pinned to the new API unit and points a drop-in at it.
 
@@ -56,6 +57,33 @@ with `"auto": true`. Pause everything without touching configs:
 `sudo touch /etc/developed-apps/developed-release-paused`. Results/failures go to ntfy
 (`http://127.0.0.1:8080/claude-sessions`, override with `DEVELOPED_RELEASE_NTFY`); history in
 `~/.local/state/developed-release/history.log`; logs via `journalctl --user -u developed-release-poll`.
+
+### Central accounts
+
+The central identity service uses Node 24.21.0 and a root-owned API release plus a separately
+pinned root-owned mail worker. Its config is currently `"auto": false`. A first reviewed release
+must go through this tool while no other central release is in progress. Only then may a reviewed
+config commit set `"auto": true` and reinstall the frozen tool. The poll timer already exists;
+no second timer or webhook is needed.
+
+Automatic central releases are limited to public UI changes. The tool refuses the existing
+overlaid legacy release because its name does not prove a complete source commit; a first
+reviewed, sealed release is a prerequisite. Changes in `src`, package files,
+mail-worker files or migrations block the automatic path and require a coordinated manual release.
+Even a manual release refuses to re-pin the worker if the compiled mail, database, security or
+template modules, or its music logo, differ from the live API. Review and release such changes
+with the central mail-worker procedure before using this strategy. The browser UI fixture runs
+with the Node tests for every built central candidate. An automatic run also requires the live
+source to be an ancestor of `origin/main`; reconcile live-only release commits first.
+
+The switch writes `~/.local/state/developed-release/developed-accounts.pending.json` before
+stopping the worker. A failed rollback or interrupted process leaves this receipt in place and
+blocks all further central deploys. To recover, inspect the receipt, actual API symlink,
+`systemctl` state, worker drop-in and worker process pins. Restore the receipt's `previousApi`,
+`previousDropIn` and `previousBundle` with the same single-worker stop/restart order, check
+loopback and public health, and only then remove the receipt. Preserve the previous API release
+and worker bundle until recovery and rollback checks are complete. Never remove the receipt to
+make a failed poll retry without reconciling the running processes.
 
 Legacy per-app autodeploys (`kestrek-autodeploy`, `screentime-autodeploy`) stay frozen behind their
 root guards; this tool never touches them. mega-music's GitHub SSH deploy was retired on 2026-10-11
@@ -85,7 +113,7 @@ drop-ins to the same runtime. `install.sh` runs the tool itself on the Node in i
 | screentime | **auto** (2026-10-11) | 5c6e178 (8bd3dca reports + package-aware app-update, support widget) released by the tool; webpack build, both central flags baked true |
 | airsoft | **auto** (2026-10-11) | release branches merged into main; template unit `developed-airsoft@<rev12>` on 3162 replaces the include chain; first tool release c7c48752edf5 |
 | vocabulum | **auto** (2026-10-11) | release branches merged into main; template unit `developed-vocabulum@<rev12>` on 3161 replaces six per-feature units; first tool release 0bc488780106 |
-| developed-accounts | manual-only by policy | identity provider; coordinated releases |
+| developed-accounts | onboarded, auto disabled | identity provider; first coordinated tool release and live-branch reconciliation pending |
 
 `status` re-derives the live/behind/blocked picture at any time; the blockers live in each
 `apps/<app>.json`. To onboard an app: fill `steps`/`artifacts`/`health`, set `"onboarded": true`,

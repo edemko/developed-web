@@ -1,22 +1,55 @@
 {
   "app": "developed-accounts",
-  "onboarded": false,
+  "onboarded": true,
   "auto": false,
-  "blockers": [
-    "central identity provider for every app — manual-only by policy (README, final-cutover-sequence.md)",
-    "released from release/* branches with candidate port 3180, mail-worker drain and pin update, DB backup + restore rehearsal"
+  "node": "24.21.0",
+  "notes": [
+    "Keep auto disabled until a reviewed release through this tool is live and the other central release session is finished.",
+    "Routine public UI changes may auto-deploy after activation. Source, dependencies, migrations, and worker changes require a coordinated manual release.",
+    "The central switch drains and re-pins the sole mail worker with the API. It refuses changed mail-worker modules or logo."
   ],
   "repo": "/home/openclaw/Dev/developed-web",
   "branch": "main",
   "releaseRoot": "/opt/developed-accounts/releases",
+  "protect": ["502a7048ac639fe61ba8b95b0834fdaeafe0cc8b"],
   "runtimeUser": "developed-accounts",
-  "archivePaths": ["server/accounts"],
+  "archivePaths": ["."],
   "migrationPaths": ["server/accounts/migrations"],
+  "autoManualPaths": [
+    "server/accounts/src", "server/accounts/package.json", "server/accounts/package-lock.json",
+    "server/accounts/deploy/central-mail-worker.mjs", "server/accounts/deploy/central-mail-worker-input.mjs",
+    "server/accounts/deploy/central-mail-worker-guard.mjs", "server/accounts/migrations"
+  ],
+  "keepReleases": 1,
   "sides": {
     "api": {
-      "paths": ["server/accounts"],
-      "live": { "kind": "symlink", "path": "/opt/developed-accounts/current" },
-      "switch": { "type": "manual" }
+      "paths": ["server/accounts/src", "server/accounts/public", "server/accounts/package.json", "server/accounts/package-lock.json"],
+      "steps": [
+        "cd server/accounts",
+        "npm ci --ignore-scripts --no-audit --no-fund",
+        "npm test",
+        "PLAYWRIGHT_MODULE=\"$PWD/node_modules/playwright/index.mjs\" node --test test/ui.browser.test.mjs",
+        "npm prune --omit=dev --ignore-scripts --no-audit --no-fund"
+      ],
+      "artifacts": [
+        { "from": "server/accounts/dist", "to": "dist" },
+        { "from": "server/accounts/public", "to": "public" },
+        { "from": "server/accounts/node_modules", "to": "node_modules" },
+        { "from": "server/accounts/package.json", "to": "package.json" },
+        { "from": "server/accounts/package-lock.json", "to": "package-lock.json" }
+      ],
+      "verify": ["dist/main.js", "public/index.html", "public/music-logo.png", "node_modules/pg/package.json"],
+      "switch": {
+        "type": "central-accounts",
+        "link": "/opt/developed-accounts/current",
+        "unit": "developed-accounts.service",
+        "workerUnit": "developed-accounts-mail-worker.service",
+        "workerDropIn": "/etc/systemd/system/developed-accounts-mail-worker.service.d/browser-family-release.conf"
+      },
+      "health": [
+        { "url": "http://127.0.0.1:3140/health", "headers": ["Host: www.developed.sk"], "status": 200 },
+        { "url": "https://www.developed.sk/login", "status": 200 }
+      ]
     }
   }
 }

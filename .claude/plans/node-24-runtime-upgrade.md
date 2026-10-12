@@ -1,8 +1,9 @@
 # Node 24 runtime upgrade (DevelopED platform): implementation plan
 
 **Status:** in progress — Phases P and 0–4 done (2026-10-12): every live service runs Node
-24.21.0. Waiting on Erik's end-to-end checks, the eight `node24-runtime` app-repo merges and the
-Phase 5 unpause. Prepared and reviewed against the live host; refreshed 22:54
+24.21.0. End-to-end checks passed and auto-deploys were unpaused at 11:02. Still owed: the first real
+Node 24 auto-deploy, the eight `node24-runtime` app-repo merges, Phase 6 docs and the
+maintenance reschedule. Prepared and reviewed against the live host; refreshed 22:54
 against the release tool at origin/main 6052e4e. It replaces the draft committed in f5fe96c
 (`.claude/plans/node-24-runtime-upgrade.md`). Tick the boxes and fill in the Execution log as you
 go.
@@ -978,7 +979,7 @@ through the switched `ExecReload` line.
 
 ## Phase 5: Unpause and prove auto-deploy on 24
 
-- [ ] Run `sudo rm /etc/developed-apps/developed-release-paused`.
+- [x] Run `sudo rm /etc/developed-apps/developed-release-paused`.
 - [ ] On the next real merge to any tool-managed app, follow
   `journalctl --user -u developed-release-poll -f`. Check:
   - the log says "on Node 24.21.0";
@@ -1200,4 +1201,14 @@ follow-ups such as the vocabulum and airsoft repo docs still saying Node 22.)
     ce1ef53, vocabulum 43244a5.
   - Erik still has to hear about the misrouted peer note (airsoft f906ca3 carried SMS v1 work
     live at 19:50 on 2026-10-11).
+- **End-to-end (11:00):** Erik signed in through central login and received a password-reset
+  mail. He waived the Mega Music and JASOM YouTube tests (experimental features).
+- **Phase 5:** pause file removed at 11:02:48. The 11:06 poll skipped every app. The queue named
+  above was wrong: those commits came from a `--force` dry-run, and none of them touch side
+  `paths`. The first real Node 24 auto-deploy is still owed: the next merge that touches an app
+  (the AMP password change or the `node24-runtime` merges).
+- **Central release at 11:06, outside this plan:** the password minimum is now 6, with
+  `current` → `ae87c89…` and the worker on `mail-workers/ae87c89…`. Details in
+  `server/accounts/deploy/password-policy-checkpoint-20261012.md`. It ran on Node 24, and the
+  worker guard passed.
 

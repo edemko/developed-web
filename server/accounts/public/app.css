@@ -29,6 +29,7 @@ p { line-height: 1.65; }
 .eyebrow { text-transform: uppercase; color: var(--accent); letter-spacing: .16em; font-size: .75rem; font-weight: 650; }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: .75rem; padding: 1.6rem; margin-block: 1.5rem; }
 .login-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(340px, .9fr); gap: clamp(2rem, 6vw, 6rem); align-items: center; min-height: min(680px, calc(100dvh - 230px)); }
+/* Keep the shared account explanation adjacent to the sign-in form. */
 .login-story { position: relative; padding: 2rem 0 2rem 1.5rem; border-left: 2px solid var(--primary-light); }
 .login-story::before { content: ''; position: absolute; z-index: -1; width: min(520px, 90%); aspect-ratio: 1; top: -7rem; left: -5rem; border-radius: 50%; background: radial-gradient(circle, #4f46e527, transparent 68%); pointer-events: none; }
 .login-story h1 { max-width: 650px; font-size: clamp(2.4rem, 5vw, 4.6rem); line-height: 1.06; }

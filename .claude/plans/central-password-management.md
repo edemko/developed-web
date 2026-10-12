@@ -1,6 +1,6 @@
 # One DevelopED password: shared rule, managed only on developed.sk
 
-**Status:** in progress (started 2026-10-12). Phase C0 done; C1 next.
+**Status:** in progress (started 2026-10-12). Phases C0 and C1 done; A, V and O next.
 
 ## Context
 
@@ -373,3 +373,13 @@ Prerequisite: C1 is live.
   - Erik's decisions recorded above.
 - Three read-only audits (AMP and Vocabulum; kestrek and myclinic; the rest plus central) give the
   findings above. Central auth flags were confirmed on for AMP and Vocabulum.
+- **C1** live at 11:21:55 as release `9fde1f13808d…` (branch `release/central-password-20261012`).
+  See `deploy/central-password-c1-checkpoint-20261012.md`.
+  - **Deviation:** invitation links stay `/register#invitation=…` with no `?app=`. The mail
+    templates reject a query string in credential links, and changing `mail-templates.js` would
+    move a mail-worker pin. The invitation preview returns the app instead.
+  - Entitlement source is `manual`, because the check constraint has no `invitation`.
+  - Verified after cutover: `passwordPolicy` in both session payloads; the UI reads it;
+    `/register?app=airsoft` returns 200; the AMP embedded session still returns 200; the internal
+    invitations route returns 401 without a valid app key; ALL-HEALTH matched.
+

@@ -51,8 +51,12 @@ export function email(value: unknown): string {
     || labels.at(-1)!.length < 2 || /^[0-9]+$/.test(labels.at(-1)!)) return fail(400, 'invalid_email');
   return clean;
 }
+// The one password rule for every DevelopED app. Apps never copy it: they send people
+// to this service. GoTrue (bcrypt) refuses anything over 72 bytes, so the cap is bytes.
+export const PASSWORD_POLICY = Object.freeze({ minLength: 6, maxBytes: 72 });
 export function password(value: unknown): string {
-  if (typeof value !== 'string' || value.length < 6 || value.length > 128) return fail(400, 'weak_password');
+  if (typeof value !== 'string' || value.length < PASSWORD_POLICY.minLength
+    || Buffer.byteLength(value, 'utf8') > PASSWORD_POLICY.maxBytes) return fail(400, 'weak_password');
   return value;
 }
 export function passwordInput(value: unknown): string {

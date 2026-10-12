@@ -3,13 +3,14 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { Accounts, type Context } from './accounts.js';
-import { diagnostics, email, equal, fail, hash, HttpError, language, line, password, text, uuid } from './security.js';
+import { diagnostics, email, equal, fail, hash, HttpError, language, line, password, PASSWORD_POLICY, text, uuid } from './security.js';
 import type { Row } from './db.js';
 import { Mfa } from './mfa.js';
 import { catalogApp } from './catalog.js';
 import { oauthBroker } from './oauth-broker.js';
 import { logoutNativeSession } from './native-logout.js';
 import { ProductProfile } from './product-profile.js';
+import { appInvitation } from './app-invitations.js';
 
 const assets = new Map<string, [string, string]>([
   ['app.js', ['app.js', 'text/javascript']], ['i18n.js', ['i18n.js', 'text/javascript']],
@@ -144,7 +145,7 @@ function createSingleAccountServer(accounts: Accounts) {
         if (ctx.cookie) res.setHeader('Set-Cookie', ctx.cookie);
         if (registrationPath[1] === 'session' && method === 'GET') {
           const [settings] = await accounts.db.query('select registration_mode from accounts.settings where singleton');
-          return json(res, { csrfToken: accounts.csrf(ctx.session), registrationMode: settings!.registration_mode });
+          return json(res, { csrfToken: accounts.csrf(ctx.session), registrationMode: settings!.registration_mode, passwordPolicy: PASSWORD_POLICY });
         }
         if (method !== 'POST') return fail(405, 'method_not_allowed');
         if (req.headers['sec-fetch-site'] === 'cross-site'
@@ -167,6 +168,12 @@ function createSingleAccountServer(accounts: Accounts) {
           await accounts.sendCredential(data.email, false); return json(res, { accepted: true });
         }
         return json(res, await accounts.register(data, app.app_id, ctx.session.id));
+      }
+      if (path === '/internal/invitations') {
+        if (method !== 'POST') return fail(405, 'method_not_allowed');
+        const auth = req.headers.authorization || '';
+        if (!auth.startsWith('Bearer ')) return fail(401, 'invalid_app_credentials');
+        return json(res, await appInvitation(accounts, auth.slice(7), await body(req)));
       }
       const productProfile = path.match(/^\/internal\/profile\/(details|profile|password|email|phone-start|phone-verify|phone-status)$/);
       if (productProfile) {
@@ -210,7 +217,7 @@ function createSingleAccountServer(accounts: Accounts) {
       }
       if (method === 'GET' && path === '/session') {
         const [settings] = await accounts.db.query('select registration_mode from accounts.settings where singleton');
-        return json(res, { csrfToken: accounts.csrf(ctx.session), user: accounts.publicUser(ctx.user), mfa: ctx.mfa || null, registrationMode: settings!.registration_mode, supportEmail: accounts.config.supportEmail });
+        return json(res, { csrfToken: accounts.csrf(ctx.session), user: accounts.publicUser(ctx.user), mfa: ctx.mfa || null, registrationMode: settings!.registration_mode, supportEmail: accounts.config.supportEmail, passwordPolicy: PASSWORD_POLICY });
       }
       if (path === '/mfa' && method === 'GET') return json(res, await mfa.status(ctx));
       if (path === '/mfa/enroll' && method === 'POST') {
@@ -229,7 +236,7 @@ function createSingleAccountServer(accounts: Accounts) {
           const redirectUrl = ctx.user ? await accounts.launchAfterLogin(ctx, data.appSlug) : undefined;
           return json(res, { user: accounts.publicUser(ctx.user), mfa: ctx.mfa || null, ...(redirectUrl ? { redirectUrl } : {}) });
         }
-        if (path === '/register') return json(res, await accounts.register(data));
+        if (path === '/register') return json(res, await accounts.register(data, data.app ? (await accounts.registrationApp(data.app)).app_id : null));
         if (path === '/resend-verification' || path === '/forgot-password') { await accounts.sendCredential(data.email, path === '/forgot-password'); return json(res, { accepted: true }); }
         if (path === '/verify-email' || path === '/reset-password') return json(res, await accounts.consumeCredential(data.token, path === '/reset-password' ? data.password : undefined));
         const user = accounts.requireUser(ctx, true);
@@ -314,7 +321,6 @@ function createSingleAccountServer(accounts: Accounts) {
       if (path === '/admin/invitations' && method === 'POST') {
         await accounts.db.limit(`invitations:${user.id}`, 20, 3600);
         const target = data.app === undefined || data.app === '' ? null : await accounts.registrationApp(data.app);
-        if (target && target.slug !== 'airsoft') return fail(400, 'invalid_invitation_target');
         await accounts.db.tx(q => accounts.credential(q, null, email(data.email), 'invitation', user.language, target?.app_id || null));
         return json(res, { accepted: true });
       }

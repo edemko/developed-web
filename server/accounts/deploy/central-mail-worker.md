@@ -1,8 +1,8 @@
 # Separate central mail worker — active after reviewed start
 
 Current API/mail pins are recorded in the newest release checkpoint,
-[central-password-c1-checkpoint-20261012.md](central-password-c1-checkpoint-20261012.md):
-API release `9fde1f13808d…`, launcher bundle `mail-workers/9fde1f13808d…`, both on Node
+[central-password-observation-checkpoint-20261012.md](central-password-observation-checkpoint-20261012.md):
+API release `44d932828a74…`, launcher bundle `mail-workers/44d932828a74…`, both on Node
 24.21.0 (`/opt/developed-runtimes/node-v24.21.0/bin/node`; the guard's `NODE` pin moved from
 node-v22.23.2 on 2026-10-12). Each central release that changes `API_RELEASE` or a hashed
 module (`mail.js`, `db.js`, `security.js`, `mail-templates.js`) gets a new launcher bundle

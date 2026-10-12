@@ -1,82 +1,62 @@
 # One DevelopED password: shared rule, managed only on developed.sk
 
-**Status:** in progress (started 2026-10-12). C0, C1, A done; V.1–V.3, K.1 and O.1 (hide) done. Next: C2 (after 24 h), V.4/O.2 invitations, cleanups K/S/M, D.
+**Status:** app implementation and deployments complete; C2 is prepared and awaits its timed gate.
 
-## Handoff (2026-10-12 11:45): read this first
+## Current handoff (Codex, 2026-10-12)
 
-Implementation moves to another agent from here. The state below is verified live.
+- Central C1 plus observation logging is live at `44d932828a74edab10e72afa7fb6129a0c5e8106`.
+  `PASSWORD_POLICY` is 6 characters / 72 UTF-8 bytes; UI consumes `/session` policy.
+- App revisions: Vocabulum `0268c6486b08`, Otázkomat `72c1b6d1549d`,
+  KešTrek API `aa60287c2d1c` / web `388be97f8fd7`, Screen Time `d534fba`,
+  Mega Music `75ae53e`, and AMP `e38610328756` are live. Otázkomat API is now
+  `b2f442b01329`; its web remains `72c1b6d1549d`.
+- Invitations for Vocabulum teachers/admins and Otázkomat organization admins are live.
+  Both scoped migrations are applied; PostgreSQL rehearsals passed with synthetic data.
+  No live invitation mail was sent during tests; signed-in acceptance by real users is
+  not claimed. Existing roles are preserved and unverified identities cannot claim invites.
+- Local password-setting forms/APIs/rules are removed from the six affected products.
+  AMP retains the current-password confirmation for email changes, as explicitly planned;
+  integration-secret fields and Mega Music's branded central pages also remain.
+- Flutter source is ready for the next app build: Vocabulum local forms removed;
+  KešTrek defaults central login on. No mobile binary was published.
+- C2 candidate **`release/central-password-c2-20261012`** is pushed (code `8ad4278`,
+  instructions `c4f2a35`), based on the live observation release, with 171 passing
+  tests and 22 opt-in skips. No deployment occurred.
+  Read `server/accounts/deploy/central-password-c2-prepared-20261012.md` on that branch.
 
-**What is live**
-- **Central** (`developed-accounts`, manual-only, never auto-deployed):
-  - `/opt/developed-accounts/current` → `releases/9fde1f13808d760935c60af9ff5880486396eb0e`, from
-    branch `release/central-password-20261012` (pushed);
-  - mail worker → `/opt/developed-accounts/mail-workers/9fde1f13…` (drop-in
-    `/etc/systemd/system/developed-accounts-mail-worker.service.d/browser-family-release.conf`);
-  - main carries the same code (36beea3).
-- **Apps:** AMP 4743fac, Vocabulum 4b79112, kestrek d86574f and otazkomat d8b8b1f are live via
-  developed-release on Node 24.21.0.
+**Remaining gate and release work**
 
-**The next central release**
-1. Branch from `release/central-password-20261012`, **not** `main`. `main` has about 750 lines of
-   unreleased central work that must not ship by accident.
-2. Cherry-pick each commit onto `main` afterwards.
-3. Follow `server/accounts/deploy/central-password-c1-checkpoint-20261012.md` step by step:
-   - build and test on Node 24;
-   - stage a copy of the live release with only the changed `dist/`/`public/` files, and check
-     `diff -r` against the build;
-   - make a new mail-worker bundle when `security.js`, `mail.js`, `db.js` or `mail-templates.js`
-     changes (update `API_RELEASE` and the override hash);
-   - cut over: stop the worker → switch `current` → restart the API → repoint the drop-in →
-     start the worker;
-   - write a checkpoint doc.
+1. Earliest C2 deployment is **2026-10-13 12:23:07 Europe/Bratislava**, with zero
+   `legacy_password_api_request` events over the full preceding 24-hour window.
+   Observation logging started at **2026-10-12 12:23:07+02:00**. Caddy had no request
+   access records, so the earlier 11:30 window was not provable. Use the persistent
+   `developed-accounts` journal and verify continuity; missing logs are not evidence.
+   No deliberate live probes of the retiring endpoints were sent after observation began.
+2. Reconcile the candidate with the then-live central release; never restore older
+   SMS behavior if another session has deployed its fixes. Build/test/seal and cut over
+   using the C1 checkpoint and current deploy instructions; record a new checkpoint.
+3. Cherry-pick the C2 removal onto main after unrelated SMS edits are resolved.
+   The primary checkout has another session's `AGENTS.md`, `src/{profile-sms,sms}.ts`,
+   `test/{product-profile,sms}.test.mjs` and SMS audit documentation. Do not stage,
+   stash or overwrite those changes. Central main also contains unrelated unreleased work;
+   do not deploy all of main. Work in isolated worktrees under `~/.cache/`.
+4. Observe app errors for another 24 hours after C2 before declaring the plan complete.
 
-**Working rules learned the hard way**
-- **Dirty main checkout:** `~/Dev/developed-web` has another session's uncommitted SMS files
-  (`AGENTS.md`, `server/accounts/src/{profile-sms,sms}.ts`, two tests,
-  `docs/sms-gate-v1-audit-*.md`). Never stage or stash them. Do central work in
-  `git worktree`s under `~/.cache/`.
-- **Pushing deploys:** a push to an app's `main` deploys within about 4 minutes (poll timer,
-  Node 24). Watch `~/.local/state/developed-release/history.log` and
-  `journalctl --user -u developed-release-poll`. Prove a change first on a clean archive:
-  `REF=<commit> ~/.nvm/versions/node/v24.21.0/bin/node ~/.cache/node24/n24-steps-ref.mjs <app>`
-  runs the app's exact release steps.
-- **Health:** `~/.cache/node24/all-health.sh` runs every health probe and prints
-  `ALL-HEALTH: all match`.
-- **Shell traps (zsh):**
-  - `$var:path` is read as a variable modifier; write `${var}:path`.
-  - `echo ===` fails.
-  - `pkill -f <pattern>` kills its own shell when the pattern is in the command.
-- **Pre-existing failure:** central browser test `ui.browser` "Launch fixture" times out on the old
-  release too; it was not caused by this work.
-- **App repos:** each has a local, unpushed branch `node24-runtime` from the Node 24 plan, waiting
-  for Erik's merge. It is unrelated to this plan; leave it alone. kestrek's still merges cleanly.
+**Related Node 24 work**
 
-**Next, in order**
-1. **V.4 and O.2: admin invitations through central.** Central's
-   `POST /api/account/internal/invitations` is live. It takes the app server key in
-   `Authorization: Bearer` and a body of `{ accessToken, email, language }`, and always answers
-   `{accepted:true}`.
-   - Each app needs a migration for a pending-membership table (email → role and
-     org/organisation), a call to central from the admin action, and a claim step on first OIDC
-     login by verified email.
-   - Migrations block that app's deploy until applied by hand (see
-     `~/workspace/docs/features/supabase-platform-reference.md`). Then run
-     `developed-release deploy <app> --migrations-applied`.
-   - Vocabulum students with `…@voc-builder.local` addresses cannot be invited. Document this.
-2. **C2, not before 2026-10-13 11:30 and only with zero calls in 24 h:** remove the embedded
-   registration API (`/api/account/registration/*`, CORS) and the `password` action of
-   `/internal/profile/*` from central. AMP stopped calling both at 11:30:34.
-3. **Small fixes and cleanup:**
-   - Vocabulum `/register` → `CENTRAL_REGISTRATION_URL + '?app=vocabulum'`;
-   - V.5 (delete the Vocabulum `legacy-*` password forms and helpers), V.6;
-   - K.2–K.5 (kestrek dead legacy code; Flutter default `ECOSYSTEM_AUTH_ENABLED=true`);
-   - S (screentime legacy branch); M (Mega Music legacy password code).
-4. **D: docs.** Note that myclinic is exempt from this policy.
+The Node 24 branches and Mega Music cleanup re-pin are complete (confirmed by Erik).
+Mega Music's `6f62b58` deployment also passed the cleanup hook. Leave retained
+`node24-runtime` branches alone. Node 22 retirement remains a separate plan, not before
+2026-10-26; reboot scheduling is outside this task.
 
-**Related open items from the Node 24 plan** (`.claude/plans/node-24-runtime-upgrade.md`):
-- Phase 6 docs; Phase 7 (retire Node 22, not before 2026-10-26).
-- The mega-music cleanup hook is still unproven on Node 24 until mega-music deploys.
-- The 05:00 `vps-maintenance` reboot skipped on 2026-10-12 and must be rescheduled by Erik.
+**Release tooling**
+
+App pushes auto-deploy within about 4 minutes. Clean validation:
+`REF=<commit> ~/.nvm/versions/node/v24.21.0/bin/node ~/.cache/node24/n24-steps-ref.mjs <app>`.
+Manual deploy: Node 24 + `server/accounts/deploy/release/developed-release.mjs deploy <app>`.
+Heavy builds share the build lock. Central is manual-only; read scoped deployment instructions.
+The central `ui.browser` fixture timeout was reproduced on the old C1 baseline and is
+pre-existing; no real signed-in browser acceptance is claimed from that suite.
 
 ## Context
 
@@ -490,3 +470,65 @@ Prerequisite: C1 is live.
 - kestrek d86574f is live (11:36:33): recovery returns 303 to `developed.sk/forgot-password`, and
   register returns 303 to `register?app=kestrek`. otazkomat d8b8b1f (web) is live (11:36:47).
 
+
+### Continued execution (Codex, 2026-10-12)
+
+- **V.4 live** as `dfd9acd7f531` at 11:54:29, Node 24.21.0. Teacher invitations
+  at `/users/invite`, admin create and CSV invitations use central server-held OIDC tokens.
+  Admin password dialog removed; register now includes `?app=vocabulum`.
+  Migration `20261012094523` applied to voc_builder and recorded with SHA256;
+  backup `/var/backups/central-password-vocabulum-20261012/voc_builder.dump` (root-only).
+  533 Vitest pass, 2 opt-in skips, tsc and clean release build pass; isolated PostgreSQL
+  invitation rehearsal checks tenant scope, privilege escalation, verified email and retries.
+  No live invitation mail was sent by tests. Existing assigned roles are preserved.
+  Deviations: existing organisation IDs are text; normalized text emails avoid adding citext
+  to the shared database. Claim function is `ensure_oidc_membership`, not the token refresh RPC.
+- **O.2 invitations live** as `13cb19807c70` at 11:59:25, Node 24.21.0. Extends existing
+  school invitations with verified-email OIDC claim and central delivery; backend 233 tests
+  and isolated PostgreSQL rehearsal pass. Scoped migration applied with root-only backup
+  `/var/backups/central-password-otazkomat-20261012/otazkomat.dump`. Legacy-route cleanup pending.
+- **S** pushed as `d534fba`; exact release tests/build pass.
+- **M** pushed as `6f62b58`; local password handlers/UI/rules and reset mails removed.
+  Exact clean release tests pass (account suite 91 pass, 15 opt-in skips; landing 13 pass).
+- V.5/V.6 in progress; K.2–K.5, O legacy cleanup, D and gated C2 remain.
+
+### Completed continuation — 2026-10-12
+
+- **V.5/V.6:** `0268c6486b08` live 12:11:38. Web forms/reset mail/helpers removed;
+  native password-setting method/form removed; legacy mobile endpoint always 410 with
+  central profile URL, absent from OpenAPI. 498 web tests + tsc/build pass; Flutter
+  analysis and 30 tests pass. Docs follow-up `6e209f8` pushed.
+- **O cleanup:** `72c1b6d1549d` API+web live 12:11:51; legacy create/register/login/
+  reset/password/verify handlers and UI removed. 224 backend / 77 frontend tests pass;
+  clean builds and five offline browser scenarios pass. Obsolete password-creating
+  demo removed in API-only `b2f442b01329`, live 12:27:26.
+- **K.2–K.5:** API+web `aa60287c2d1c` live 12:17:23. Legacy handlers, forms, reset mail
+  and toggle removed; web routes go centrally; Flutter default enabled and local
+  auth forms deleted. 782 backend / 214 Karma tests, builds, Flutter analysis and
+  151 Flutter tests pass. Unused rule strings removed in web `388be97f8fd7`, live 12:28:00.
+- **S:** `d534fba` live, exact clean test/build steps passed.
+- **M:** `6f62b58ef36d` live 12:06:10, legacy handlers/forms/reset mail/rules removed;
+  clean release tests passed and cleanup re-pin proved. Final stale-rule cleanup
+  `75ae53e0435b` live 12:28:22 also passes clean release tests (90 account tests, 15 opt-in skips;
+  13 landing tests). Branded central routes retained.
+- **A final cleanup:** `e38610328756` live 12:18:30; last legacy login form removed.
+  Exact release tests/tsc/lint/build passed. Email-change reauthentication remains.
+- **C2:** prepared and pushed, not deployed. Retirement tests verify 404, no cookies,
+  no CORS, and no password/provider work; preserved central invitation/email tests pass.
+- **Observation:** central `44d9328` live 12:23:07; 172 tests pass (22 opt-in skips).
+  Only compiled `http.js` changed. Worker hashes unchanged; separate launcher re-pinned,
+  both processes healthy. See `deploy/central-password-observation-checkpoint-20261012.md`.
+- Public browser checks: all six product login pages 200, zero visible password fields,
+  zero page errors. Live Vocabulum password API returns 410 + central profile URL;
+  central `/session` exposes `{minLength:6,maxBytes:72}`. No signed-in real-user invitation
+  email acceptance is claimed; authorized-role and verified-email claims were rehearsed
+  in isolated PostgreSQL, and sender calls were mocked.
+- Source audit across six product repos: no new-password validators or setters remain
+  in application flows. Remaining password-type fields are API/S4/Mailjet/SMS secrets,
+  MCP API keys, and the explicitly retained AMP email-change reauthentication. Vocabulum
+  retains request bounds for dormant legacy password verification, not password creation.
+- D docs updated in central/app guides; workspace recipe is `docs/features/central-password-management.md`,
+  backed up and pushed by `ws-backup` as `87c24e6`. Final ALL-HEALTH matched every
+  expected status; the retiring-route journal counter was zero at handoff.
+- Still incomplete by design: C2 timed traffic gate, C2 deployment/main sync, then 24-hour
+  app-error observation. No automatic follow-up or delayed deployment was scheduled.

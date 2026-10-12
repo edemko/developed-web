@@ -97,6 +97,30 @@ route/fragment. Their expiry copy shares the backend lifetime definition:
 invitations. Existing text-only encrypted outbox entries receive an escaped HTML
 fallback during upgrades. Template tests never send mail.
 
+## Central password management (2026-10-12)
+
+Password management only on developed.sk; never add password forms to product apps.
+The Mega Music branded routes are served by this same central service and remain
+supported. **My Clinic Portal is exempt** and retains its independent identity flows.
+
+App signup links use `/register?app=<slug>`; recovery opens `/forgot-password`, and
+password changes open `/profile`. Admin password changes remain central. Invitation
+email links use `/register#invitation=…` (the validated preview supplies the app).
+
+`POST /api/account/internal/invitations` accepts the registered app server key as
+`Authorization: Bearer …` and JSON `{ accessToken, email, language }`. The token must
+belong to the inviting, authorized user of that app; product permissions are checked
+by the product before calling. A new email gets a central invitation, and an existing
+central identity gets app access. Both return `{ accepted: true }`. Product servers
+keep tokens private and stage their own membership role/tenant; verified OIDC sign-in
+claims that membership. Vocabulum and Otázkomat now implement this flow. No temporary
+passwords are generated or delivered by apps.
+
+C1 plus observation logging (`44d9328`) is live. C2 removal of `/api/account/registration/*` and the internal product
+password action is prepared on `release/central-password-c2-20261012`, **not deployed**.
+Its rollout requires zero retiring-route events over the 24 hours from
+2026-10-12 12:23:07+02:00, then a later 24-hour error observation; see `.claude/plans/central-password-management.md` from the repository root.
+
 ## Security boundary
 
 The runtime requires the **exact** PostgreSQL role `developed_accounts`, without
@@ -110,8 +134,10 @@ Browser session cookie: `__Host-developed_session`, Secure, HttpOnly, SameSite=L
 Path=/, no Domain. State-changing browser requests require the configured exact
 Origin and session-bound `X-CSRF-Token`. Passwords remain byte-for-byte intact;
 the display-name normalization routine is never applied to passwords. New
-passwords require 15–128 characters; existing shorter credentials can still be
-authenticated for migration/recovery.
+passwords use `PASSWORD_POLICY` from `src/security.ts`: at least 6 characters and
+at most 72 UTF-8 bytes. They are never trimmed or normalized. Existing credentials
+use the separate login validator. `/api/account/session` exposes `passwordPolicy`,
+and the account UI reads it; 73-byte passwords fail with `weak_password`.
 
 Session access rechecks current user status, central security version,
 provider-session existence and the user's `revoked_before` cutoff. Account

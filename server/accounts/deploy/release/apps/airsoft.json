@@ -2,6 +2,7 @@
   "app": "airsoft",
   "onboarded": true,
   "auto": true,
+  "node": "24.21.0",
   "repo": "/home/openclaw/Dev/airsoft-marketplace",
   "branch": "main",
   "releaseRoot": "/opt/developed-apps/airsoft/releases",

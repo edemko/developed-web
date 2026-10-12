@@ -2,6 +2,7 @@
   "app": "screentime",
   "onboarded": true,
   "auto": true,
+  "node": "24.21.0",
   "repo": "/home/openclaw/Dev/screentime",
   "branch": "main",
   "releaseRoot": "/opt/developed-apps/screentime/releases",

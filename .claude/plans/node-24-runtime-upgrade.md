@@ -3,8 +3,6 @@
 **Status:** in progress — Phases P and 0–4 done (2026-10-12): every live service runs Node
 24.21.0. End-to-end checks passed, auto-deploys were unpaused at 11:02, and the first real auto-deploys
 built on Node 24 (AMP, Vocabulum, kestrek, otazkomat). Still owed:
-- the eight local `node24-runtime` app-repo branches (Erik merges);
-- the mega-music cleanup hook proof on its next deploy;
 - Phase 6 docs;
 - the `vps-maintenance` reschedule;
 - Phase 7 (not before 2026-10-26). Prepared and reviewed against the live host; refreshed 22:54
@@ -1227,4 +1225,17 @@ follow-ups such as the vocabulum and airsoft repo docs still saying Node 22.)
   deploys. ALL-HEALTH matched.
   - Follow-up for Phase 7: the guard copies `kestrek-notifications-771023221bec` and `…-node24`
     are no longer referenced.
+- **App-repo branches merged (2026-10-12 11:46–11:58, on Erik's request):** all eight
+  `node24-runtime` commits were rebased onto current `main` and pushed.
+  - screentime 3cb857c, otazkomat 0c8e1ce, karak2 7b3a87a, airsoft 648c4f4 and Vocabulum 8077646
+    did not deploy (unit copies and docs only). Vocabulum was rebased after the other agent's
+    dfd9acd, in a separate worktree.
+  - kestrek 68c7d55, myclinic 3baa605 and mega-music 7379b8d ran their full release steps on a
+    clean archive (Karma 214 / Jest 813; Jest 899 / Karma 317; 113 + 13 tests), then deployed:
+    kestrek API at 11:53, mega-music API at 11:53, myclinic API and web at 11:55. All are on exe v24
+    with `"node": "24.21.0"`.
+  - **The mega-music cleanup hook is now proven on Node 24:** guard
+    `mega-music-session-cleanup-7379b8d1f86f` has `nodePath` v24 and the v24 drop-in, and the job
+    ran `ownerCheckPassed`, `cleanupCompleted`, `Result=success`. kestrek's worker passed
+    `ownershipVerified` again. ALL-HEALTH matched.
 

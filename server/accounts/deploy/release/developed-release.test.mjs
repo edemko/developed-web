@@ -11,6 +11,7 @@ import { dropinFor, pinGuard } from './hooks/kestrek-notifications.mjs';
 import { cleanupDropin, pinCleanup } from './hooks/mega-music-cleanup.mjs';
 import { buildNodeBin, DEFAULT_NODE, nodeVersion, runtimeNode, runtimeProblem, switchUnit } from './lib/runtime.mjs';
 import { inlineHashes, missingHashes, siteBlock } from './hooks/csp-hashes.mjs';
+import { pinWorkerDropIn, pinWorkerGuard, runCentralCutover, workerBundleFromDropIn } from './lib/central-accounts.mjs';
 
 const side = (over = {}) => ({ liveSource: 'a'.repeat(40), liveContained: true, liveIsTarget: false, changed: true, manual: false, ...over });
 const input = (over = {}) => ({ auto: true, migrationsChanged: false, migrationsApplied: false,
@@ -37,6 +38,56 @@ test('blocks on unknown live source, changed manual sides and unapplied migratio
   assert.equal(decide(input({ sides: { web: side({ manual: true }) } })).action, 'block');
   assert.equal(decide(input({ migrationsChanged: true })).action, 'block');
   assert.equal(decide(input({ migrationsChanged: true, migrationsApplied: true })).action, 'deploy');
+});
+
+test('automatic central release stops on protected changes', () => {
+  assert.match(decide(input({ protectedChanged: true })).reason, /protected central account paths/);
+  assert.equal(decide(input({ auto: false, protectedChanged: true })).action, 'deploy');
+});
+
+test('central worker pinning changes exactly the API and bundle references', () => {
+  const oldApi = '/opt/developed-accounts/releases/aaaaaaaaaaaa';
+  const newApi = '/opt/developed-accounts/releases/bbbbbbbbbbbb';
+  const oldBundle = '/opt/developed-accounts/mail-workers/aaaaaaaaaaaa';
+  const newBundle = '/opt/developed-accounts/mail-workers/bbbbbbbbbbbb';
+  const guard = `export const RELEASE = '/opt/developed-accounts/releases/legacy';\nexport const API_RELEASE = '${oldApi}';\n`;
+  assert.equal(pinWorkerGuard(guard, oldApi, newApi), guard.replace(oldApi, newApi));
+  assert.throws(() => pinWorkerGuard(guard, '/wrong', newApi), /changed shape/);
+  const dropIn = `[Service]\nExecStartPre=+node ${oldBundle}/central-mail-worker-guard.mjs\nExecStart=node ${oldBundle}/central-mail-worker.mjs\n`;
+  assert.equal(workerBundleFromDropIn(dropIn), oldBundle);
+  assert.equal(workerBundleFromDropIn(dropIn.replaceAll(oldBundle, `${oldBundle}-vocabulum-14f381f`)), `${oldBundle}-vocabulum-14f381f`);
+  assert.equal(pinWorkerDropIn(dropIn, oldBundle, newBundle), dropIn.replaceAll(oldBundle, newBundle));
+  assert.throws(() => workerBundleFromDropIn(dropIn.replace('central-mail-worker.mjs', 'other.mjs')), /unexpected/);
+});
+
+test('central cutover drains, switches, pins, verifies, and rolls both sides back on failure', async () => {
+  const stages = ['mark', 'stopWorker', 'selectApi', 'restartApi', 'health', 'assertWorkerStopped',
+    'pinWorker', 'reloadUnits', 'startWorker', 'verifyWorker', 'clear'];
+  const fixture = (failure) => {
+    const calls = [];
+    const steps = Object.fromEntries(stages.map(name => [name, async () => {
+      calls.push(name);
+      if (name === failure) throw Error('fixture failure');
+    }]));
+    steps.needsRestore = async () => false;
+    steps.restore = async () => { calls.push('restore'); if (failure === 'restore') throw Error('rollback failure'); };
+    return { calls, steps };
+  };
+  const success = fixture();
+  await runCentralCutover(success.steps);
+  assert.deepEqual(success.calls, stages);
+  for (const failedStage of ['selectApi', 'restartApi', 'health', 'pinWorker', 'startWorker', 'verifyWorker']) {
+    const failed = fixture(failedStage);
+    await assert.rejects(runCentralCutover(failed.steps), /fixture failure/);
+    assert.deepEqual(failed.calls.slice(-2), ['restore', 'clear'], failedStage);
+  }
+  const beforeMutation = fixture('stopWorker');
+  await assert.rejects(runCentralCutover(beforeMutation.steps), /fixture failure/);
+  assert.equal(beforeMutation.calls.includes('restore'), false);
+  const rollbackFailure = fixture('selectApi');
+  rollbackFailure.steps.restore = async () => { throw Error('rollback failure'); };
+  await assert.rejects(runCentralCutover(rollbackFailure.steps), /rollback also failed/);
+  assert.equal(rollbackFailure.calls.includes('clear'), false);
 });
 
 test('unchanged manual sides do not block, nothing changed skips, force redeploys', () => {

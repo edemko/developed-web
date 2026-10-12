@@ -1,6 +1,7 @@
 // Switch strategies. Each returns an undo function; the caller unwinds every completed
 // side in reverse when a later step fails, so web and API never stay on mismatched releases.
 import { hooks } from '../hooks/index.mjs';
+import { centralAccountsSwitch } from './central-accounts.mjs';
 import { httpStatus, log, ReleaseError, run, sleep, sudo, sudoWrite } from './sh.mjs';
 
 const fill = (template, vars) => template.replace(/\{(\w+)\}/g, (_, key) => {
@@ -55,6 +56,7 @@ async function runHooks(ctx, undo) {
 }
 
 const strategies = {
+  async 'central-accounts'(ctx) { return centralAccountsSwitch(ctx, checkHealth); },
   async 'web-symlink'({ config, name, side, release, live }) {
     const target = `${config.releaseRoot}/${release}/${side.switch.dir ?? name}`;
     const previous = sudo('readlink', [side.switch.link]).out;

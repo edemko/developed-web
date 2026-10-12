@@ -7,7 +7,7 @@ import { ReleaseError } from './sh.mjs';
 
 export const appsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'apps');
 
-const SWITCH_TYPES = new Set(['web-symlink', 'instance-swap', 'symlink-restart', 'manual']);
+const SWITCH_TYPES = new Set(['web-symlink', 'instance-swap', 'symlink-restart', 'central-accounts', 'manual']);
 const LIVE_KINDS = new Set(['symlink', 'units', 'caddy-root', 'unit-path']);
 
 export function validate(config) {
@@ -40,6 +40,13 @@ export function validate(config) {
     if (side.switch?.type === 'instance-swap') {
       need(side.switch.unit?.includes('@{release}.service'), `${where}.switch.unit must contain @{release}.service`);
     }
+    if (side.switch?.type === 'central-accounts') {
+      need(config.app === 'developed-accounts', `${where}.switch.type is reserved for developed-accounts`);
+      need(side.switch.link === '/opt/developed-accounts/current', `${where}.switch.link must be the central current symlink`);
+      need(side.switch.unit === 'developed-accounts.service', `${where}.switch.unit must be the central API`);
+      need(side.switch.workerUnit === 'developed-accounts-mail-worker.service', `${where}.switch.workerUnit must be the sole central worker`);
+      need(side.switch.workerDropIn === '/etc/systemd/system/developed-accounts-mail-worker.service.d/browser-family-release.conf', `${where}.switch.workerDropIn must be the central worker release override`);
+    }
   }
   if (config.onboarded && config.auto && Object.values(config.sides ?? {}).some((s) => s.switch?.type === 'manual')) {
     errors.push('auto deploy cannot include a manual side');
@@ -51,7 +58,7 @@ export function validate(config) {
 // The live-state probe can be derived from the switch for the common cases.
 export function liveSpec(side) {
   if (side.live) return side.live;
-  if (side.switch?.type === 'web-symlink' || side.switch?.type === 'symlink-restart') {
+  if (side.switch?.type === 'web-symlink' || side.switch?.type === 'symlink-restart' || side.switch?.type === 'central-accounts') {
     return { kind: 'symlink', path: side.switch.link };
   }
   if (side.switch?.type === 'instance-swap') {

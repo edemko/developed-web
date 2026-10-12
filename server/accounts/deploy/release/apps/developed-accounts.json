@@ -1,10 +1,10 @@
 {
   "app": "developed-accounts",
   "onboarded": true,
-  "auto": false,
+  "auto": true,
   "node": "24.21.0",
   "notes": [
-    "Keep auto disabled until a reviewed release through this tool is live and the other central release session is finished.",
+    "Automatic public UI releases start from the sealed 7cf9d4100a9a central baseline; manual backend and worker reviews remain required.",
     "Routine public UI changes may auto-deploy after activation. Source, dependencies, migrations, and worker changes require a coordinated manual release.",
     "The central switch drains and re-pins the sole mail worker with the API. It refuses changed mail-worker modules or logo."
   ],

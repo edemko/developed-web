@@ -176,7 +176,7 @@ test('config validation', () => {
 test('every shipped app config validates', () => {
   for (const app of listApps()) assert.doesNotThrow(() => loadApp(app), app);
   // Enabling automatic deploys is an owner decision per app: extend this list in the same commit.
-  const approvedAuto = ['airsoft', 'karak2', 'kestrek', 'mega-music', 'myclinic', 'otazkomat', 'screentime', 'vocabulum'];
+  const approvedAuto = ['airsoft', 'developed-accounts', 'karak2', 'kestrek', 'mega-music', 'myclinic', 'otazkomat', 'screentime', 'vocabulum'];
   assert.deepEqual(listApps().filter((app) => loadApp(app).auto), approvedAuto);
 });
 

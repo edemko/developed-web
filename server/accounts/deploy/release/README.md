@@ -61,10 +61,9 @@ with `"auto": true`. Pause everything without touching configs:
 ### Central accounts
 
 The central identity service uses Node 24.21.0 and a root-owned API release plus a separately
-pinned root-owned mail worker. Its config is currently `"auto": false`. A first reviewed release
-must go through this tool while no other central release is in progress. Only then may a reviewed
-config commit set `"auto": true` and reinstall the frozen tool. The poll timer already exists;
-no second timer or webhook is needed.
+pinned root-owned mail worker. Its first sealed baseline is `7cf9d4100a9a`, promoted with a
+reviewed one-time coordinator and preserved rollback evidence. Its config is now `"auto": true`.
+The existing poll timer handles eligible UI changes; no second timer or webhook is needed.
 
 Automatic central releases are limited to public UI changes. The tool refuses the existing
 overlaid legacy release because its name does not prove a complete source commit; a first
@@ -113,7 +112,7 @@ drop-ins to the same runtime. `install.sh` runs the tool itself on the Node in i
 | screentime | **auto** (2026-10-11) | 5c6e178 (8bd3dca reports + package-aware app-update, support widget) released by the tool; webpack build, both central flags baked true |
 | airsoft | **auto** (2026-10-11) | release branches merged into main; template unit `developed-airsoft@<rev12>` on 3162 replaces the include chain; first tool release c7c48752edf5 |
 | vocabulum | **auto** (2026-10-11) | release branches merged into main; template unit `developed-vocabulum@<rev12>` on 3161 replaces six per-feature units; first tool release 0bc488780106 |
-| developed-accounts | onboarded, auto disabled | identity provider; first coordinated tool release and live-branch reconciliation pending |
+| developed-accounts | **auto** (2026-10-12) | UI-only automatic releases; backend, dependencies, migrations and worker changes require manual coordination |
 
 `status` re-derives the live/behind/blocked picture at any time; the blockers live in each
 `apps/<app>.json`. To onboard an app: fill `steps`/`artifacts`/`health`, set `"onboarded": true`,

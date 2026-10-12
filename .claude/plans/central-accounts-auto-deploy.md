@@ -1,6 +1,6 @@
 # Central account automatic releases
 
-Status: implementation in progress. Production remains on a manually coordinated release while another central deployment is active.
+Status: sealed baseline live; automatic UI mode being activated and verified.
 
 ## Objective
 

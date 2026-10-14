@@ -284,7 +284,7 @@ async function start() {
       navigation.append(menu);
     } else navigation.append(link(t('login'), '/login', 'login-link'), link(t('register'), '/register', 'button register-link'));
     if (!musicSurface) renderAppMenu();
-    footer.replaceChildren(link('DevelopED', musicSurface ? 'https://www.developed.sk/' : '/'), link(t('reportBug'), reportLink(musicSurface ? 'mega-music' : 'developed')), link('info@developed.sk', 'mailto:info@developed.sk'));
+    footer.replaceChildren(link('DevelopED', musicSurface ? 'https://www.developed.sk/' : '/'), link('info@developed.sk', 'mailto:info@developed.sk'));
     const cookieInfo = link(t('cookieInfo'), `${musicSurface ? 'https://www.developed.sk' : ''}${['en', 'uk'].includes(language) ? '/en/cookies/' : '/cookies/'}`);
     cookieInfo.setAttribute('data-cookie-info', '');
     footer.append(cookieInfo);

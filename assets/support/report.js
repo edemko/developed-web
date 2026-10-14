@@ -11,6 +11,10 @@
   };
   function mount() {
     let button = document.getElementById('developed-report-problem');
+    // Pages with an authored report link already have a deliberate place for this action.
+    const existing = [...document.querySelectorAll('a[href]')].some(link =>
+      link !== button && link.href.startsWith('https://www.developed.sk/report-bug'));
+    if (existing) { button?.remove(); return; }
     const slot = innerWidth >= 1100 ? document.querySelector('[data-developed-support-slot]') : null;
     if (!button) {
       button = document.createElement('a'); button.id = 'developed-report-problem';

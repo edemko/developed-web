@@ -1,13 +1,47 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
-import { ProductProfile, contactPhone, sendProfileSms } from '../dist/product-profile.js';
+import { ProductProfile, contactPhone, profileVerificationSms, sendProfileSms } from '../dist/product-profile.js';
 
-test('profile phone accepts international numbers without silently stripping letters', () => {
+test('profile phone accepts complete SK/CZ mobiles without silently stripping letters', () => {
   assert.equal(contactPhone('0911 123 456'), '+421911123456');
   assert.equal(contactPhone('00420 777 123 456'), '+420777123456');
-  assert.equal(contactPhone('+380 50 123 4567'), '+380501234567');
-  for (const input of ['call +421911123456','++421911123456','+01234567890','123']) assert.throws(() => contactPhone(input));
+  assert.equal(contactPhone('+420 601 123 456'), '+420601123456');
+  for (const input of ['call +421911123456','++421911123456','+01234567890','123',
+    '+42191112345', '+421811123456', '+420911123456', '+42077712345', '+380501234567'])
+    assert.throws(() => contactPhone(input));
+});
+
+test('bad phone or language does not consume an SMS quota or create a challenge', async () => {
+  const user = { id: '11111111-1111-4111-8111-111111111111', security_version: 4, language: 'sk' };
+  let usedQuota = false;
+  const a = {
+    config: { encryptionKey: randomBytes(32) },
+    internalCheck: async () => ({ app: { id: 'app_airsoft' }, client: { kind: 'web' }, user, securityVersion: 4 }),
+    userById: async () => user,
+    db: { limit: async () => { usedQuota = true; }, tx: async () => assert.fail('challenge created') },
+  };
+  const service = new ProductProfile(a);
+  for (const body of [
+    { phone: '+42191112345', language: 'sk' },
+    { phone: '+420911123456', language: 'cs' },
+    { phone: '+421911123456', language: 'xx' },
+  ]) await assert.rejects(service.handle('key','phone-start',body));
+  assert.equal(usedQuota, false);
+});
+
+test('verification SMS follows page language and identifies Airsoft Marketplace', () => {
+  const code = '123456';
+  const sk = profileVerificationSms(code, 'sk');
+  const cs = profileVerificationSms(code, 'cs');
+  const uk = profileVerificationSms(code, 'uk');
+  assert.match(sk, /^Airsoft Marketplace overovaci kod: 123456\./);
+  assert.match(cs, /^Airsoft Marketplace overovaci kod: 123456\./);
+  assert.match(uk, /^Airsoft Marketplace код підтвердження: 123456\./);
+  for (const message of [sk, cs, uk]) assert.ok(!message.includes('DevelopED:'));
+  assert.match(cs, /nesdelujte/);
+  assert.match(uk, /Не діліться/);
+  assert.ok(uk.length <= 70);
 });
 
 test('product account writes require central subject, web client and app binding', async () => {

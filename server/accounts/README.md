@@ -41,6 +41,11 @@ even when submission fails. `details.pendingPhone` restores the latest attempt
 after refresh. Gateway acceptance is not delivery; OTP entry verifies the phone.
 See [the SMS deployment checkpoint](deploy/sms-status-checkpoint-20261005.md).
 
+The Airsoft product-profile phone flow uses SMS Gate v1 JSON `send_message`
+with its confirmed `from=AMP` identifier. Other central SMS sends retain the
+account default identifier. The provider's accepted response is tracked
+separately from handset delivery and OTP confirmation.
+
 - Loopback-only HTTP service on port 3140, behind the canonical
   `https://www.developed.sk` ingress. The bare `developed.sk` hostname keeps its
   canonical redirect. No cross-domain/shared parent-domain authentication cookie.

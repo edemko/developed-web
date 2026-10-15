@@ -13,9 +13,8 @@ export function deliveryStatus(code: unknown): DeliveryStatus {
   return 'unknown';
 }
 
-// ONLY the SMS Gate v1 (JSON) API is approved: the provider deprecated v2 and
-// said it must not be used. Omit the optional v1 `from` field so every app
-// uses the account default identifier MyClinic.
+// ONLY the SMS Gate v1 (JSON) API is approved. This product-profile flow is
+// restricted to Airsoft Marketplace, whose confirmed sender identifier is AMP.
 // Acceptance is not delivery. Never retry a send after an uncertain response.
 const isOk = (item: any) => String(item?.status ?? '').toLowerCase() !== 'error'
   && (!item?.code || String(item.code).toUpperCase() === 'OK')
@@ -28,7 +27,7 @@ export async function sendProfileSms(a: Accounts, phone: string, message: string
     const response = await fetcher('https://api.smsgate.sk/json/send_message', {
       method: 'POST', redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(8000),
       headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-      body: new URLSearchParams({ token: key, to: phone, text: message }).toString(),
+      body: new URLSearchParams({ token: key, to: phone, text: message, from: 'AMP' }).toString(),
     });
     if (!response.ok) {
       const error = await response.json().catch(() => null);

@@ -55,7 +55,7 @@ test('profile SMS uses SMS Gate v1 (json/send_message) without retrying an ambig
     assert.ok(!String(url).includes('/v2/'));
     const form = new URLSearchParams(init.body);
     assert.equal(form.get('token'),'fixture-key'); assert.equal(form.get('to'),'+421911111111');
-    assert.equal(form.get('text'),'Fixture code'); assert.equal(form.has('sender'),false); assert.equal(form.has('from'),false);
+    assert.equal(form.get('text'),'Fixture code'); assert.equal(form.has('sender'),false); assert.equal(form.get('from'),'AMP');
     assert.equal(init.headers['X-API-KEY'],undefined);
     return Response.json({result:{status:'success',code:'OK'},messages:[{status:'success',code:'OK',message_id:110156285}]});
   });

@@ -81,3 +81,21 @@ normalized when replaced. Displayed images use square/circular containers and
 
 Public delivery, native mobile clients and production ingress are not qualified
 by these local checks. No deployment, live test email or image backfill was done.
+
+## Simplified feedback — 16 October 2026
+
+The central report page and My Clinic's independent dialog now offer Problem and
+Improvement tabs, a card-based app picker, mandatory email and description, an
+optional screenshot and an optional console-log field (last 1,000 characters).
+Signed-in users get their email prefilled. Central reports keep the authenticated
+email authoritative; anonymous contact email is unverified. Existing app-specific
+report links preselect the source; page URLs still omit query strings/fragments.
+My Clinic preserves its independent identity and mail transport. Selecting another
+app opens that app's central feedback page, preserving the local draft.
+
+Logs are pasted explicitly: the cross-origin central page cannot read an originating
+tab's console history. No console interceptor or diagnostic data in URLs is added.
+Improvement type uses the existing summary field and a labeled operator-email body;
+console text uses the existing steps field. No database migration or mail-worker
+module change is required. The backend validation change requires the coordinated
+central deployment command; the normal automatic poll handles My Clinic.

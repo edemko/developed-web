@@ -36,13 +36,17 @@ test('report, encrypted screenshot and mail are atomic; retry queues no duplicat
     throw new Error('unexpected query');
   };
   const accounts = new Accounts({ tx: fn => fn(q) }, {}, config);
-  const body = { appSlug: 'developed', description: '<b>Something broke</b>', sourceUrl: 'https://www.developed.sk/apps?token=secret', screenshot: await fixtureImage(), idempotencyKey: randomUUID() };
+  const body = { contactEmail: 'reporter@example.test', kind: 'improvement', consoleLog: 'last console line', appSlug: 'developed', description: '<b>Something broke</b>', sourceUrl: 'https://www.developed.sk/apps?token=secret', screenshot: await fixtureImage(), idempotencyKey: randomUUID() };
   const ctx = { session: { id: randomUUID() }, user: null };
   assert.deepEqual(await accounts.report(ctx, body), { reference: 'DEV-42' });
+  assert.equal(saved[7], 'Improvement');
+  assert.equal(saved[8], body.description);
+  assert.equal(saved[9], 'Console log:\nlast console line');
   assert.equal(saved[14], 'https://www.developed.sk/apps');
   const screenshot = unseal(saved[15], encryptionKey, `report:${saved[0]}`);
   const mail = unseal(mails[0].payload, encryptionKey, `mail:${mails[0].id}`);
   assert.equal(mail.to, 'info@developed.sk'); assert.ok(mail.text.includes(body.description));
+  assert.ok(mail.text.includes('[Improvement]')); assert.ok(mail.text.includes('last console line'));
   assert.ok(mail.html.includes('&lt;b&gt;')); assert.ok(!mail.text.includes('secret'));
   assert.equal(mail.attachments[0].Base64Content, screenshot);
   await accounts.report(ctx, body); assert.equal(mails.length, 1);
@@ -96,4 +100,13 @@ test('avatar mutations require CSRF/session; screenshots require administrator a
   assert.equal(screenshot.status, 200); assert.equal(await screenshot.text(), 'screen');
   assert.equal((await send('/profile/avatar', 'DELETE', {})).status, 200);
   assert.equal((await fetch(avatarUrl)).status, 404);
+});
+
+test('feedback requires email and description and bounds type and logs before storage', async () => {
+  const accounts = new Accounts({ tx: () => { throw new Error('must not store invalid feedback'); } }, {}, {});
+  const ctx = { session: { id: randomUUID() }, user: null };
+  const valid = { appSlug: 'developed', contactEmail: 'reporter@example.test', description: 'Useful feedback', idempotencyKey: randomUUID() };
+  for (const changes of [{ contactEmail: undefined }, { contactEmail: '' }, { contactEmail: 'invalid' }, { description: '   ' }, { kind: 'invalid' }, { consoleLog: 'x'.repeat(1001) }]) {
+    await assert.rejects(accounts.report(ctx, { ...valid, ...changes }), error => error.status === 400);
+  }
 });

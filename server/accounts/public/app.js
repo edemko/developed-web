@@ -874,16 +874,76 @@ async function start() {
       main.append(el('p', t('invalidSource'), 'notice'), link(t('generalReport'), '/report-bug', 'button secondary'));
       return;
     }
-    main.append(el('h2', `${t('reportingFor')} ${source.app.name}`));
-    main.append(el('p', t(session.user ? 'signedReporter' : 'anonymous'), 'muted'));
-    if (!session.user) main.append(link(t('login'), `/login?next=${encodeURIComponent(safeContinuation(location.pathname + location.search, location.origin))}`));
-    const form = el('form');
-    const sourceUrl = field(form, 'sourceUrl', { type: 'url', maxLength: 4096,
-      value: sourcePage(new URLSearchParams(location.search).get('sourceUrl') || document.referrer || location.href) });
-    const screenshot = field(form, 'screenshot', { type: 'file', accept: 'image/jpeg,image/png,image/webp' });
-    form.append(el('p', t('screenshotHint'), 'muted'));
+    const form = el('form', undefined, 'report-form');
+    let kind = 'problem';
+    const tabs = el('div', undefined, 'report-tabs');
+    tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', t('reportBug'));
+    const fields = el('div', undefined, 'report-fields');
+    fields.id = 'report-fields'; fields.setAttribute('role', 'tabpanel');
+    const tabButtons = ['problem', 'improvement'].map(value => {
+      const tab = button(t(value), () => chooseTab(value), 'secondary');
+      tab.id = `report-tab-${value}`; tab.setAttribute('role', 'tab');
+      tab.setAttribute('aria-controls', fields.id);
+      tabs.append(tab); return tab;
+    });
+    function chooseTab(value) {
+      kind = value;
+      tabButtons.forEach((tab, index) => {
+        const active = ['problem', 'improvement'][index] === kind;
+        tab.setAttribute('aria-selected', String(active)); tab.tabIndex = active ? 0 : -1;
+      });
+      fields.setAttribute('aria-labelledby', `report-tab-${kind}`);
+    }
+    tabs.addEventListener('keydown', event => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      chooseTab(event.key === 'Home' ? 'problem' : event.key === 'End' ? 'improvement' : kind === 'problem' ? 'improvement' : 'problem');
+      tabButtons[kind === 'problem' ? 0 : 1].focus();
+    });
+    chooseTab(new URLSearchParams(location.search).get('kind') === 'improvement' ? 'improvement' : 'problem'); form.append(tabs, fields);
+    const selectedApp = el('strong', source.app.name);
+    const picker = button(t('selectApp'), async () => {
+      picker.disabled = true;
+      try {
+        const apps = await availableApps();
+        const dialog = el('dialog', undefined, 'report-app-dialog');
+        const title = el('h2', t('selectApp')); title.id = 'report-app-title';
+        dialog.setAttribute('aria-labelledby', title.id);
+        const grid = el('div', undefined, 'report-app-grid');
+        const notice = el('div');
+        const choices = [...new Map([{ slug: 'developed', name: 'DevelopED' }, source.app, ...apps].map(app => [app.slug, app])).values()];
+        for (const app of choices) {
+          const tile = button(null, async () => {
+            tile.disabled = true;
+            try {
+              source = await api(`/reports/source/${encodeURIComponent(app.slug)}`);
+              selectedApp.textContent = source.app.name;
+              dialog.close();
+            } catch (error) { feedback(notice, errorMessage(error), 'error'); }
+            finally { tile.disabled = false; }
+          }, 'secondary report-app-tile');
+          tile.setAttribute('aria-pressed', String(app.slug === source.app.slug));
+          tile.append(appIcon(app), el('span', app.name)); grid.append(tile);
+        }
+        dialog.append(title, grid, notice, button(t('cancel'), () => dialog.close(), 'secondary'));
+        dialog.addEventListener('close', () => { dialog.remove(); picker.focus(); }, { once: true });
+        document.body.append(dialog); dialog.showModal();
+      } catch (error) { feedback(pickerNotice, errorMessage(error), 'error'); }
+      finally { picker.disabled = false; }
+    }, 'secondary');
+    picker.setAttribute('aria-haspopup', 'dialog');
+    const pickerNotice = el('div');
+    const appRow = el('div', undefined, 'report-app-selection'); appRow.append(selectedApp, picker);
+    fields.append(appRow, pickerNotice);
+    const contact = field(fields, 'contactEmail', { type: 'email', required: true, maxLength: 254, autocomplete: 'email', value: session.user?.email || '' });
+    contact.readOnly = Boolean(session.user);
+    const description = field(fields, 'description', { type: 'textarea', required: true, maxLength: 10000 });
+    description.rows = 5;
+    const sourceUrl = sourcePage(new URLSearchParams(location.search).get('sourceUrl') || document.referrer || location.href);
+    const screenshot = field(fields, 'screenshot', { type: 'file', accept: 'image/jpeg,image/png,image/webp' });
+
     const screenshotPreview = el('img', undefined, 'screenshot-preview'); screenshotPreview.alt = t('screenshot'); screenshotPreview.hidden = true;
-    form.append(screenshotPreview);
+    fields.append(screenshotPreview);
     let preparedScreenshot = null;
     screenshot.addEventListener('change', async () => {
       preparedScreenshot = null; screenshotPreview.hidden = true; screenshot.setCustomValidity('');
@@ -892,29 +952,19 @@ async function start() {
         preparedScreenshot = data; screenshotPreview.src = data; screenshotPreview.hidden = false;
       } catch { screenshot.setCustomValidity(t('imageError')); screenshot.reportValidity(); }
     });
-    form.append(button(t('removeScreenshot'), () => { screenshot.value = ''; screenshot.setCustomValidity(''); preparedScreenshot = null; screenshotPreview.hidden = true; }, 'secondary'));
-    const summary = field(form, 'summary', { maxLength: 160 });
-    const description = field(form, 'description', { type: 'textarea', required: true, minLength: 10, maxLength: 10000 });
-    const steps = field(form, 'steps', { type: 'textarea', maxLength: 4000 });
-    const expected = field(form, 'expected', { maxLength: 2000 });
-    const actual = field(form, 'actual', { maxLength: 2000 });
-    const occurredAt = field(form, 'occurredAt', { type: 'datetime-local' });
-    const contact = session.user ? null : field(form, 'contactEmail', { type: 'email', maxLength: 254, autocomplete: 'email' });
+    const removeImage = button(t('removeScreenshot'), () => { screenshot.value = ''; screenshot.setCustomValidity(''); preparedScreenshot = null; screenshotPreview.hidden = true; removeImage.hidden = true; }, 'secondary');
+    removeImage.hidden = true; screenshot.addEventListener('change', () => { removeImage.hidden = !screenshot.files.length; }); fields.append(removeImage);
     const details = el('details', undefined, 'diagnostics');
-    details.append(el('summary', t('technical')), el('p', t('technicalHelp'), 'muted'));
-    const detailFields = el('div', undefined, 'stack');
-    details.append(detailFields);
-    const diagnostics = {};
-    const hints = diagnosticHints(location.search, language);
-    for (const key of ['version', 'platform', 'screen', 'locale', 'errorId']) diagnostics[key] = field(detailFields, key, { value: hints[key] || '', maxLength: 80 });
-    form.append(details);
+    details.append(el('summary', t('consoleLog')));
+    const consoleLog = field(details, 'consoleLog', { type: 'textarea' });
+    consoleLog.addEventListener('input', () => { consoleLog.value = consoleLog.value.slice(-1000); });
+    details.append(el('p', t('consoleLogHint'), 'muted')); fields.append(details);
     const idempotencyKey = crypto.randomUUID();
     bindForm(form, t('submitReport'), async notice => {
       if (screenshot.files.length && !preparedScreenshot) throw new Error(t('imageError'));
-      const payload = { appSlug: source.app.slug, description: description.value.trim(), idempotencyKey, sourceUrl: sourcePage(sourceUrl.value), screenshot: preparedScreenshot };
-      for (const [key, input] of Object.entries({ summary, steps, expected, actual, contactEmail: contact })) if (input?.value.trim()) payload[key] = input.value.trim();
-      if (occurredAt.value) payload.occurredAt = new Date(occurredAt.value).toISOString();
-      payload.diagnostics = Object.fromEntries(Object.entries(diagnostics).filter(([, input]) => input.value.trim()).map(([key, input]) => [key, input.value.trim()]));
+      if (!description.value.trim()) { description.focus(); throw new Error(t('descriptionRequired')); }
+      const payload = { appSlug: source.app.slug, kind, contactEmail: contact.value.trim(), description: description.value.trim(), idempotencyKey, sourceUrl, screenshot: preparedScreenshot,
+        consoleLog: consoleLog.value.trim().slice(-1000), diagnostics: diagnosticHints(location.search, language) };
       const result = await api('/reports', 'POST', payload);
       form.replaceChildren(notice);
       feedback(notice, `${t('reportSent')} ${result.reference}`);

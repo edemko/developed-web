@@ -104,6 +104,14 @@ const accountUpdates = {
 };
 for (const [language, copy] of Object.entries(accountUpdates)) Object.assign(messages[language], copy);
 
+const reportUpdates = {
+  en: { reportBug: 'Send feedback', reportIntro: 'Report a problem or suggest an improvement.', problem: 'Problem', improvement: 'Improvement', selectApp: 'Select app', contactEmail: 'Email', submitReport: 'Send report', consoleLog: 'Console log (optional)', consoleLogHint: 'Paste a console log. Only the last 1,000 characters are included. Remove passwords and private data.', descriptionRequired: 'Enter a description.' },
+  sk: { reportBug: 'Poslať spätnú väzbu', reportIntro: 'Nahláste problém alebo navrhnite zlepšenie.', problem: 'Problém', improvement: 'Zlepšenie', selectApp: 'Vybrať aplikáciu', contactEmail: 'E-mail', submitReport: 'Odoslať hlásenie', consoleLog: 'Výpis konzoly (nepovinný)', consoleLogHint: 'Vložte výpis konzoly. Priloží sa len posledných 1 000 znakov. Odstráňte heslá a súkromné údaje.', descriptionRequired: 'Zadajte popis.' },
+  cs: { reportBug: 'Poslat zpětnou vazbu', reportIntro: 'Nahlaste problém nebo navrhněte zlepšení.', problem: 'Problém', improvement: 'Zlepšení', selectApp: 'Vybrat aplikaci', contactEmail: 'E-mail', submitReport: 'Odeslat hlášení', consoleLog: 'Výpis konzole (nepovinný)', consoleLogHint: 'Vložte výpis konzole. Přiloží se jen posledních 1 000 znaků. Odstraňte hesla a soukromé údaje.', descriptionRequired: 'Zadejte popis.' },
+  uk: { reportBug: 'Надіслати відгук', reportIntro: 'Повідомте про проблему або запропонуйте покращення.', problem: 'Проблема', improvement: 'Покращення', selectApp: 'Вибрати застосунок', contactEmail: 'Електронна пошта', submitReport: 'Надіслати відгук', consoleLog: 'Журнал консолі (необов’язково)', consoleLogHint: 'Вставте журнал консолі. Буде додано лише останні 1 000 символів. Видаліть паролі та приватні дані.', descriptionRequired: 'Введіть опис.' }
+};
+for (const [language, copy] of Object.entries(reportUpdates)) Object.assign(messages[language], copy);
+
 export const languages = { en: 'English', sk: 'Slovenčina', cs: 'Čeština', uk: 'Українська' };
 
 export function normaliseLanguage(value = '') {

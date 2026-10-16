@@ -127,3 +127,17 @@ footer { border-top: 1px solid var(--line); padding-block: 1.5rem; display: flex
 .report-link { font-size: .8rem; white-space: nowrap; }
 
 @media(max-width:480px) { .report-link { position:fixed; right:16px; bottom:16px; z-index:4; padding:10px; background:#18243b; border:1px solid #818cf8; border-radius:8px; } }
+
+/* Compact shared feedback form and accessible app picker. */
+.report-form { max-width: 640px; margin-inline: auto; }
+.report-fields { display: grid; gap: 1rem; min-width: 0; }
+.report-tabs { display: flex; gap: .5rem; margin-bottom: 1.25rem; }
+.report-tabs button { flex: 1; }
+.report-tabs [aria-selected="true"] { background: var(--accent, #7258e8); color: #fff; border-color: #a899ff; }
+.report-app-selection { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.report-app-dialog { width: min(640px, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); overflow: auto; }
+.report-app-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); gap: .75rem; margin-block: 1rem; }
+.report-app-tile { display: flex; flex-direction: column; align-items: center; gap: .65rem; padding: 1rem; white-space: normal; }
+.report-app-tile[aria-pressed="true"] { outline: 2px solid #a899ff; outline-offset: -2px; }
+.report-fields textarea { min-height: 120px; }
+.report-fields input[type="file"] { max-width: 100%; }

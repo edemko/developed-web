@@ -514,10 +514,15 @@ export class Accounts {
   }
   async report(ctx: Context, body: Row) {
     const app = await this.source(text(body.appSlug, 80, true));
-    const contact = ctx.user ? ctx.user.email : body.contactEmail ? email(body.contactEmail) : null;
+    const contact = email(ctx.user?.email ?? body.contactEmail);
+    const kind = body.kind ?? 'problem';
+    if (!['problem', 'improvement'].includes(kind)) return fail(400, 'invalid_report_kind');
+    const consoleLog = text(body.consoleLog, 1000);
+    const description = text(body.description, 10000, true);
+    if (!description.trim()) return fail(400, 'invalid_input');
     const screenshot = body.screenshot ? await prepareImage(body.screenshot) : null;
-    const data = { sourceUrl: reportSourceUrl(body.sourceUrl), screenshotHash: screenshot ? hash(screenshot.toString('base64')) : null, summary: line(body.summary, 160), description: text(body.description, 10000, true),
-      steps: text(body.steps, 5000), expected: text(body.expected, 2000), actual: text(body.actual, 2000), diagnostics: diagnostics(body.diagnostics),
+    const data = { sourceUrl: reportSourceUrl(body.sourceUrl), screenshotHash: screenshot ? hash(screenshot.toString('base64')) : null, summary: kind === 'improvement' ? 'Improvement' : line(body.summary, 160), description,
+      steps: consoleLog ? `Console log:\n${consoleLog}` : text(body.steps, 5000), expected: text(body.expected, 2000), actual: text(body.actual, 2000), diagnostics: diagnostics(body.diagnostics),
       occurredAt: body.occurredAt ? text(body.occurredAt, 40) : null };
     if (data.occurredAt && (!Number.isFinite(Date.parse(data.occurredAt)) || Date.parse(data.occurredAt) > Date.now() + 300_000)) return fail(400, 'invalid_date');
     const key = hash(`${ctx.user?.id || ctx.session.id}:${uuid(body.idempotencyKey)}`), payloadHash = hash(JSON.stringify({ appId: app.id, contact, data }));
@@ -532,7 +537,7 @@ export class Accounts {
         return { reference: `DEV-${prior!.ticket}` };
       }
       const reference = `DEV-${report.ticket}`;
-      await queueMail(q, this.config, reportMail(this.config.supportEmail, reference, app.name, 'en', true, this.config, { ...data, contactEmail: contact, screenshot: screenshot?.toString('base64') }));
+      await queueMail(q, this.config, reportMail(this.config.supportEmail, reference, app.name, 'en', true, this.config, { ...data, description: kind === 'improvement' ? `[Improvement]\n${description}` : description, contactEmail: contact, screenshot: screenshot?.toString('base64') }));
       if (ctx.user) await queueMail(q, this.config, reportMail(ctx.user.email, reference, app.name, ctx.user.language, false, this.config));
       return { reference };
     });

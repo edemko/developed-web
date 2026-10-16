@@ -62,6 +62,7 @@ test('browser account and report flows retain safe state and render user text in
       else if (path === '/mfa') result = { enabled: true };
       else if (path === '/reports/source/mega-music') result = { app: { id: 'music', slug: 'mega-music', name: 'Mega Music' } };
       else if (path === '/reports/source/unknown') { status = 404; result = { error: { code: 'not_found' } }; }
+      else if (path.startsWith('/reports/source/')) { const slug = path.split('/').at(-1); result = { app: { slug, name: slug === 'developed' ? 'DevelopED' : launchCatalog.apps.find(app => app.slug === slug)?.name } }; }
       else if (path === '/reports') { reportAttempts++; if (reportAttempts === 1) { status = 503; result = { error: { code: 'unavailable' } }; } else result = { reference: 'DEV-42' }; }
       else if (path === '/verify-email') result = { ok: true, loginUrl: '/login?app=mega-music' };
       else if (path === '/authorize' && request.method() === 'GET') result = { app: { id: 'music', name: 'Mega Music' }, scopes: ['openid', 'email', 'profile'] };
@@ -195,28 +196,48 @@ test('browser account and report flows retain safe state and render user text in
     assert.equal(requests.find(request => request.path === '/verify-email').body.token, 'private-email-token');
     assert.equal(await page.locator('main a.button').getAttribute('href'), '/login?app=mega-music');
     await page.goto(`${base}/report-bug/mega-music?screen=player&token=SECRET&sourceUrl=${encodeURIComponent('https://music.example.test/library?code=SECRET#token=SECRET')}`);
-    await page.getByRole('heading', { name: 'Reporting a bug in Mega Music' }).waitFor();
-    assert.equal(await page.getByLabel('Page URL', { exact: true }).inputValue(), 'https://music.example.test/library');
+    await page.getByRole('heading', { name: 'Send feedback' }).waitFor();
+    assert.equal(await page.locator('.report-app-selection strong').textContent(), 'Mega Music');
+    const email = page.locator('main input[name="contactEmail"]');
+    assert.equal(await email.getAttribute('required'), '');
+    await page.getByLabel('Description', { exact: true }).fill('Description without email');
+    await page.getByRole('button', { name: 'Send report', exact: true }).click();
+    assert.equal(requests.filter(request => request.path === '/reports').length, 0);
+    await email.fill('reporter@example.test');
+    await page.getByRole('button', { name: 'Select app' }).click();
+    await page.getByRole('dialog').waitFor();
+    assert.ok(await page.locator('.report-app-tile').count() > 2);
+    await page.keyboard.press('Escape');
+    assert.equal(await page.getByRole('button', { name: 'Select app' }).evaluate(node => node === document.activeElement), true);
+    await page.getByRole('tab', { name: 'Problem', exact: true }).focus();
+    await page.keyboard.press('ArrowRight');
+    assert.equal(await page.getByRole('tab', { name: 'Improvement', exact: true }).getAttribute('aria-selected'), 'true');
+    await page.locator('.diagnostics summary').click();
+    await page.locator('textarea[name="consoleLog"]').fill('x'.repeat(1100) + 'TAIL');
+    assert.equal(await page.locator('textarea[name="consoleLog"]').inputValue(), 'x'.repeat(996) + 'TAIL');
     await page.getByLabel('Screenshot (optional)', { exact: true }).setInputFiles({ name: 'screen.png', mimeType: 'image/png', buffer: await sharp({ create: { width: 800, height: 400, channels: 3, background: '#f04' } }).png().toBuffer() });
     await page.locator('.screenshot-preview:not([hidden])').waitFor();
     await page.getByLabel('Description', { exact: true }).fill('The music stopped unexpectedly.');
-    await page.getByRole('button', { name: 'Send bug report' }).click();
+    await page.getByRole('button', { name: 'Send report' }).click();
     await page.getByRole('alert').waitFor();
     assert.equal(await page.getByLabel('Description', { exact: true }).inputValue(), 'The music stopped unexpectedly.');
-    await page.getByRole('button', { name: 'Send bug report' }).click();
+    await page.getByRole('button', { name: 'Send report' }).click();
     await page.getByText('Report saved. Your reference: DEV-42').waitFor();
     const reports = requests.filter(request => request.path === '/reports');
     assert.equal(reports.length, 2);
     assert.equal(reports[0].body.idempotencyKey, reports[1].body.idempotencyKey);
     assert.equal(reports[0].headers['x-csrf-token'], 'test-csrf');
     assert.equal(reports[0].body.appSlug, 'mega-music');
+    assert.equal(reports[0].body.kind, 'improvement');
+    assert.equal(reports[0].body.contactEmail, 'reporter@example.test');
+    assert.equal(reports[0].body.consoleLog.length, 1000);
     assert.equal(reports[0].body.sourceUrl, 'https://music.example.test/library');
     assert.match(reports[0].body.screenshot, /^data:image\/jpeg;base64,/);
     assert.equal(reports[0].body.userId, undefined);
     assert.equal(reports[0].body.diagnostics.token, undefined);
     await page.goto(`${base}/report-bug/unknown`);
     await page.getByText('This reporting link does not identify an available source.').waitFor();
-    assert.equal(await page.getByRole('button', { name: 'Send bug report' }).count(), 0);
+    assert.equal(await page.getByRole('button', { name: 'Send report' }).count(), 0);
     await page.goto(`${base}/login`);
     await page.getByRole('heading', { name: 'One account for your DevelopED apps.' }).waitFor();
     await page.getByText('Your DevelopED account is required to access all connected apps', { exact: false }).waitFor();
@@ -279,6 +300,15 @@ test('browser account and report flows retain safe state and render user text in
       await page.goto(`${base}/apps`);
       await page.getByRole('heading', { name: 'Your apps', exact: true }).waitFor();
     }
+    await page.goto(`${base}/report-bug/mega-music`);
+    await page.getByRole('heading', { name: 'Send feedback' }).waitFor();
+    assert.equal(await page.locator('main input[name="contactEmail"]').inputValue(), user.email);
+    await page.getByRole('button', { name: 'Select app' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'DevelopED', exact: true }).click();
+    await page.getByRole('dialog').waitFor({ state: 'hidden' });
+    assert.equal(await page.locator('.report-app-selection strong').textContent(), 'DevelopED');
+    await page.setViewportSize({ width: 320, height: 900 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.goto(`${base}/admin/reports`);
     await page.getByText('Test issue', { exact: true }).waitFor();
     await page.getByText('Details', { exact: true }).click();

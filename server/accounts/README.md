@@ -1,3 +1,5 @@
+> Simplified feedback is live in API release `40ee1e50534e` on loopback 3140; see the [16 October feedback checkpoint](deploy/feedback-checkpoint-20261016.md).
+
 # DevelopED central account service
 
 Current central API release: `d3c3b1b4f8ec` on loopback 3140. App authorization

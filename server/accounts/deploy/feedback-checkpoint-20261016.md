@@ -41,5 +41,6 @@ Public Chromium checked DevelopED and all seven public catalog report routes:
 source preselection, both tabs, required fields, tile picker and 320px containment.
 My Clinic's live dialog passed equivalent checks, including nine app cards and
 improvement/source context on links to central feedback. No production report,
-email, registration or clinical write was submitted for testing. Final host health
-check and exact service state are recorded by the operator after the releases.
+email, registration or clinical write was submitted for testing. All 44 host health probes passed after both releases. The API, sole mail worker
+and My Clinic API were active with zero restarts; the release poll timer remains
+active.

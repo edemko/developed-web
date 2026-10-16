@@ -1,5 +1,9 @@
 # DevelopED central account service
 
+Registration now requires password confirmation and provides eye controls for
+password visibility across the shared portal and branded surfaces. This is live
+in API release `1f18edd3e6f2`; see the [16 October UI checkpoint](deploy/registration-password-checkpoint-20261016.md).
+
 The opt-in Mega Music branded identity surface uses `ACCOUNTS_MUSIC_ORIGIN`,
 requires `20260921163940_mega_music_native_clients.sql`, and shares the existing
 registration-mode switch and sole mail worker. It is source preparation, not

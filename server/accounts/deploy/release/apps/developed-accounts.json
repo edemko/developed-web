@@ -6,12 +6,13 @@
   "notes": [
     "Automatic public UI releases start from the sealed 7cf9d4100a9a central baseline; manual backend and worker reviews remain required.",
     "Routine public UI changes may auto-deploy after activation. Source, dependencies, migrations, and worker changes require a coordinated manual release.",
-    "The central switch drains and re-pins the sole mail worker with the API. It refuses changed mail-worker modules or logo."
+    "The central switch drains and re-pins the sole mail worker with the API. It refuses changed mail-worker modules or logo.",
+    "Protect the release named by the live mail worker guard's RELEASE pin; it remains the worker's immutable import source after an API switch."
   ],
   "repo": "/home/openclaw/Dev/developed-web",
   "branch": "main",
   "releaseRoot": "/opt/developed-accounts/releases",
-  "protect": ["502a7048ac639fe61ba8b95b0834fdaeafe0cc8b"],
+  "protect": ["502a7048ac639fe61ba8b95b0834fdaeafe0cc8b", "72e2fe9b69d5"],
   "runtimeUser": "developed-accounts",
   "archivePaths": ["."],
   "migrationPaths": ["server/accounts/migrations"],

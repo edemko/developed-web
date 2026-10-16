@@ -1,5 +1,14 @@
 # DevelopED central account service
 
+Current central API release: `d3c3b1b4f8ec` on loopback 3140. App authorization
+shows automatic sign-in progress and reuses an in-flight request across language
+changes; login refreshes a stale CSRF token once. See the
+[16 October sign-in checkpoint](deploy/sign-in-progress-checkpoint-20261016.md).
+
+Registration now requires password confirmation and provides eye controls for
+password visibility across the shared portal and branded surfaces. This is live
+in API release `1f18edd3e6f2`; see the [16 October UI checkpoint](deploy/registration-password-checkpoint-20261016.md).
+
 The opt-in Mega Music branded identity surface uses `ACCOUNTS_MUSIC_ORIGIN`,
 requires `20260921163940_mega_music_native_clients.sql`, and shares the existing
 registration-mode switch and sole mail worker. It is source preparation, not
@@ -40,6 +49,11 @@ persists provider IDs/error codes, exposes owner-scoped
 even when submission fails. `details.pendingPhone` restores the latest attempt
 after refresh. Gateway acceptance is not delivery; OTP entry verifies the phone.
 See [the SMS deployment checkpoint](deploy/sms-status-checkpoint-20261005.md).
+
+The Airsoft product-profile phone flow uses SMS Gate v1 JSON `send_message`
+with its confirmed `from=AMP` identifier. Other central SMS sends retain the
+account default identifier. The provider's accepted response is tracked
+separately from handset delivery and OTP confirmation.
 
 - Loopback-only HTTP service on port 3140, behind the canonical
   `https://www.developed.sk` ingress. The bare `developed.sk` hostname keeps its

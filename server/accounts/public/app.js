@@ -169,6 +169,7 @@ async function start() {
     renderChrome();
   }
 
+  let passwordFieldId = 0;
   function field(form, key, { type = 'text', value = '', required = false, maxLength, autocomplete, minLength, accept } = {}) {
     const label = el('label', t(key));
     const input = el(type === 'textarea' ? 'textarea' : 'input');
@@ -180,8 +181,43 @@ async function start() {
     if (minLength) input.minLength = minLength;
     if (autocomplete) input.autocomplete = autocomplete;
     if (accept) input.accept = accept;
-    label.append(input);
-    form.append(label);
+    if (type === 'password') {
+      input.id = `password-${++passwordFieldId}`;
+      label.htmlFor = input.id;
+      const wrapper = el('div', undefined, 'password-field');
+      const control = el('div', undefined, 'password-control');
+      const toggle = button(null, () => setVisible(input.type === 'password'), 'password-toggle');
+      toggle.setAttribute('aria-controls', input.id);
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.setAttribute('aria-hidden', 'true');
+      svg.setAttribute('focusable', 'false');
+      for (const [d, className] of [
+        ['M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z', ''],
+        ['M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z', ''],
+        ['m3 3 18 18', 'eye-slash']
+      ]) {
+        const path = document.createElementNS(svg.namespaceURI, 'path');
+        path.setAttribute('d', d);
+        if (className) path.setAttribute('class', className);
+        svg.append(path);
+      }
+      toggle.append(svg);
+      function setVisible(visible) {
+        input.type = visible ? 'text' : 'password';
+        toggle.setAttribute('aria-pressed', String(visible));
+        toggle.setAttribute('aria-label', t(visible ? 'hidePassword' : 'showPassword'));
+        toggle.title = t(visible ? 'hidePassword' : 'showPassword');
+      }
+      setVisible(false);
+      form.addEventListener('reset', () => setVisible(false));
+      control.append(input, toggle);
+      wrapper.append(label, control);
+      form.append(wrapper);
+    } else {
+      label.append(input);
+      form.append(label);
+    }
     return input;
   }
 
@@ -496,15 +532,14 @@ async function start() {
     const name = field(form, 'name', { required: true, autocomplete: 'name', maxLength: 100 });
     const email = field(form, 'email', { type: 'email', required: true, autocomplete: 'email', maxLength: 254, value: invitationEmail || '' });
     if (invitationEmail) { email.readOnly = true; email.setAttribute('aria-readonly', 'true'); form.append(el('small', t('invitedEmailHelp'))); }
-    const password = field(form, 'password', { type: 'password', required: true, autocomplete: 'new-password', ...passwordRule() });
-    form.append(el('small', passwordHelp()));
+    const password = newPasswordFields(form, 'password', 'confirmPassword');
     const card = panel();
     bindForm(form, t('register'), async () => {
       // The preview binds display and request to the invited mailbox. The server
       // independently checks the invitation; DOM/readOnly is not authorization.
       const address = invitationEmail || email.value.trim();
       const result = await api('/register', 'POST', { email: address, password: password.value, displayName: name.value.trim(), language, ...(invitationToken ? { invitation: invitationToken } : {}), ...(appSlug ? { app: appSlug } : {}), ...(continuation.startsWith('/account/authorize?') ? { continuation } : {}) });
-      password.value = '';
+      form.reset();
       invitationToken = '';
       if (result.emailVerified === true) {
         const title = el('h2', t('accountCreated')); title.tabIndex = -1;
@@ -560,13 +595,15 @@ async function start() {
     panel(t('resend')).append(resend);
   }
 
-  function newPasswordFields(form) {
-    const password = field(form, 'newPassword', { type: 'password', required: true, ...passwordRule(), autocomplete: 'new-password' });
+  function newPasswordFields(form, passwordKey = 'newPassword', repeatKey = 'repeatPassword') {
+    const password = field(form, passwordKey, { type: 'password', required: true, ...passwordRule(), autocomplete: 'new-password' });
     form.append(el('small', passwordHelp()));
-    const repeat = field(form, 'repeatPassword', { type: 'password', required: true, maxLength: 128, autocomplete: 'new-password' });
+    const repeat = field(form, repeatKey, { type: 'password', required: true, ...passwordRule(), autocomplete: 'new-password' });
     const validate = () => repeat.setCustomValidity(password.value === repeat.value ? '' : t('passwordMismatch'));
     password.addEventListener('input', validate);
     repeat.addEventListener('input', validate);
+    form.addEventListener('submit', validate);
+    form.addEventListener('reset', () => repeat.setCustomValidity(''));
     return password;
   }
 

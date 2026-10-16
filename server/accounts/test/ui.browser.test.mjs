@@ -118,6 +118,30 @@ test('browser account and report flows retain safe state and render user text in
     await page.getByLabel('Name', { exact: true }).fill('Registration Fixture');
     await page.getByLabel('Email', { exact: true }).fill('new@example.test');
     await page.getByLabel('Password', { exact: true }).fill('long-test-password-only');
+    const confirmPassword = page.getByLabel('Confirm password', { exact: true });
+    await confirmPassword.fill('different-test-password');
+    await page.getByRole('button', { name: 'Create account', exact: true }).click();
+    assert.equal(requests.filter(request => request.path === '/register').length, 0);
+    assert.equal(await confirmPassword.evaluate(input => input.validationMessage), 'The passwords do not match.');
+    for (const input of [page.getByLabel('Password', { exact: true }), confirmPassword]) {
+      const control = input.locator('..').getByRole('button');
+      const original = await input.inputValue();
+      await control.click();
+      assert.equal(await input.getAttribute('type'), 'text');
+      assert.equal(await control.getAttribute('aria-label'), 'Hide password');
+      assert.equal(await control.getAttribute('aria-pressed'), 'true');
+      assert.equal(await input.inputValue(), original);
+      await control.focus();
+      await page.keyboard.press('Space');
+      assert.equal(await input.getAttribute('type'), 'password');
+      assert.equal(await control.getAttribute('aria-label'), 'Show password');
+    }
+    await confirmPassword.fill('long-test-password-only');
+    // Editing either field must recheck the match, preserving password whitespace.
+    await page.getByLabel('Password', { exact: true }).fill(' long-test-password-only ');
+    await page.getByRole('button', { name: 'Create account', exact: true }).click();
+    assert.equal(requests.filter(request => request.path === '/register').length, 0);
+    await confirmPassword.fill(' long-test-password-only ');
     await page.getByRole('button', { name: 'Create account', exact: true }).click();
     await page.getByRole('alert').waitFor();
     assert.equal(await page.getByLabel('Email', { exact: true }).inputValue(), 'new@example.test');
@@ -125,6 +149,8 @@ test('browser account and report flows retain safe state and render user text in
     await page.getByRole('heading', { name: 'Check your inbox', exact: true }).waitFor();
     assert.equal(await page.locator('input[type=password]').count(), 0);
     assert.equal(requests.find(request => request.path === '/register').body.continuation, '/account/authorize?authorization_id=pending-auth');
+    assert.equal(requests.find(request => request.path === '/register').body.password, ' long-test-password-only ');
+    assert.equal('confirmPassword' in requests.find(request => request.path === '/register').body, false);
     await page.getByRole('button', { name: 'Resend confirmation', exact: true }).click();
     await page.getByRole('status').last().waitFor();
     assert.equal(requests.find(request => request.path === '/resend-verification').body.email, 'new@example.test');
@@ -137,6 +163,7 @@ test('browser account and report flows retain safe state and render user text in
     assert.equal(await page.getByLabel('Email', { exact: true }).evaluate(input => input.readOnly), true);
     await page.getByLabel('Name', { exact: true }).fill('Invited Fixture');
     await page.getByLabel('Password', { exact: true }).fill('long-test-password-only');
+    await page.getByLabel('Confirm password', { exact: true }).fill('long-test-password-only');
     // Even changing the readonly DOM value cannot change this request mailbox.
     await page.getByLabel('Email', { exact: true }).evaluate(input => { input.value = 'other@example.test'; });
     await page.getByRole('button', { name: 'Create account', exact: true }).click();

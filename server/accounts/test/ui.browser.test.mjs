@@ -198,6 +198,8 @@ test('browser account and report flows retain safe state and render user text in
     await page.goto(`${base}/report-bug/mega-music?screen=player&token=SECRET&sourceUrl=${encodeURIComponent('https://music.example.test/library?code=SECRET#token=SECRET')}`);
     await page.getByRole('heading', { name: 'Send feedback' }).waitFor();
     assert.equal(await page.locator('.report-app-selection strong').textContent(), 'Mega Music');
+    assert.equal(await page.getByRole('button', { name: 'Remove screenshot' }).isVisible(), false);
+    assert.equal(await page.locator('nav .report-link').count(), 0);
     const email = page.locator('main input[name="contactEmail"]');
     assert.equal(await email.getAttribute('required'), '');
     await page.getByLabel('Description', { exact: true }).fill('Description without email');

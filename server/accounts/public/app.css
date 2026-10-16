@@ -141,3 +141,5 @@ footer { border-top: 1px solid var(--line); padding-block: 1.5rem; display: flex
 .report-app-tile[aria-pressed="true"] { outline: 2px solid #a899ff; outline-offset: -2px; }
 .report-fields textarea { min-height: 120px; }
 .report-fields input[type="file"] { max-width: 100%; }
+
+.report-form [hidden], .report-fields > div:empty { display: none; }

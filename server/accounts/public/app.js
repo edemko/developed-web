@@ -301,7 +301,8 @@ async function start() {
     document.documentElement.lang = language;
     navigation.replaceChildren();
     navigation.setAttribute('aria-label', t('account'));
-    navigation.append(link(t('reportBug'), reportLink(musicSurface ? 'mega-music' : 'developed'), 'report-link'), languageMenu());
+    if (!location.pathname.startsWith('/report-bug')) navigation.append(link(t('reportBug'), reportLink(musicSurface ? 'mega-music' : 'developed'), 'report-link'));
+    navigation.append(languageMenu());
     if (session?.user) {
       const menu = el('details', undefined, 'avatar-menu');
       const summary = el('summary');

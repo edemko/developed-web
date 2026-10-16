@@ -824,30 +824,35 @@ async function start() {
     return tr;
   }
 
+  let authorizationFlow = null;
   async function authorizePage() {
-    heading(t('authorize'), t('authorizeIntro'), true);
+    const version = pageVersion;
+    heading(t('signingIn'), t('automaticSignIn'), true);
     const authorizationId = new URLSearchParams(location.search).get('authorization_id');
     if (!authorizationId || !/^[a-zA-Z0-9_-]{1,160}$/.test(authorizationId)) throw new Error('Invalid authorization');
-    const result = await api(`/authorize?authorization_id=${encodeURIComponent(authorizationId)}`);
-    const section = panel(result.app.name);
-    section.append(el('p', t('requestedScopes'), 'muted'), el('p', Array.isArray(result.scopes) ? result.scopes.join(', ') : result.scopes));
-    const form = el('form');
-    const finish = async approve => {
-      const result = await api('/authorize', 'POST', { authorizationId, approve });
+    const status = el('p', t('loading'), 'notice');
+    status.setAttribute('role', 'status');
+    main.append(status);
+    // The POST checks the exact client and current eligibility before consent.
+    // Reuse its promise across language changes/re-renders: the grant is one-use.
+    if (!authorizationFlow || authorizationFlow.id !== authorizationId) {
+      authorizationFlow = { id: authorizationId, promise: api('/authorize', 'POST', { authorizationId, approve: true }) };
+    }
+    const flow = authorizationFlow;
+    try {
+      const result = await flow.promise;
+      if (version !== pageVersion) return;
       const url = safeAuthorizationUrl(result.redirectUrl, location.origin);
       if (!url) throw new Error('Invalid redirect');
-      location.assign(url);
-    };
-    const notice = bindForm(form, t('continue'), () => finish(true));
-    form.append(button(t('deny'), async event => {
-      event.target.disabled = true;
-      try { await finish(false); } catch (error) { feedback(notice, errorMessage(error), 'error'); }
-      finally { event.target.disabled = false; }
-    }, 'secondary'));
-    section.append(form);
-    // This is an operator-controlled first-party ecosystem. The backend has
-    // resolved the client and checked current eligibility before auto-approval.
-    form.requestSubmit();
+      // Keep the consumed authorization out of browser Back history.
+      location.replace(url);
+    } catch (error) {
+      if (version !== pageVersion) return;
+      if (authorizationFlow === flow) authorizationFlow = null;
+      if (error?.code !== 'invalid_authorization') throw error;
+      heading(t('authorizationExpired'), t('authorizationRestart'), true);
+      main.append(link(t('apps'), '/apps', 'button'));
+    }
   }
 
   async function reportPage() {

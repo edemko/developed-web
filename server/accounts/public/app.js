@@ -490,7 +490,16 @@ async function start() {
     const password = field(form, 'password', { type: 'password', required: true, autocomplete: 'current-password', maxLength: 128 });
     bindForm(form, t('login'), async () => {
       const appSlug = params.get('app');
-      const result = await api('/login', 'POST', { email: email.value.trim(), password: password.value, ...(appSlug && /^[a-z0-9-]{1,64}$/.test(appSlug) ? { appSlug } : {}) });
+      const credentials = { email: email.value.trim(), password: password.value, ...(appSlug && /^[a-z0-9-]{1,64}$/.test(appSlug) ? { appSlug } : {}) };
+      let result;
+      try { result = await api('/login', 'POST', credentials); }
+      catch (error) {
+        // Verification or sign-in in another tab can rotate the shared cookie.
+        // An invalid CSRF token is rejected before login; refresh and retry once.
+        if (error?.status !== 403 || error?.code !== 'invalid_csrf') throw error;
+        await bootstrap();
+        result = await api('/login', 'POST', credentials);
+      }
       password.value = '';
       if (result.mfa) { await bootstrap(); await mfaPage(); return; }
       if (result.user?.requirePasswordChange) { location.assign('/profile'); return; }

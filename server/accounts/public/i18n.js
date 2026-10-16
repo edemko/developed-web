@@ -42,6 +42,9 @@ export const messages = {
 // confirmation remains separate from an email-bound invitation acceptance.
 const accountUpdates = {
   en: {
+    signingIn: 'Signing you in…', automaticSignIn: 'You will return to your app automatically.',
+    authorizationExpired: 'This sign-in link is no longer valid', authorizationRestart: 'Open your app again to start a new sign-in.',
+    confirmPassword: 'Confirm password', showPassword: 'Show password', hidePassword: 'Hide password',
     loginHero: 'One account for your DevelopED apps.', loginCardEyebrow: 'DevelopED account',
     loginDestination: 'Continue to', loginSharedTitle: 'Why am I here?',
     loginSharedBody: 'DevelopED handles sign-in for its apps. Your DevelopED account is required to access all connected apps. After signing in, you will return to your app.',
@@ -54,6 +57,9 @@ const accountUpdates = {
     invalidInvitation: 'This invitation is invalid, expired or already used. Ask for a new invitation.', accountExists: 'An account already exists for this invitation. Sign in or reset your password.'
   },
   sk: {
+    confirmPassword: 'Potvrďte heslo', showPassword: 'Zobraziť heslo', hidePassword: 'Skryť heslo',
+    signingIn: 'Prihlasujeme vás…', automaticSignIn: 'Do aplikácie sa vrátite automaticky.',
+    authorizationExpired: 'Tento prihlasovací odkaz už nie je platný', authorizationRestart: 'Znova otvorte aplikáciu a začnite nové prihlásenie.',
     loginHero: 'Jeden účet pre vaše aplikácie DevelopED.', loginCardEyebrow: 'Účet DevelopED',
     loginDestination: 'Pokračovať do', loginSharedTitle: 'Prečo som tu?',
     loginSharedBody: 'DevelopED zabezpečuje prihlasovanie do svojich aplikácií. Účet DevelopED je potrebný na prístup ku všetkým zapojeným aplikáciám. Po prihlásení sa vrátite do svojej aplikácie.',
@@ -66,6 +72,9 @@ const accountUpdates = {
     invalidInvitation: 'Pozvánka je neplatná, vypršala alebo už bola použitá. Požiadajte o novú pozvánku.', accountExists: 'Pre túto pozvánku už účet existuje. Prihláste sa alebo si obnovte heslo.'
   },
   cs: {
+    confirmPassword: 'Potvrďte heslo', showPassword: 'Zobrazit heslo', hidePassword: 'Skrýt heslo',
+    signingIn: 'Přihlašujeme vás…', automaticSignIn: 'Do aplikace se vrátíte automaticky.',
+    authorizationExpired: 'Tento přihlašovací odkaz už není platný', authorizationRestart: 'Znovu otevřete aplikaci a začněte nové přihlášení.',
     loginHero: 'Jeden účet pro vaše aplikace DevelopED.', loginCardEyebrow: 'Účet DevelopED',
     loginDestination: 'Pokračovat do', loginSharedTitle: 'Proč jsem tady?',
     loginSharedBody: 'DevelopED zajišťuje přihlašování do svých aplikací. Účet DevelopED je potřeba pro přístup ke všem zapojeným aplikacím. Po přihlášení se vrátíte do své aplikace.',
@@ -78,6 +87,9 @@ const accountUpdates = {
     invalidInvitation: 'Pozvánka je neplatná, vypršela nebo již byla použita. Požádejte o novou pozvánku.', accountExists: 'Pro tuto pozvánku již účet existuje. Přihlaste se nebo obnovte heslo.'
   },
   uk: {
+    confirmPassword: 'Підтвердьте пароль', showPassword: 'Показати пароль', hidePassword: 'Приховати пароль',
+    signingIn: 'Виконуємо вхід…', automaticSignIn: 'Ви автоматично повернетеся до застосунку.',
+    authorizationExpired: 'Це посилання для входу більше не дійсне', authorizationRestart: 'Відкрийте застосунок знову, щоб почати новий вхід.',
     loginHero: 'Один обліковий запис для застосунків DevelopED.', loginCardEyebrow: 'Обліковий запис DevelopED',
     loginDestination: 'Перейти до', loginSharedTitle: 'Чому я тут?',
     loginSharedBody: 'DevelopED забезпечує вхід до своїх застосунків. Обліковий запис DevelopED потрібен для доступу до всіх підключених застосунків. Після входу ви повернетеся до свого застосунку.',

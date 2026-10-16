@@ -10,8 +10,22 @@ export function contactPhone(input: unknown) {
   value = value.replace(/[ ()-]/g, '');
   if (value.startsWith('00')) value = '+' + value.slice(2);
   if (/^09[0-9]{8}$/.test(value)) value = '+421' + value.slice(1);
-  if (!/^\+[1-9][0-9]{9,14}$/.test(value)) return fail(400, 'invalid_phone');
+  if (!/^(?:\+4219\d{8}|\+420[67]\d{8})$/.test(value)) return fail(400, 'invalid_phone');
   return value;
+}
+
+export function profileVerificationSms(code: string, language: string) {
+  switch (language) {
+    case 'cs': return `Airsoft Marketplace overovaci kod: ${code}. Plati 5 minut. Nikomu ho nesdelujte.`;
+    case 'uk': return `Airsoft Marketplace код підтвердження: ${code}. Діє 5 хв. Не діліться.`;
+    default: return `Airsoft Marketplace overovaci kod: ${code}. Plati 5 minut. Nikomu ho neposielajte.`;
+  }
+}
+
+function profileSmsLanguage(value: unknown, fallback: unknown) {
+  if (value === undefined) return ['sk', 'cs', 'uk'].includes(String(fallback)) ? String(fallback) : 'sk';
+  if (value === 'sk' || value === 'cs' || value === 'uk') return value;
+  return fail(400, 'invalid_input');
 }
 const keyed = (a: Accounts, purpose: string, value: string) => createHmac('sha256', a.config.encryptionKey).update(`${purpose}:${value}`).digest('hex');
 
@@ -95,6 +109,7 @@ export class ProductProfile {
     if (action === 'phone-start') {
       const phone = contactPhone(body.phone), lookup = keyed(a, 'phone', phone);
       const replaceId = body.replaceId ? uuid(body.replaceId) : null;
+      const smsLanguage = profileSmsLanguage(body.language, user.language);
       await a.db.limit(`profile-sms:${user.id}`, 5, 3600);
       await a.db.limit('profile-sms:aggregate', 200, 86400);
       const id = randomUUID(), code = randomInt(100000, 1000000).toString();
@@ -114,7 +129,7 @@ export class ProductProfile {
           values($1,$2,$3,$4,$5,$6,$7,now()+interval '5 minutes')`, [id,user.id,user.security_version,replaceId,lookup,
           seal(phone,a.config.encryptionKey,`profile-phone:${id}`),keyed(a,`profile-code:${id}`,code)]);
       });
-      const result = await this.deliver(a, phone, `DevelopED: Overovaci kod ${code}. Plati 5 minut. Nikomu ho neposielajte.`);
+      const result = await this.deliver(a, phone, profileVerificationSms(code, smsLanguage));
       // An uncertain send may still arrive; possession of its code can prove the phone.
       const status = result.ok ? 'accepted' : result.status === 'ambiguous' ? 'unknown' : 'failed';
       const [challenge] = await a.db.query(`update accounts.profile_phone_challenges

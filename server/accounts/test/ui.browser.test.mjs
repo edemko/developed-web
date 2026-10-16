@@ -35,6 +35,8 @@ test('browser account and report flows retain safe state and render user text in
     let reportAttempts = 0;
     let registrationAttempts = 0;
     let registrationMode = 'open';
+    let csrfToken = 'test-csrf';
+    let loginFailure = null;
     const user = { id: 'user-id', email: 'owner@example.test', displayName: 'Owner Name', language: 'en', role: 'SUPERADMIN', emailVerified: true };
     await page.route('**/api/account/**', async route => {
       const request = route.request();
@@ -43,11 +45,15 @@ test('browser account and report flows retain safe state and render user text in
       requests.push({ path, body, headers: request.headers() });
       let status = 200;
       let result = {};
-      if (path === '/session') result = { csrfToken: 'test-csrf', user: authenticated ? user : null, registrationMode };
+      if (path === '/session') result = { csrfToken, user: authenticated ? user : null, registrationMode };
       else if (path === '/invitation/preview') result = { email: 'invited@example.test' };
       else if (path === '/register') { registrationAttempts++; if (registrationAttempts === 1) { status = 503; result = { error: { code: 'unavailable' } }; } else result = { ok: true, emailVerified: Boolean(body.invitation) }; }
       else if (path === '/resend-verification') result = { ok: true };
-      else if (path === '/login') { authenticated = true; result = { user }; }
+      else if (path === '/login') {
+        const code = loginFailure || (request.headers()['x-csrf-token'] !== csrfToken ? 'invalid_csrf' : null);
+        if (code) { status = 403; result = { error: { code } }; }
+        else { authenticated = true; result = { user }; }
+      }
       else if (path === '/apps' || path === '/catalog') result = { apps: launchCatalog.apps.map(app => ({ ...app, id: app.appId, available: true, plan: 'free' })) };
       else if (path === '/authorization-app') result = { app: { id: 'app_kestrek', slug: 'kestrek', name: 'KešTrek', icon: '/assets/projects/kestrek.svg' } };
       else if (path === '/logout' || path === '/logout-all') { authenticated = false; result = { ok: true }; }
@@ -118,6 +124,30 @@ test('browser account and report flows retain safe state and render user text in
     await page.getByLabel('Name', { exact: true }).fill('Registration Fixture');
     await page.getByLabel('Email', { exact: true }).fill('new@example.test');
     await page.getByLabel('Password', { exact: true }).fill('long-test-password-only');
+    const confirmPassword = page.getByLabel('Confirm password', { exact: true });
+    await confirmPassword.fill('different-test-password');
+    await page.getByRole('button', { name: 'Create account', exact: true }).click();
+    assert.equal(requests.filter(request => request.path === '/register').length, 0);
+    assert.equal(await confirmPassword.evaluate(input => input.validationMessage), 'The passwords do not match.');
+    for (const input of [page.getByLabel('Password', { exact: true }), confirmPassword]) {
+      const control = input.locator('..').getByRole('button');
+      const original = await input.inputValue();
+      await control.click();
+      assert.equal(await input.getAttribute('type'), 'text');
+      assert.equal(await control.getAttribute('aria-label'), 'Hide password');
+      assert.equal(await control.getAttribute('aria-pressed'), 'true');
+      assert.equal(await input.inputValue(), original);
+      await control.focus();
+      await page.keyboard.press('Space');
+      assert.equal(await input.getAttribute('type'), 'password');
+      assert.equal(await control.getAttribute('aria-label'), 'Show password');
+    }
+    await confirmPassword.fill('long-test-password-only');
+    // Editing either field must recheck the match, preserving password whitespace.
+    await page.getByLabel('Password', { exact: true }).fill(' long-test-password-only ');
+    await page.getByRole('button', { name: 'Create account', exact: true }).click();
+    assert.equal(requests.filter(request => request.path === '/register').length, 0);
+    await confirmPassword.fill(' long-test-password-only ');
     await page.getByRole('button', { name: 'Create account', exact: true }).click();
     await page.getByRole('alert').waitFor();
     assert.equal(await page.getByLabel('Email', { exact: true }).inputValue(), 'new@example.test');
@@ -125,6 +155,8 @@ test('browser account and report flows retain safe state and render user text in
     await page.getByRole('heading', { name: 'Check your inbox', exact: true }).waitFor();
     assert.equal(await page.locator('input[type=password]').count(), 0);
     assert.equal(requests.find(request => request.path === '/register').body.continuation, '/account/authorize?authorization_id=pending-auth');
+    assert.equal(requests.find(request => request.path === '/register').body.password, ' long-test-password-only ');
+    assert.equal('confirmPassword' in requests.find(request => request.path === '/register').body, false);
     await page.getByRole('button', { name: 'Resend confirmation', exact: true }).click();
     await page.getByRole('status').last().waitFor();
     assert.equal(requests.find(request => request.path === '/resend-verification').body.email, 'new@example.test');
@@ -137,6 +169,7 @@ test('browser account and report flows retain safe state and render user text in
     assert.equal(await page.getByLabel('Email', { exact: true }).evaluate(input => input.readOnly), true);
     await page.getByLabel('Name', { exact: true }).fill('Invited Fixture');
     await page.getByLabel('Password', { exact: true }).fill('long-test-password-only');
+    await page.getByLabel('Confirm password', { exact: true }).fill('long-test-password-only');
     // Even changing the readonly DOM value cannot change this request mailbox.
     await page.getByLabel('Email', { exact: true }).evaluate(input => { input.value = 'other@example.test'; });
     await page.getByRole('button', { name: 'Create account', exact: true }).click();
@@ -197,11 +230,33 @@ test('browser account and report flows retain safe state and render user text in
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
       assert.equal(await page.locator('.login-card').isVisible(), true);
     }
-    await page.goto(`${base}/login`);
+    // A forbidden login other than CSRF must not refresh or replay credentials.
+    for (const code of ['invalid_origin', 'account_unavailable', 'invalid_csrf']) {
+      await page.goto(`${base}/login`);
+      await page.getByLabel('Email', { exact: true }).fill('owner@example.test');
+      await page.getByLabel('Password', { exact: true }).fill('long-test-password-only');
+      loginFailure = code;
+      const start = requests.length;
+      await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+      await page.getByRole('alert').waitFor();
+      assert.equal(requests.slice(start).filter(request => request.path === '/login').length, code === 'invalid_csrf' ? 2 : 1);
+      assert.equal(requests.slice(start).filter(request => request.path === '/session').length, code === 'invalid_csrf' ? 1 : 0);
+    }
+    loginFailure = null;
+    await page.goto(`${base}/login?app=airsoft`);
+    await page.getByLabel('Email', { exact: true }).waitFor();
+    csrfToken = 'rotated-in-another-tab';
+    const staleLoginStart = requests.length;
     await page.getByLabel('Email', { exact: true }).fill('owner@example.test');
     await page.getByLabel('Password', { exact: true }).fill('long-test-password-only');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await page.getByRole('heading', { name: 'Your apps', exact: true }).waitFor();
+    const loginAttempts = requests.slice(staleLoginStart).filter(request => request.path === '/login');
+    assert.equal(loginAttempts.length, 2);
+    assert.equal(loginAttempts[0].headers['x-csrf-token'], 'test-csrf');
+    assert.equal(loginAttempts[1].headers['x-csrf-token'], csrfToken);
+    assert.deepEqual(loginAttempts[1].body, loginAttempts[0].body);
+    assert.equal(loginAttempts[1].body.appSlug, 'airsoft');
     await page.getByRole('button', { name: /Mega Music/ }).waitFor();
     assert.equal(await page.locator('.avatar').innerText(), 'ON');
     assert.equal(await page.locator('.app-tile').count(), 7);

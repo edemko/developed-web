@@ -55,7 +55,7 @@ test('Vocabulum authorization returns to the native app without the generic erro
         if (event.url === callback) { clearTimeout(timeout); resolve(event.url); }
       });
     });
-    // Authorization auto-submits the same form used by the Continue button.
+    // First-party authorization completes automatically without a Continue form.
     await page.goto(`http://127.0.0.1:${server.address().port}/account/authorize?authorization_id=fixture-authorization`);
     assert.equal(await requested, callback);
     assert.deepEqual(approvals, [{ authorizationId: 'fixture-authorization', approve: true }]);

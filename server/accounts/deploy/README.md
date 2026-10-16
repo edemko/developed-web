@@ -1,4 +1,4 @@
-> Latest UI-only release: [Vocabulum callback repair](vocabulum-callback-checkpoint-20261012.md). Backend behavior and the password-retirement observation logger are preserved.
+> Latest UI-only release: [16 October automatic sign-in and stale-token recovery](sign-in-progress-checkpoint-20261016.md). API release `d3c3b1b4f8ec` on loopback 3140; the sole mail worker retains its implementation pin. Backend behavior and the password-retirement observation logger are preserved.
 
 > Current sealed central baseline: [automatic UI release checkpoint](central-auto-baseline-checkpoint-20261012.md). It supersedes the earlier API and worker pins below.
 

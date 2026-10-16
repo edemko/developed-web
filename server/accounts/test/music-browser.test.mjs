@@ -27,8 +27,10 @@ test('branded registration follows the central invitation/open/closed switch',{s
  await page.locator('#developed-cookie-dialog').waitFor({state:'visible'});
  assert.equal(await page.locator('#developed-cookie-dialog a').getAttribute('href'),'https://www.developed.sk/en/cookies/');
  await page.keyboard.press('Escape');
- mode='open';await page.reload();await page.locator('input[type="password"]').waitFor();
- assert.equal(await page.locator('input[type="password"]').getAttribute('minlength'),'6');
+ mode='open';await page.reload();await page.getByLabel('Password',{exact:true}).waitFor();
+ assert.equal(await page.getByLabel('Password',{exact:true}).getAttribute('minlength'),'6');
+ assert.equal(await page.getByLabel('Confirm password',{exact:true}).count(),1);
+ assert.equal(await page.getByRole('button',{name:'Show password',exact:true}).count(),2);
  assert.equal(await page.locator('input[type="email"]').count(),1);
  await page.getByText(/creating a DevelopED ecosystem account/).waitFor();
  assert.equal(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor),'rgb(18, 18, 18)');

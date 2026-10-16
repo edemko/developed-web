@@ -1,5 +1,10 @@
 # DevelopED central account service
 
+Current central API release: `d3c3b1b4f8ec` on loopback 3140. App authorization
+shows automatic sign-in progress and reuses an in-flight request across language
+changes; login refreshes a stale CSRF token once. See the
+[16 October sign-in checkpoint](deploy/sign-in-progress-checkpoint-20261016.md).
+
 Registration now requires password confirmation and provides eye controls for
 password visibility across the shared portal and branded surfaces. This is live
 in API release `1f18edd3e6f2`; see the [16 October UI checkpoint](deploy/registration-password-checkpoint-20261016.md).

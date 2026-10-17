@@ -1,3 +1,5 @@
+> App-styled dropdowns are live in API release `10121ac509ac`; the sole mail worker is healthy and its implementation pin is protected. See the [17 October dropdown release and recovery](styled-dropdowns-checkpoint-20261017.md).
+
 > Profile layout is live in API release `2248f5d6bbb2` on loopback 3140; see the [17 October layout checkpoint](profile-layout-checkpoint-20261017.md).
 
 > Live confirmation/sign-in fix (2026-10-17): API `7fb4f2fe0cee`; [behavior, validation and rollback](email-confirmation-checkpoint-20261017.md).

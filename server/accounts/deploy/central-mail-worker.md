@@ -1,3 +1,5 @@
+> App-styled dropdowns are live in API release `10121ac509ac`; the sole mail worker is healthy and its implementation pin is protected. See the [17 October dropdown release and recovery](styled-dropdowns-checkpoint-20261017.md).
+
 > Current 17 October 2026 release: [AMP shared email checkpoint](amp-watch-mail.md).
 > API and worker implementation `e51b271b962a`; launcher
 > `/opt/developed-accounts/mail-workers/e51b271b962a-amp-mail`. The existing

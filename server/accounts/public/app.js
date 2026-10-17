@@ -676,6 +676,12 @@ async function start() {
 
   async function profilePage() {
     heading(t('profile'));
+    if (session.user.requirePasswordChange) main.append(el('p', t('requiredPassword'), 'notice'));
+    const layout = el('div', undefined, 'profile-layout');
+    const details = el('div', undefined, 'profile-column');
+    const preferences = el('div', undefined, 'profile-column');
+    layout.append(details, preferences);
+    main.append(layout);
     const photoForm = el('form');
     photoForm.append(el('p', t('avatarHint'), 'muted'));
     const preview = el('img', undefined, 'avatar avatar-preview');
@@ -699,15 +705,14 @@ async function start() {
       const result = await api('/profile/avatar', 'PUT', { image: prepared });
       session.user.avatarUrl = result.avatarUrl; renderChrome(); feedback(notice, t('saved'));
     });
-    photoForm.append(button(t('removeAvatar'), async () => {
+    const photoActions = el('div', undefined, 'actions');
+    photoActions.append(photoForm.querySelector('button[type=submit]'), button(t('removeAvatar'), async () => {
       try { await api('/profile/avatar', 'DELETE', {}); session.user.avatarUrl = null; preview.hidden = true; photo.value = ''; prepared = null; renderChrome(); }
       catch (error) { photo.setCustomValidity(error.message); photo.reportValidity(); }
     }, 'secondary'));
-    panel(t('avatar')).append(photoForm);
+    photoForm.append(photoActions);
+    panel(t('avatar'), preferences).append(photoForm);
     const factors = session.user.hasMfa ? (await api('/mfa')).factors : [];
-    if (session.user.requirePasswordChange) main.append(el('p', t('requiredPassword'), 'notice'));
-    const columns = el('div', undefined, 'two-column');
-    main.append(columns);
     const form = el('form');
     const name = field(form, 'name', { value: session.user.displayName, required: true, maxLength: 100, autocomplete: 'name' });
     const lang = select(form, 'language', Object.entries(languages), language);
@@ -718,9 +723,11 @@ async function start() {
       renderChrome();
       feedback(notice, t('saved'));
     });
-    panel(t('profile'), columns).append(form);
+    panel(t('profile'), details).append(form);
     const emailForm = el('form');
-    emailForm.append(el('p', session.user.email), el('span', t(session.user.emailVerified ? 'verified' : 'unverified'), 'badge'), el('p', t('emailHelp'), 'muted'));
+    const emailSummary = el('div', undefined, 'profile-email-summary');
+    emailSummary.append(el('p', session.user.email), el('span', t(session.user.emailVerified ? 'verified' : 'unverified'), 'badge'));
+    emailForm.append(emailSummary, el('p', t('emailHelp'), 'muted'));
     const email = field(emailForm, 'email', { type: 'email', required: true, autocomplete: 'email', maxLength: 254 });
     const emailPassword = field(emailForm, 'currentPassword', { type: 'password', required: true, autocomplete: 'current-password', maxLength: 128 });
     const emailCode = session.user.hasMfa ? mfaCode(emailForm) : null;
@@ -731,7 +738,7 @@ async function start() {
       if (emailCode) emailCode.value = '';
       feedback(notice, t('pendingEmail'));
     });
-    panel(t('changeEmail'), columns).append(emailForm);
+    panel(t('changeEmail'), details).append(emailForm);
     const passwordForm = el('form');
     const current = field(passwordForm, 'currentPassword', { type: 'password', required: true, autocomplete: 'current-password', maxLength: 128 });
     const passwordCode = session.user.hasMfa ? mfaCode(passwordForm) : null;
@@ -744,7 +751,7 @@ async function start() {
       passwordForm.querySelector('button[type=submit]').hidden = true;
       passwordForm.append(link(t('login'), '/login', 'button'));
     });
-    panel(t('changePassword')).append(passwordForm);
+    panel(t('changePassword'), preferences).append(passwordForm);
   }
 
   async function securityPage() {

@@ -101,6 +101,18 @@ img.app-icon[src$=".svg"] { padding: .5rem; }
 .language-check { margin-left: auto; color: var(--primary-light); }
 .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
 .two-column .panel { margin: 0; }
+/* Independent stacks keep short profile cards compact without empty grid rows. */
+.profile-layout { display: grid; gap: 1.25rem; margin-top: 1.5rem; }
+.profile-column { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+.profile-layout .panel { margin: 0; min-width: 0; }
+.profile-layout form > p { margin: 0; }
+.profile-layout form > button[type=submit], .profile-layout form > .button { justify-self: start; max-width: 100%; }
+.profile-layout input, .profile-layout select { min-width: 0; }
+.profile-email-summary { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem .75rem; }
+.profile-email-summary p { margin: 0; overflow-wrap: anywhere; min-width: 0; }
+.profile-email-summary .badge { flex: 0 0 auto; }
+@media(min-width: 900px) { .profile-layout { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } }
+
 .table-scroll { overflow-x: auto; margin-block: 1.2rem; }
 table { border-collapse: collapse; width: 100%; text-align: left; font-size: .9rem; }
 th, td { padding: .85rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }

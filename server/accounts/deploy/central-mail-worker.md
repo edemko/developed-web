@@ -1,3 +1,9 @@
+> Current 17 October 2026 release: [AMP shared email checkpoint](amp-watch-mail.md).
+> API and worker implementation `e51b271b962a`; launcher
+> `/opt/developed-accounts/mail-workers/e51b271b962a-amp-mail`. The existing
+> protected input, pooler validation, boot-readiness and sole-sender checks are
+> preserved. The worker now also processes AMP watch notifications.
+
 # Separate central mail worker — active after reviewed start
 
 Current UI-only API/mail repin: [Vocabulum callback checkpoint](vocabulum-callback-checkpoint-20261012.md). The backend and worker implementations remain unchanged.

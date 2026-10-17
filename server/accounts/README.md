@@ -2,6 +2,10 @@
 
 # DevelopED central account service
 
+AMP watch emails are live through the shared mail worker as of 2026-10-17.
+API/mail implementation `e51b271b962a` uses the existing DevelopED sender domain
+with AMP branding; see [the deployment checkpoint](deploy/amp-watch-mail.md).
+
 Current central API release: `d3c3b1b4f8ec` on loopback 3140. App authorization
 shows automatic sign-in progress and reuses an in-flight request across language
 changes; login refreshes a stale CSRF token once. See the

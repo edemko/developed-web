@@ -1,3 +1,5 @@
+> Profile layout is live in API release `2248f5d6bbb2` on loopback 3140; see the [17 October layout checkpoint](profile-layout-checkpoint-20261017.md).
+
 > Live confirmation/sign-in fix (2026-10-17): API `7fb4f2fe0cee`; [behavior, validation and rollback](email-confirmation-checkpoint-20261017.md).
 
 > Simplified feedback is live in API release `40ee1e50534e` on loopback 3140; see the [16 October feedback checkpoint](feedback-checkpoint-20261016.md).

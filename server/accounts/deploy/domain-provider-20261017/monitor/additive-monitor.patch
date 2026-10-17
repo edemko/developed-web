@@ -1,0 +1,90 @@
+--- a/server/accounts/deploy/host-health-check.py
++++ b/server/accounts/deploy/host-health-check.py
+@@ -24,18 +24,26 @@
+ # Units that must be active but do not name a runtime path themselves (JASOM uses
+ # /opt/jasom/runtime-node in PATH; the rest is infrastructure everything else needs).
+ REQUIRED = ['bind-boundary.service', 'developed-uid-boundary.service', 'green-provider-boundary.service',
+-            'developed-auth-green.service', 'developed-data-boundary.service',
++            'developed-auth-green.service', 'developed-auth-domain.service', 'domain-provider-boundary.service', 'developed-data-boundary.service',
+             'jasom-submissions-isolated.service',
+             'mega-music-session-cleanup.timer', 'docker.service', 'caddy.service', 'cloudflared.service',
+             'cloudflared-sam-apps.service', 'tailscaled.service', 'ssh.socket']
+ # Probes outside the release tool's app configs: (label, curl args, expected status).
+ EXTRA_PROBES = [
++    ('developed-accounts auth-domain private health', ['http://127.0.0.1:3142/health'], 200),
++    # Unauthenticated TLS/routing and deny-boundary probe; actual Supabase
++    # service health remains covered by existing local probes and containers.
++    ('data-boundary public api auth denial', ['https://api.developed.sk/auth/v1/user'], 403),
+     ('jasom web', ['-H', 'Host: jasom.developed.sk', '-H', 'Cf-Connecting-Ip: 127.0.0.1',
+                    '-H', 'X-Forwarded-Proto: https', 'http://127.0.0.1/health'], 200),
+     ('jasom session', ['-H', 'Host: jasom.developed.sk', '-H', 'Cf-Connecting-Ip: 127.0.0.1',
+                        '-H', 'X-Forwarded-Proto: https', 'http://127.0.0.1/api/auth/session'], 200),
+     ('data-boundary', ['http://127.0.0.1:3143/healthz'], 200),
+     ('mega-youtube-front', ['--unix-socket', '/run/mega-youtube-front/control.sock', 'http://localhost/status'], 200),
++]
++ISSUER_PROBES = [
++    ('developed-accounts auth-domain private discovery', 'http://127.0.0.1:3142/.well-known/openid-configuration'),
++    ('developed-accounts auth-domain public discovery', 'https://auth.developed.sk/auth/v1/.well-known/openid-configuration'),
+ ]
+ TCP_PROBES = [('download-relay', '127.0.0.1', 1088)]
+ GUARD_LOGS = [('developed-kestrek-notifications.service', 'ownershipVerified')]
+@@ -163,6 +171,26 @@
+     return out + EXTRA_PROBES
+ 
+ 
++def issuer_discovery(probe):
++    label, url = probe
++    issuer = 'https://auth.developed.sk/auth/v1'
++    expected = {'issuer': issuer, 'authorization_endpoint': issuer + '/oauth/authorize',
++                'token_endpoint': issuer + '/oauth/token', 'jwks_uri': issuer + '/.well-known/jwks.json'}
++    try:
++        # Match existing monitor curl transport. Cloudflare rejects urllib's
++        # default UA on this host; do not alter Cloudflare protections.
++        raw = sh('curl', '--fail', '--silent', '--max-time', '5', '--max-filesize', '65536', url)
++        if len(raw.encode('utf-8')) > 65536:
++            raise ValueError('Unexpected discovery response')
++        value = json.loads(raw)
++        if not isinstance(value, dict) or any(value.get(k) != v for k, v in expected.items()):
++            raise ValueError('Unexpected discovery identity')
++    except Exception:
++        # Fixed label/URL only: never log arbitrary remote payload or exception.
++        return f'{label}: {url} -> invalid discovery'
++    return None
++
++
+ def health(failures, info):
+     checks = probes()
+     def check(probe):
+@@ -175,10 +203,12 @@
+     # full sequential timeout before the monitor can report the first failure.
+     with ThreadPoolExecutor(max_workers=8) as pool:
+         failures.extend(result for result in pool.map(check, checks) if result)
++    with ThreadPoolExecutor(max_workers=2) as pool:
++        failures.extend(result for result in pool.map(issuer_discovery, ISSUER_PROBES) if result)
+     for label, host, port in TCP_PROBES:
+         if subprocess.run(['timeout', '3', 'bash', '-c', f'</dev/tcp/{host}/{port}'], capture_output=True).returncode:
+             failures.append(f'{label}: tcp {host}:{port} closed')
+-    info.append(f'{len(checks) + len(TCP_PROBES)} health probes')
++    info.append(f'{len(checks) + len(TCP_PROBES) + len(ISSUER_PROBES)} health probes')
+ 
+ 
+ def guards(failures):
+--- a/server/accounts/deploy/critical_service_monitor.py
++++ b/server/accounts/deploy/critical_service_monitor.py
+@@ -27,14 +27,14 @@
+ APPS = ('airsoft', 'developed-accounts', 'karak2', 'kestrek', 'mega-music', 'myclinic',
+         'otazkomat', 'screentime', 'vocabulum', 'jasom')
+ INFRA_UNITS = {'bind-boundary.service', 'developed-uid-boundary.service', 'green-provider-boundary.service',
+-    'developed-auth-green.service', 'developed-data-boundary.service', 'docker.service', 'caddy.service',
++    'developed-auth-green.service', 'developed-auth-domain.service', 'domain-provider-boundary.service', 'developed-data-boundary.service', 'docker.service', 'caddy.service',
+     'cloudflared.service', 'cloudflared-sam-apps.service', 'tailscaled.service', 'ssh.socket',
+     'webhook.service', 'developed-boot-check.timer'}
+ EXCLUDED = ('phonetech', 'promile')
+ EXTRA_UNITS = ['developed-accounts-mail-worker.service', 'developed-kestrek-notifications.service',
+                'webhook.service', 'developed-boot-check.timer']
+ CONTAINERS = ['supabase-db', 'supabase-pooler', 'supabase-kong', 'supabase-rest',
+-              'supabase-storage', 'supabase-auth', 'developed-auth-green', 'jasom-db', 'ntfy', 'bgutil-pot']
++              'supabase-storage', 'supabase-auth', 'developed-auth-green', 'developed-auth-domain', 'jasom-db', 'ntfy', 'bgutil-pot']
+ 
+ 
+ def atomic_json(path, value):

@@ -294,6 +294,7 @@ logs, test output or bug reports.
 | `ACCOUNTS_PORT` | Loopback service port; default 3140. |
 | `ACCOUNTS_MARKETING_DIR` | Curated public marketing directory. Only `index.html` and `en/index.html` are read for exact-root fallback. Never a repository root. |
 | `ACCOUNTS_PROVIDER_URL` | Trusted private provider control-plane base. HTTPS allowed; HTTP only for `127.0.0.1` or `localhost`. Docker hostname HTTP is not accepted. |
+| `ACCOUNTS_OAUTH_PROVIDER_URL` | Optional trusted second issuer provider base, with the same URL restrictions. Enables only fixed internal OAuth migration routes. Primary login, consent, binding and access checks keep using `ACCOUNTS_PROVIDER_URL`. See the dual-issuer migration runbook. |
 | `ACCOUNTS_PROVIDER_ADMIN_KEY` | Private provider admin credential; never an app/browser key. |
 | `ACCOUNTS_DATABASE_URL` | Scoped `developed_accounts` PostgreSQL connection. |
 | `ACCOUNTS_ENCRYPTION_KEY` | Base64 encoding of 32 cryptographically random bytes, separately backed up. |
@@ -577,3 +578,7 @@ The profile page uploads/removes the central fallback image. JPEG/PNG/WebP input
 are normalized to 256×256 JPEGs, capped at 128 KiB, with metadata removed. Public
 image URLs use a random ID replaced on each upload; the database table itself
 remains private. The current URL is returned by existing central identity checks.
+
+## Optional dual-issuer migration
+
+See [dual-issuer migration](deploy/issuer-domain-migration.md) for the backward-compatible transport, isolated evidence and ingress requirements. Adding the optional setting is not by itself a public cutover. Retain the original issuer for installed clients until their migration has been verified.

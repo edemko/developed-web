@@ -8,6 +8,7 @@ import type { Row } from './db.js';
 import { Mfa } from './mfa.js';
 import { catalogApp } from './catalog.js';
 import { oauthBroker } from './oauth-broker.js';
+import { Provider } from './provider.js';
 import { logoutNativeSession } from './native-logout.js';
 import { prepareImage } from './images.js';
 import { ProductProfile } from './product-profile.js';
@@ -53,7 +54,7 @@ export function marketingPolicy(html: string) {
     .map(match => `'sha256-${createHash('sha256').update(match[2]!).digest('base64')}'`);
   return `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'none'; script-src 'self' ${hashes.join(' ')}; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src 'none'`;
 }
-function createSingleAccountServer(accounts: Accounts) {
+function createSingleAccountServer(accounts: Accounts, oauthProvider?: Provider) {
   const publicRoot = fileURLToPath(new URL('../public/', import.meta.url));
   const mfa = new Mfa(accounts);
   return createServer(async (req, res) => {
@@ -82,6 +83,16 @@ function createSingleAccountServer(accounts: Accounts) {
         const allowed = /^(?:\/(?:login|register|verify-email|forgot-password|reset-password|profile|security|account\/authorize)|\/account-assets\/[a-z0-9.-]+|\/api\/account\/(?:session|login|register|logout|logout-all|resend-verification|forgot-password|reset-password|verify-email|reauthenticate|invitation\/preview|mfa(?:\/(?:enroll|verify))?|profile(?:\/(?:password|email|avatar))?|security|authorize|catalog|authorization-app))$/;
         if (url.pathname === '/apps') {res.writeHead(303,{Location:'/api/music/auth/start'});return res.end();}
         if (!allowed.test(url.pathname)) return fail(404,'not_found');
+      }
+
+      // Only the new issuer's gateway rewrites to these fixed internal routes.
+      // Never select an upstream from Host, forwarding headers or request input.
+      // The broker still calls the primary Accounts validation and exact binding.
+      if (url.pathname === '/oauth-migration/token' || url.pathname === '/oauth-migration/userinfo') {
+        if (!oauthProvider) return fail(404, 'not_found');
+        if (url.search) return json(res, { error: 'invalid_request' }, 400);
+        const path = url.pathname === '/oauth-migration/token' ? '/oauth/token' : '/oauth/userinfo';
+        return await oauthBroker(accounts, req, res, path, oauthProvider);
       }
 
       // Only the issuer's exact OAuth routes are mapped here by the gateway.
@@ -454,7 +465,9 @@ function createSingleAccountServer(accounts: Accounts) {
 
 /** Fixed operator-approved origins only; never derive provider/admin routes from Host. */
 export function createAccountServer(accounts: Accounts) {
-  const primary = createSingleAccountServer(accounts);
+  const oauthProvider = accounts.config.oauthProviderUrl
+    ? new Provider(accounts.config.oauthProviderUrl, accounts.config.providerKey) : undefined;
+  const primary = createSingleAccountServer(accounts, oauthProvider);
   if (!accounts.config.musicOrigin) return primary;
   if (accounts.config.musicOrigin !== 'https://megamusic.developed.sk') throw new Error('Unregistered music origin');
   const music = createSingleAccountServer(new Accounts(accounts.db,accounts.provider,{

@@ -1,0 +1,186 @@
+{
+  "version": 1,
+  "protectedPorts": [
+    1088,
+    1089,
+    2019,
+    3001,
+    3002,
+    3100,
+    3123,
+    3124,
+    3126,
+    3127,
+    3137,
+    3138,
+    3140,
+    3141,
+    3143,
+    3155,
+    3161,
+    3162,
+    3164,
+    3166,
+    3167,
+    3168,
+    4201,
+    4416,
+    5037,
+    5432,
+    5433,
+    6543,
+    7420,
+    8000,
+    8080,
+    8443,
+    8787,
+    9000,
+    9443,
+    9999,
+    18088,
+    18091,
+    18887,
+    20241,
+    20242,
+    3171,
+    3172,
+    3176,
+    3178,
+    18090,
+    3182,
+    3142
+  ],
+  "apps": [
+    {
+      "name": "myclinic",
+      "uid": 996,
+      "tcpLoopbackPorts": [
+        3155
+      ],
+      "udpEphemeral": true
+    },
+    {
+      "name": "download-status",
+      "uid": 994,
+      "tcpLoopbackPorts": [
+        18088
+      ],
+      "udpEphemeral": false
+    },
+    {
+      "name": "jasom-web",
+      "uid": 993,
+      "tcpLoopbackPorts": [
+        18091,
+        18090
+      ],
+      "udpEphemeral": true
+    },
+    {
+      "name": "jasom-worker",
+      "uid": 990,
+      "tcpLoopbackPorts": [],
+      "udpEphemeral": true
+    },
+    {
+      "name": "mega-youtube",
+      "uid": 995,
+      "tcpLoopbackPorts": [
+        8787
+      ],
+      "udpEphemeral": true
+    },
+    {
+      "name": "central",
+      "uid": 988,
+      "tcpLoopbackPorts": [
+        3140
+      ],
+      "udpEphemeral": true
+    },
+    {
+      "name": "download-relay",
+      "uid": 987,
+      "tcpLoopbackPorts": [
+        1088
+      ],
+      "udpEphemeral": true
+    },
+    {
+      "name": "airsoft",
+      "uid": 986,
+      "tcpLoopbackPorts": [
+        3162,
+        3172
+      ],
+      "udpEphemeral": true
+    },
+    {
+      "name": "vocabulum",
+      "uid": 985,
+      "tcpLoopbackPorts": [
+        3161,
+        3171
+      ],
+      "udpEphemeral": true
+    },
+    {
+      "name": "mega-music",
+      "uid": 984,
+      "tcpLoopbackPorts": [
+        3168,
+        3178
+      ],
+      "udpEphemeral": true
+    },
+    {
+      "name": "screentime",
+      "uid": 983,
+      "tcpLoopbackPorts": [
+        3167
+      ],
+      "udpEphemeral": true
+    },
+    {
+      "name": "kestrek",
+      "uid": 982,
+      "tcpLoopbackPorts": [
+        3164
+      ],
+      "udpEphemeral": true
+    },
+    {
+      "name": "otazkomat",
+      "uid": 981,
+      "tcpLoopbackPorts": [
+        3166,
+        3176
+      ],
+      "udpEphemeral": true
+    },
+    {
+      "name": "import-front",
+      "uid": 980,
+      "tcpLoopbackPorts": [
+        18887
+      ],
+      "udpEphemeral": false
+    },
+    {
+      "name": "data-boundary",
+      "uid": 978,
+      "tcpLoopbackPorts": [
+        3143
+      ],
+      "udpEphemeral": false
+    },
+    {
+      "name": "karak2",
+      "uid": 977,
+      "tcpLoopbackPorts": [
+        3182
+      ],
+      "udpEphemeral": true
+    }
+  ]
+}

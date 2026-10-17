@@ -1,0 +1,257 @@
+{
+  "version": 1,
+  "centralUid": 988,
+  "caddyUid": 999,
+  "downloadRelayUid": 987,
+  "importFrontUid": 980,
+  "downloadStatusUid": 994,
+  "protectForwardedControl": true,
+  "extraControlEndpoints": [
+    {
+      "address": "172.30.241.2",
+      "port": 9999
+    },
+    {
+      "address": "127.0.0.1",
+      "port": 3142
+    },
+    {
+      "address": "::1",
+      "port": 3142
+    },
+    {
+      "address": "172.30.242.2",
+      "port": 9999
+    }
+  ],
+  "blockedNetworks": [
+    "172.17.0.0/16",
+    "172.18.0.0/16",
+    "172.19.0.0/16",
+    "172.20.0.0/16",
+    "172.21.0.0/16",
+    "172.30.241.0/28",
+    "172.30.242.0/28"
+  ],
+  "apps": [
+    {
+      "name": "myclinic",
+      "uid": 996,
+      "database": [],
+      "dns": [
+        {
+          "address": "127.0.0.53",
+          "port": 53
+        }
+      ]
+    },
+    {
+      "name": "jasom-web",
+      "uid": 993,
+      "database": [
+        {
+          "address": "127.0.0.1",
+          "port": 5432
+        },
+        {
+          "address": "172.18.0.13",
+          "port": 5432
+        }
+      ],
+      "dns": [
+        {
+          "address": "127.0.0.53",
+          "port": 53
+        }
+      ]
+    },
+    {
+      "name": "jasom-worker",
+      "uid": 990,
+      "publicHttp": true,
+      "database": [
+        {
+          "address": "127.0.0.1",
+          "port": 5432
+        },
+        {
+          "address": "172.18.0.13",
+          "port": 5432
+        }
+      ],
+      "dns": [
+        {
+          "address": "127.0.0.53",
+          "port": 53
+        }
+      ],
+      "downloadRelay": {
+        "address": "127.0.0.1",
+        "port": 1088
+      },
+      "downloadStatus": {
+        "address": "127.0.0.1",
+        "port": 18088
+      }
+    },
+    {
+      "name": "mega-youtube",
+      "uid": 995,
+      "database": [],
+      "dns": [
+        {
+          "address": "127.0.0.53",
+          "port": 53
+        }
+      ],
+      "downloadRelay": {
+        "address": "127.0.0.1",
+        "port": 1088
+      },
+      "downloadStatus": {
+        "address": "127.0.0.1",
+        "port": 18088
+      },
+      "downloadProvider": {
+        "address": "127.0.0.1",
+        "port": 4416
+      },
+      "musicAccounts": {
+        "address": "127.0.0.1",
+        "port": 3178
+      }
+    },
+    {
+      "name": "airsoft",
+      "uid": 986,
+      "database": [
+        {
+          "address": "127.0.0.1",
+          "port": 5432
+        },
+        {
+          "address": "172.18.0.4",
+          "port": 5432
+        }
+      ],
+      "dns": [
+        {
+          "address": "127.0.0.53",
+          "port": 53
+        }
+      ]
+    },
+    {
+      "name": "vocabulum",
+      "uid": 985,
+      "database": [],
+      "dns": [
+        {
+          "address": "127.0.0.53",
+          "port": 53
+        }
+      ]
+    },
+    {
+      "name": "mega-music",
+      "uid": 984,
+      "database": [
+        {
+          "address": "127.0.0.1",
+          "port": 5432
+        },
+        {
+          "address": "172.18.0.13",
+          "port": 5432
+        }
+      ],
+      "dns": [
+        {
+          "address": "127.0.0.53",
+          "port": 53
+        }
+      ],
+      "musicImport": {
+        "address": "127.0.0.1",
+        "port": 18887
+      }
+    },
+    {
+      "name": "screentime",
+      "uid": 983,
+      "database": [
+        {
+          "address": "172.18.0.12",
+          "port": 5432
+        }
+      ],
+      "dns": [
+        {
+          "address": "127.0.0.53",
+          "port": 53
+        }
+      ]
+    },
+    {
+      "name": "kestrek",
+      "uid": 982,
+      "database": [
+        {
+          "address": "172.30.241.3",
+          "port": 5432
+        }
+      ],
+      "dns": [
+        {
+          "address": "127.0.0.53",
+          "port": 53
+        }
+      ],
+      "selfMcpApi": true
+    },
+    {
+      "name": "otazkomat",
+      "uid": 981,
+      "database": [
+        {
+          "address": "172.18.0.12",
+          "port": 5432
+        }
+      ],
+      "dns": [
+        {
+          "address": "127.0.0.53",
+          "port": 53
+        }
+      ]
+    },
+    {
+      "name": "karak2",
+      "uid": 977,
+      "database": [
+        {
+          "address": "172.30.241.3",
+          "port": 5432
+        }
+      ],
+      "dns": [
+        {
+          "address": "127.0.0.53",
+          "port": 53
+        }
+      ]
+    },
+    {
+      "name": "marketing-webhook",
+      "uid": 976,
+      "database": [],
+      "dns": [
+        {
+          "address": "127.0.0.53",
+          "port": 53
+        }
+      ]
+    }
+  ],
+  "dataBoundaryUid": 978
+}

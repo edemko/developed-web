@@ -1,6 +1,7 @@
 import { exactHttps } from './security.js';
 export interface Config {
   origin: string; providerUrl: string; providerKey: string; databaseUrl: string;
+  oauthProviderUrl?: string;
   encryptionKey: Buffer; port: number; insecureLocal: boolean; mailjetKey: string;
   mailjetSecret: string; supportEmail: string; mailEnabled: boolean;
   ampWatchMailEnabled?: boolean;
@@ -21,6 +22,11 @@ export function config(env = process.env): Config {
   // Trusted provider control plane can be a loopback-only HTTP upstream even
   // when the public portal uses HTTPS. Never accept request-derived upstreams.
   const providerUrl = exactHttps(required('ACCOUNTS_PROVIDER_URL'), true).href.replace(/\/$/, '');
+  // Optional second issuer transport, configured only by the operator. The
+  // primary provider retains all login, consent and account validation duties.
+  const oauthProviderUrl = env.ACCOUNTS_OAUTH_PROVIDER_URL
+    ? exactHttps(env.ACCOUNTS_OAUTH_PROVIDER_URL, true) : undefined;
+  if (oauthProviderUrl?.search) throw new Error('OAuth provider URL must not contain a query');
   const encryptionKey = Buffer.from(required('ACCOUNTS_ENCRYPTION_KEY'), 'base64');
   if (encryptionKey.length !== 32) throw new Error('ACCOUNTS_ENCRYPTION_KEY must encode 32 random bytes');
   const integer = (key: string, fallback: number) => {
@@ -28,7 +34,7 @@ export function config(env = process.env): Config {
     if (!Number.isSafeInteger(value) || value < 1) throw new Error(`Invalid ${key}`);
     return value;
   };
-  return { origin: origin.origin, providerUrl, providerKey: required('ACCOUNTS_PROVIDER_ADMIN_KEY'),
+  return { origin: origin.origin, providerUrl, oauthProviderUrl: oauthProviderUrl?.href.replace(/\/$/, ''), providerKey: required('ACCOUNTS_PROVIDER_ADMIN_KEY'),
     databaseUrl: required('ACCOUNTS_DATABASE_URL'), encryptionKey, port: integer('ACCOUNTS_PORT', 3140),
     insecureLocal, mailjetKey: env.MAILJET_API_KEY || '', mailjetSecret: env.MAILJET_SECRET_KEY || '',
     mailEnabled: env.ACCOUNTS_MAIL_ENABLED === 'true', supportEmail: 'info@developed.sk',

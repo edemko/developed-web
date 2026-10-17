@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Accounts } from './accounts.js';
+import type { Provider } from './provider.js';
 import { HttpError } from './security.js';
 
 const fields = new Set(['grant_type', 'client_id', 'client_secret', 'code', 'redirect_uri', 'code_verifier', 'refresh_token', 'scope']);
@@ -57,7 +58,7 @@ function reply(res: ServerResponse, status: number, data: unknown, head = false)
   res.end(head ? undefined : JSON.stringify(data));
 }
 
-export async function oauthBroker(accounts: Accounts, req: IncomingMessage, res: ServerResponse, path: string) {
+export async function oauthBroker(accounts: Accounts, req: IncomingMessage, res: ServerResponse, path: string, provider: Provider = accounts.provider) {
   const head = req.method === 'HEAD';
   try {
     await accounts.db.limit(`oauth:${req.socket.remoteAddress || 'unknown'}`, 2000, 60);
@@ -67,7 +68,7 @@ export async function oauthBroker(accounts: Accounts, req: IncomingMessage, res:
       if (!bearer?.startsWith('Bearer ') || bearer.length > 16000) return invalid('invalid_token', 401);
       const access = bearer.slice(7);
       await accounts.validateOAuthAccess(access);
-      const info = await accounts.provider.call('/oauth/userinfo', 'GET', undefined, access);
+      const info = await provider.call('/oauth/userinfo', 'GET', undefined, access);
       return reply(res, 200, info, head);
     }
     if (path !== '/oauth/token' || req.method !== 'POST') return invalid('invalid_request', 405);
@@ -76,7 +77,7 @@ export async function oauthBroker(accounts: Accounts, req: IncomingMessage, res:
     // and verifier validation remains the provider's standard OAuth operation.
     try { await accounts.appForClient(parsed.clientId); }
     catch (error) { if (error instanceof HttpError && error.status < 500) return invalid('invalid_client', 401); throw error; }
-    const response = await accounts.provider.exchangeOAuth(parsed.form, parsed.authorization);
+    const response = await provider.exchangeOAuth(parsed.form, parsed.authorization);
     if (!response.ok) {
       // Do not copy provider error bodies, cookies or other response headers.
       await response.body?.cancel();

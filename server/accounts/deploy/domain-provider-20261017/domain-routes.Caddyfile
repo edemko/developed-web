@@ -1,0 +1,59 @@
+# Exact new domain site snippets from live Caddy; merge into latest live config.
+# Never replace the full Caddyfile or duplicate an existing site block.
+
+http://api.developed.sk {
+  route {
+    @public_data path /rest/v1 /rest/v1/* /storage/v1 /storage/v1/* /realtime/v1 /realtime/v1/*
+    handle @public_data {
+      forward_auth 127.0.0.1:3143 {
+        uri /check
+        header_up X-Forwarded-Method {method}
+        header_up X-Forwarded-Uri {uri}
+      }
+      reverse_proxy 127.0.0.1:8000
+    }
+    respond "Central identity endpoint required" 403
+  }
+}
+
+http://auth.developed.sk {
+  route {
+    @protocol_read {
+      method GET HEAD
+      path /auth/v1/.well-known/openid-configuration /auth/v1/.well-known/jwks.json /auth/v1/.well-known/oauth-authorization-server /auth/v1/oauth/authorize
+    }
+    handle @protocol_read {
+      uri strip_prefix /auth/v1
+      reverse_proxy 127.0.0.1:3142
+    }
+    @oauth_userinfo {
+      method GET HEAD
+      path /auth/v1/oauth/userinfo
+    }
+    handle @oauth_userinfo {
+      rewrite * /oauth-migration/userinfo
+      reverse_proxy 127.0.0.1:3140 {
+        header_up Host www.developed.sk
+      }
+    }
+    @oauth_token {
+      method POST
+      path /auth/v1/oauth/token
+    }
+    handle @oauth_token {
+      rewrite * /oauth-migration/token
+      reverse_proxy 127.0.0.1:3140 {
+        header_up Host www.developed.sk
+      }
+    }
+    @oauth_metadata {
+      method GET HEAD
+      path /.well-known/oauth-authorization-server/auth/v1
+    }
+    handle @oauth_metadata {
+      rewrite * /.well-known/oauth-authorization-server
+      reverse_proxy 127.0.0.1:3142
+    }
+    respond "Central identity endpoint required" 403
+  }
+}

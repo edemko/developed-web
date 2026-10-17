@@ -1,3 +1,4 @@
+import { ampWatchMail, type AmpWatchAlert } from './amp-watch-mail.js';
 import { randomUUID } from 'node:crypto';
 import type { Config } from './config.js';
 import type { Database, Query } from './db.js';
@@ -11,6 +12,47 @@ export async function queueMail(query: Query, config: Config, mail: Mail): Promi
 export class MailWorker {
   constructor(private db: Database, private config: Config, private request: typeof fetch = fetch) {}
   async tick(): Promise<boolean> {
+    const account = await this.tickAccount();
+    const amp = this.config.mailEnabled && this.config.ampWatchMailEnabled ? await this.tickAmp() : false;
+    return account || amp;
+  }
+  private async send(mail: Mail, id: string): Promise<void> {
+    const response = await this.request('https://api.mailjet.com/v3.1/send', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Basic ${Buffer.from(`${this.config.mailjetKey}:${this.config.mailjetSecret}`).toString('base64')}` },
+      body: JSON.stringify({ Messages: [{ From: { Email: 'noreply@developed.sk', Name: mail.brand === 'amp' ? 'AMP' : mail.brand === 'mega-music' ? 'Mega Music · DevelopED' : 'DevelopED' },
+        ReplyTo: { Email: this.config.supportEmail, Name: mail.brand === 'amp' ? 'AMP' : 'DevelopED support' }, To: [{ Email: mail.to }],
+        Subject: mail.subject, TextPart: mail.text, HTMLPart: mail.html || legacyMailHtml(mail, this.config),
+        ...(mail.attachments?.length ? { Attachments: mail.attachments } : {}),
+        TrackOpens: 'disabled', TrackClicks: 'disabled', CustomID: id,
+        ...(mail.brand === 'mega-music' && mail.inlineLogo ? {InlinedAttachments:[{ContentType:'image/png',Filename:'mega-music.png',ContentID:'mega-music-logo',Base64Content:mail.inlineLogo}]} : {}) }] }),
+      signal: AbortSignal.timeout(15_000), redirect: 'error',
+    });
+    if (!response.ok) throw new Error('Mail provider rejected delivery');
+    const result = await response.json() as { Messages?: { Status: string }[] };
+    if (result.Messages?.[0]?.Status !== 'success') throw new Error('Mail delivery not acknowledged');
+  }
+  private async tickAmp(): Promise<boolean> {
+    const lease = randomUUID();
+    const [job] = await this.db.query('select * from accounts.claim_amp_watch_email($1)', [lease]);
+    if (!job) return false;
+    let outcome = 'skipped', delay = 0;
+    try {
+      if (job.recipient) {
+        const mail = ampWatchMail(job.recipient, job as AmpWatchAlert);
+        await this.db.limit('aggregate:mail', this.config.dailyEmailLimit, 86400);
+        await this.send(mail, `amp:${job.id}`);
+        outcome = 'sent';
+      }
+    } catch (error) {
+      const capped = error instanceof HttpError && error.code === 'rate_limited';
+      outcome = capped ? 'capacity' : 'retry';
+      delay = capped ? 86400 - Math.floor(Date.now() / 1000) % 86400 + 1
+        : Math.min(3600, 30 * 2 ** Math.min(job.email_attempts, 7));
+    }
+    await this.db.query('select accounts.finish_amp_watch_email($1,$2,$3,$4)', [job.id, lease, outcome, delay]);
+    return true;
+  }
+  private async tickAccount(): Promise<boolean> {
     if (!this.config.mailEnabled) return false;
     if (!this.config.mailjetKey || !this.config.mailjetSecret) throw new Error('Mail enabled without credentials');
     const lease = randomUUID();
@@ -21,19 +63,7 @@ export class MailWorker {
     try {
       await this.db.limit('aggregate:mail', this.config.dailyEmailLimit, 86400);
       const mail = unseal<Mail>(job.payload, this.config.encryptionKey, `mail:${job.id}`);
-      const response = await this.request('https://api.mailjet.com/v3.1/send', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Basic ${Buffer.from(`${this.config.mailjetKey}:${this.config.mailjetSecret}`).toString('base64')}` },
-        body: JSON.stringify({ Messages: [{ From: { Email: 'noreply@developed.sk', Name: mail.brand === 'mega-music' ? 'Mega Music · DevelopED' : 'DevelopED' },
-          ReplyTo: { Email: this.config.supportEmail, Name: 'DevelopED support' }, To: [{ Email: mail.to }],
-          Subject: mail.subject, TextPart: mail.text, HTMLPart: mail.html || legacyMailHtml(mail, this.config),
-          ...(mail.attachments?.length ? { Attachments: mail.attachments } : {}),
-          TrackOpens: 'disabled', TrackClicks: 'disabled', CustomID: job.id,
-          ...(mail.brand === 'mega-music' && mail.inlineLogo ? {InlinedAttachments:[{ContentType:'image/png',Filename:'mega-music.png',ContentID:'mega-music-logo',Base64Content:mail.inlineLogo}]} : {}) }] }),
-        signal: AbortSignal.timeout(15_000), redirect: 'error',
-      });
-      if (!response.ok) throw new Error('Mail provider rejected delivery');
-      const result = await response.json() as { Messages?: { Status: string }[] };
-      if (result.Messages?.[0]?.Status !== 'success') throw new Error('Mail delivery not acknowledged');
+      await this.send(mail, job.id);
       await this.db.query(`update accounts.outbox set delivered_at=now(),payload='',lease_until=null where id=$1 and lease_id=$2`, [job.id, lease]);
     } catch (error) {
       if (error instanceof HttpError && error.code === 'rate_limited') {

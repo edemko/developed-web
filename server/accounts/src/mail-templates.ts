@@ -1,6 +1,6 @@
 import {readFileSync} from 'node:fs';
 /** First-party transactional mail. No remote images, web fonts or tracking. */
-export interface Mail { to: string; subject: string; text: string; html?: string; brand?: 'mega-music'; inlineLogo?: string; attachments?: { ContentType: string; Filename: string; Base64Content: string }[] }
+export interface Mail { to: string; subject: string; text: string; html?: string; brand?: 'mega-music' | 'amp'; inlineLogo?: string; attachments?: { ContentType: string; Filename: string; Base64Content: string }[] }
 export interface MailOptions { origin?: string; supportEmail?: string; insecureLocal?: boolean; mailBrand?: 'mega-music'; invitationOrigin?: string; invitationPath?: string }
 type Purpose = 'verification' | 'recovery' | 'email_change' | 'invitation';
 const lifetimes: Record<Purpose, number> = { verification: 86400, recovery: 1800, email_change: 1800, invitation: 604800 };

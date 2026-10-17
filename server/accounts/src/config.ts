@@ -3,6 +3,7 @@ export interface Config {
   origin: string; providerUrl: string; providerKey: string; databaseUrl: string;
   encryptionKey: Buffer; port: number; insecureLocal: boolean; mailjetKey: string;
   mailjetSecret: string; supportEmail: string; mailEnabled: boolean;
+  ampWatchMailEnabled?: boolean;
   dailyEmailLimit: number; hourlyRegistrationLimit: number;
   smsGateKey: string;
   marketingDir?: string;

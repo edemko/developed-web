@@ -58,7 +58,9 @@ async function main() {
   const db = new Database(input.databaseUrl);
   try { assertRole(await db.query(ROLE_SQL)); }
   catch { await db.pool.end(); throw new Error('Scoped mail role required'); }
-  const worker = new MailWorker(db, mailConfig(input));
+  // AMP's migration exposes only bounded claim/ack functions to this role.
+  const [amp] = await db.query("select to_regprocedure('accounts.claim_amp_watch_email(uuid)') is not null as enabled");
+  const worker = new MailWorker(db, { ...mailConfig(input), ampWatchMailEnabled: amp.enabled });
   const runner = startLoop({ tick: () => worker.tick(), close: () => db.pool.end(),
     report: (message) => process.stderr.write(`${message}\n`), fatal: () => process.exit(1) });
   process.once('SIGTERM', () => { void runner.stop(); }); process.once('SIGINT', () => { void runner.stop(); });

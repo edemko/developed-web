@@ -2,6 +2,16 @@
 
 # DevelopED central account service
 
+Opening a confirmation email now submits one CSRF-protected POST automatically.
+For an initial registration, successful confirmation exchanges a private provider
+magic-link hash server-side, rotates the opaque browser session and continues to
+the originating app. No password or provider token enters browser storage, and
+no extra email is sent. MFA-enrolled/admin accounts still require normal sign-in.
+Reopening a completed, unexpired confirmation shows success without minting a
+second session; an already authenticated owner continues using their existing
+session. Recovery and email-change credentials never grant this automatic login.
+Plain GET requests still do not consume credentials.
+
 Current central API release: `d3c3b1b4f8ec` on loopback 3140. App authorization
 shows automatic sign-in progress and reuses an in-flight request across language
 changes; login refreshes a stale CSRF token once. See the

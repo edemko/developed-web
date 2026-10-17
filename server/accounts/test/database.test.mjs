@@ -134,7 +134,7 @@ test('isolated real-provider account lifecycle, report privacy, DB grants and po
       userId = rows.rows[0].id; assert.equal(rows.rows[0].email_confirmed_at, null);
       assert.equal((await request('/login', 'POST', { email: address, password: secret })).status, 401);
     });
-    await t.test('mail uses fragment token; explicit confirmation is single use and preserves UUID', async () => {
+    await t.test('mail uses fragment token; confirmation signs in once and preserves UUID', async () => {
       const row = (await admin.query('select id,payload from accounts.outbox order by created_at desc limit 1')).rows[0];
       const mail = unseal(row.payload, config.encryptionKey, `mail:${row.id}`);
       assert.equal(mail.to, address); assert.ok(!mail.text.includes(secret));
@@ -142,7 +142,11 @@ test('isolated real-provider account lifecycle, report privacy, DB grants and po
       const before = await fetch(`${origin}/verify-email#token=${raw}`); assert.equal(before.status, 200);
       assert.equal((await admin.query('select email_confirmed_at from auth.users where id=$1', [userId])).rows[0].email_confirmed_at, null);
       const response = await request('/verify-email', 'POST', { token: raw }); assert.equal(response.status, 200, JSON.stringify(response.data));
-      assert.equal((await request('/verify-email', 'POST', { token: raw })).status, 400);
+      assert.equal(response.data.signedIn, true);
+      await request('/session');
+      const replay = await request('/verify-email', 'POST', { token: raw });
+      assert.equal(replay.status, 200); assert.equal(replay.data.alreadyConfirmed, true);
+      assert.equal(replay.data.signedIn, true); // Reuses the existing authenticated context.
       assert.ok((await admin.query('select email_confirmed_at from auth.users where id=$1', [userId])).rows[0].email_confirmed_at);
     });
     await t.test('raw Unicode password logs in; login rotates session and CSRF', async () => {

@@ -126,7 +126,7 @@ export class Accounts {
     }
     return result;
   }
-  async newSession(ctx: Context, auth: ProviderSession, user: Row, options: { enroll?: boolean; fence?: string; newFamily?: boolean; rememberMfa?: boolean; factorId?: string; trustCookie?: string } = {}): Promise<Context> {
+  async newSession(ctx: Context, auth: ProviderSession, user: Row, options: { enroll?: boolean; fence?: string; newFamily?: boolean; rememberMfa?: boolean; factorId?: string; trustCookie?: string; expectedVersion?: string } = {}): Promise<Context> {
     const parsed = claims(auth.access_token), raw = token(), id = randomUUID();
     if (parsed.sub !== user.id || parsed.client_id) return fail(401, 'invalid_session');
     let pending = options.enroll ? 'enroll' : parsed.aal !== 'aal2' && (user.hasMfa || auth.user.factors?.some(f => f.status === 'verified') || user.role === 'SUPERADMIN') ? user.hasMfa || auth.user.factors?.some(f => f.status === 'verified') ? 'challenge' : 'enroll' : null;
@@ -144,6 +144,7 @@ export class Accounts {
       await q('insert into accounts.security_state(user_id) values($1) on conflict do nothing', [user.id]);
       const [state] = await q('select * from accounts.security_state where user_id=$1 for update', [user.id]);
       if (state!.locked || state!.operation_id) return fail(403, 'account_unavailable');
+      if (options.expectedVersion !== undefined && String(state!.security_version) !== options.expectedVersion) return fail(401, 'invalid_session');
       if (state!.require_password_change) { remembered = 0; carriedRememberUntil = null; }
       if (remembered && options.rememberMfa === true) {
         // Called only after real factor verification; confirm ownership/status
@@ -426,22 +427,52 @@ export class Accounts {
       throw error;
     }
   }
-  async consumeCredential(raw: unknown, resetPassword?: unknown) {
+  async consumeCredential(raw: unknown, resetPassword?: unknown, ctx?: Context): Promise<{ ok: boolean; loginUrl: string; alreadyConfirmed?: boolean; context?: Context; appSlug?: string }> {
     const credential = text(raw, 100, true), secret = resetPassword === undefined ? undefined : password(resetPassword);
     const saved = await this.db.tx(async q => {
-      const [row] = await q(`select c.*,u.email as current_email from accounts.credentials c join auth.users u on u.id=c.user_id
-        where c.token_hash=$1 and c.consumed_at is null and c.expires_at>now() for update of c`, [hash(credential)]);
+      const [row] = await q(`select c.*,u.email as current_email,u.email_confirmed_at as current_confirmed from accounts.credentials c join auth.users u on u.id=c.user_id
+        where c.token_hash=$1 and c.expires_at>now() for update of c`, [hash(credential)]);
       if (!row || (secret ? row.purpose !== 'recovery' : !['verification','email_change'].includes(row.purpose))) return fail(400, 'invalid_or_expired_token');
       const [state] = await q('select * from accounts.security_state where user_id=$1 for update', [row.user_id]);
+      // Reopening a completed confirmation is harmless, but never a new login.
+      // Superseded tokens for unconfirmed mailboxes and later security changes fail.
+      if (row.consumed_at) {
+        if (!secret && row.purpose === 'verification' && row.current_confirmed && row.current_email === row.email
+          && !state?.locked && !state?.operation_id && BigInt(state?.security_version || 1) === BigInt(row.security_version) + 1n) return row;
+        return fail(400, 'invalid_or_expired_token');
+      }
+      if (row.purpose === 'verification' && state?.locked) return fail(403, 'account_unavailable');
       if (state?.operation_id || String(row.security_version) !== String(state?.security_version || 1) || (['recovery','verification'].includes(row.purpose) && row.current_email !== row.email)) return fail(400, 'invalid_or_expired_token');
       await q('update accounts.credentials set consumed_at=now() where token_hash=$1', [row.token_hash]); return row;
     });
     const changes = saved.purpose === 'recovery' ? { password: secret } : saved.purpose === 'email_change' ? { email: saved.email, email_confirm: true } : { email_confirm: true };
-    await this.mutateIdentity(saved.user_id, saved.user_id, saved.purpose, changes,
+    if (!saved.consumed_at) await this.mutateIdentity(saved.user_id, saved.user_id, saved.purpose, changes,
       async q => { if (secret) await q('update accounts.security_state set require_password_change=false where user_id=$1', [saved.user_id]); },
       { version: String(saved.security_version), email: saved.purpose === 'email_change' ? undefined : saved.email });
     const [app] = saved.return_app_id ? await this.db.query('select slug from accounts.app_settings where app_id=$1 and published', [saved.return_app_id]) : [];
-    return { ok: true, loginUrl: app ? `/login?app=${encodeURIComponent(app.slug)}` : '/login' };
+    const result = { ok: true, loginUrl: app ? `/login?app=${encodeURIComponent(app.slug)}` : '/login', appSlug: app?.slug as string | undefined };
+    if (saved.consumed_at) return { ...result, alreadyConfirmed: true, ...(ctx?.user?.id === saved.user_id ? { context: ctx } : {}) };
+    if (ctx && saved.purpose === 'verification' && !saved.current_confirmed) {
+      const user = await this.userById(saved.user_id);
+      const expectedVersion = String(BigInt(saved.security_version) + 1n);
+      // Existing MFA/admin policy still requires password plus the second factor.
+      if (user?.emailVerified && user.email === saved.email && !user.locked && !user.operation_id
+        && !user.hasMfa && user.role !== 'SUPERADMIN' && String(user.security_version) === expectedVersion) {
+        let auth: ProviderSession | undefined;
+        try {
+          auth = await this.provider.confirmedEmailSession(user.id, user.email);
+          if (auth.user.id !== user.id || auth.user.email !== user.email || !auth.user.email_confirmed_at) return fail(401, 'invalid_session');
+          const context = await this.newSession(ctx, auth, user, { newFamily: true, expectedVersion });
+          return { ...result, context };
+        } catch {
+          if (auth) await this.provider.logout(auth.access_token, 'local').catch(() => {});
+          // Confirmation has committed. A sign-in outage must not turn success
+          // into a token error or make the spent credential reusable for login.
+          await this.db.audit(this.db.query, user.id, user.id, 'verification_login', 'failed').catch(() => {});
+        }
+      }
+    }
+    return result;
   }
   async registrationContinuation(value: unknown): Promise<string | null> {
     if (!value) return null;

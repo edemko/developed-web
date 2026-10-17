@@ -35,6 +35,7 @@ test('browser account and report flows retain safe state and render user text in
     let reportAttempts = 0;
     let registrationAttempts = 0;
     let registrationMode = 'open';
+    let verificationResult = { ok: true, loginUrl: '/login?app=mega-music' };
     let csrfToken = 'test-csrf';
     let loginFailure = null;
     const user = { id: 'user-id', email: 'owner@example.test', displayName: 'Owner Name', language: 'en', role: 'SUPERADMIN', emailVerified: true };
@@ -64,7 +65,7 @@ test('browser account and report flows retain safe state and render user text in
       else if (path === '/reports/source/unknown') { status = 404; result = { error: { code: 'not_found' } }; }
       else if (path.startsWith('/reports/source/')) { const slug = path.split('/').at(-1); result = { app: { slug, name: slug === 'developed' ? 'DevelopED' : launchCatalog.apps.find(app => app.slug === slug)?.name } }; }
       else if (path === '/reports') { reportAttempts++; if (reportAttempts === 1) { status = 503; result = { error: { code: 'unavailable' } }; } else result = { reference: 'DEV-42' }; }
-      else if (path === '/verify-email') result = { ok: true, loginUrl: '/login?app=mega-music' };
+      else if (path === '/verify-email') result = verificationResult;
       else if (path === '/authorize' && request.method() === 'GET') result = { app: { id: 'music', name: 'Mega Music' }, scopes: ['openid', 'email', 'profile'] };
       else if (path === '/authorize') result = { redirectUrl: 'https://app.example.test/auth/callback?code=test-code&state=test-state' };
       else if (path === '/admin/reports') result = { reports: [{ id: 'report-id', reference: 'DEV-1', appId: 'music', appName: 'Mega Music', description: '<img src=x onerror=alert(1)>', summary: 'Test issue', reporterId: 'user-id', createdAt: '2026-09-20T08:00:00Z', status: 'new', notes: [] }] };
@@ -190,11 +191,20 @@ test('browser account and report flows retain safe state and render user text in
     await page.goto(`${base}/verify-email#token=private-email-token`);
     await page.getByRole('heading', { name: 'Confirm email', exact: true }).waitFor();
     assert.equal(new URL(page.url()).hash, '');
-    assert.equal(requests.filter(request => request.path === '/verify-email').length, 0);
-    await page.getByRole('button', { name: 'Confirm email', exact: true }).click();
     await page.getByText('Email confirmed. You can now sign in.').waitFor();
     assert.equal(requests.find(request => request.path === '/verify-email').body.token, 'private-email-token');
     assert.equal(await page.locator('main a.button').getAttribute('href'), '/login?app=mega-music');
+    assert.equal(requests.filter(request => request.path === '/verify-email').length, 1);
+    assert.equal(await page.getByRole('button', { name: 'Confirm email', exact: true }).count(), 0);
+    await page.locator('.language-menu > summary').click();
+    await page.locator('.language-menu').getByRole('button', { name: 'Slovenčina', exact: true }).click();
+    await page.getByText('E-mail bol potvrdený. Teraz sa môžete prihlásiť.').waitFor();
+    assert.equal(requests.filter(request => request.path === '/verify-email').length, 1);
+    verificationResult = { ok: true, signedIn: true, redirectUrl: 'https://app.example.test/verified' };
+    await page.goto(`${base}/verify-email#token=new-private-email-token`);
+    await page.waitForURL('https://app.example.test/verified');
+    assert.equal(requests.filter(request => request.path === '/verify-email').length, 2);
+
     await page.goto(`${base}/report-bug/mega-music?screen=player&token=SECRET&sourceUrl=${encodeURIComponent('https://music.example.test/library?code=SECRET#token=SECRET')}`);
     await page.getByRole('heading', { name: 'Send feedback' }).waitFor();
     assert.equal(await page.locator('.report-app-selection strong').textContent(), 'Mega Music');

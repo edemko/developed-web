@@ -254,7 +254,15 @@ function createSingleAccountServer(accounts: Accounts) {
         }
         if (path === '/register') return json(res, await accounts.register(data, data.app ? (await accounts.registrationApp(data.app)).app_id : null));
         if (path === '/resend-verification' || path === '/forgot-password') { await accounts.sendCredential(data.email, path === '/forgot-password'); return json(res, { accepted: true }); }
-        if (path === '/verify-email' || path === '/reset-password') return json(res, await accounts.consumeCredential(data.token, path === '/reset-password' ? data.password : undefined));
+        if (path === '/verify-email' || path === '/reset-password') {
+          const { context, appSlug, ...result } = await accounts.consumeCredential(data.token, path === '/reset-password' ? data.password : undefined, path === '/verify-email' ? ctx : undefined);
+          if (context) {
+            setContext(context);
+            const redirectUrl = ctx.user ? await accounts.launchAfterLogin(ctx, appSlug).catch(() => undefined) : undefined;
+            return json(res, { ...result, signedIn: Boolean(ctx.user), mfa: ctx.mfa || null, redirectUrl: redirectUrl || (ctx.mfa ? result.loginUrl : '/apps') });
+          }
+          return json(res, result);
+        }
         const user = accounts.requireUser(ctx, true);
         await accounts.db.limit(`reauth:${user.id}`, 10, 900);
         const auth = await accounts.checkPassword(user, data.password, data.code, data.factorId);

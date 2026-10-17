@@ -96,6 +96,11 @@ async function start() {
   const footer = document.querySelector('#footer');
   let invitationToken = new URLSearchParams(window.location.hash.slice(1)).get('invitation') || '';
   const token = takeFragmentToken(window.location, window.history);
+  let verificationRequest;
+  window.addEventListener('hashchange', () => {
+    // A second email opened in this same tab can be a fragment-only navigation.
+    if (location.pathname === '/verify-email' && new URLSearchParams(location.hash.slice(1)).has('token')) location.reload();
+  });
   let language = normaliseLanguage(new URLSearchParams(location.search).get('lang') || navigator.language);
   let session = null;
   let pageVersion = 0;
@@ -583,18 +588,36 @@ async function start() {
     panel().append(form);
   }
 
-  function verificationPage() {
-    heading(t('verify'), t('verifyIntro'), true);
+  async function verificationPage() {
+    const version = pageVersion;
+    heading(t('verify'), null, true);
     if (token) {
-      const form = el('form');
-      bindForm(form, t('verify'), async notice => {
-        const result = await api('/verify-email', 'POST', { token });
+      const card = panel();
+      const notice = el('div'); card.append(notice);
+      feedback(notice, t('working'));
+      try {
+        // The email click needs no second confirmation. Keep one POST per page,
+        // including language rerenders; never consume a credential on a GET.
+        verificationRequest ||= api('/verify-email', 'POST', { token });
+        const result = await verificationRequest;
+        if (version !== pageVersion) return;
         feedback(notice, t('confirmed'));
-        form.querySelector('button[type=submit]').hidden = true;
         const loginUrl = typeof result.loginUrl === 'string' && /^\/login(?:\?app=[a-z0-9-]{1,64})?$/.test(result.loginUrl) ? result.loginUrl : '/login';
-        form.append(link(t('login'), loginUrl, 'button'));
-      });
-      panel().append(form);
+        if (result.signedIn || result.mfa) {
+          const redirect = result.redirectUrl === '/apps' ? '/apps'
+            : result.mfa ? loginUrl : safeHttpsUrl(result.redirectUrl, location.origin);
+          location.replace(redirect || '/apps');
+          return;
+        }
+        card.append(link(t('login'), loginUrl, 'button'));
+        return;
+      } catch (error) {
+        if (version !== pageVersion) return;
+        feedback(notice, error?.code === 'invalid_or_expired_token' ? t('invalidToken') : errorMessage(error), 'error');
+        card.append(link(t('login'), '/login', 'button'));
+      }
+    } else if (session.user) {
+      location.replace('/apps'); return;
     } else main.append(el('p', t('invalidToken'), 'notice'));
     const resend = el('form');
     const email = field(resend, 'email', { type: 'email', required: true, autocomplete: 'email', maxLength: 254 });

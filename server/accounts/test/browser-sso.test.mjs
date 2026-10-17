@@ -229,11 +229,12 @@ test('isolated browser cross-site SSO, host-only cookies and central logout', {
       return { status: response.status, body: await response.json() };
     });
     let registrationPassed = false, firstLoginPassed = false, directLoginPassed = false;
-    await t.test('browser registration requires explicit single-use email confirmation before login', async () => {
+    await t.test('browser registration confirms the email link and signs in automatically', async () => {
       await page.goto(`${centralOrigin}/register?lang=en`);
       await page.getByLabel('Name', { exact: true }).fill('Browser Fixture');
       await page.getByLabel('Email', { exact: true }).fill(email);
       await page.getByLabel('Password', { exact: true }).fill(password);
+      await page.getByLabel('Confirm password', { exact: true }).fill(password);
       const registered = page.waitForResponse(response => new URL(response.url()).pathname === '/api/account/register' && response.request().method() === 'POST');
       await page.getByRole('button', { name: 'Create account', exact: true }).click();
       assert.equal((await registered).status(), 200);
@@ -258,21 +259,17 @@ test('isolated browser cross-site SSO, host-only cookies and central logout', {
       const verificationToken = match[1];
       const openConfirmation = () => page.goto(`${centralOrigin}/verify-email?lang=en#token=${verificationToken}`)
         .catch(() => { throw new Error('Isolated confirmation navigation failed (credential URL withheld)'); });
-      await openConfirmation();
-      await page.getByRole('button', { name: 'Confirm email', exact: true }).waitFor();
-      assert.ok(new URL(page.url()).hash === '', 'UI must remove the fragment before further interaction');
-      assert.equal((await admin.query('select email_confirmed_at from auth.users where id=$1', [userId])).rows[0].email_confirmed_at, null);
       const confirmed = page.waitForResponse(response => new URL(response.url()).pathname === '/api/account/verify-email' && response.request().method() === 'POST');
-      await page.getByRole('button', { name: 'Confirm email', exact: true }).click();
+      await openConfirmation();
       assert.equal((await confirmed).status(), 200);
-      await page.getByText('Email confirmed. You can now sign in.', { exact: true }).waitFor();
+      await page.waitForURL(`${centralOrigin}/apps`);
       const verifiedUser = (await admin.query('select id,email_confirmed_at from auth.users where email=$1', [email])).rows[0];
       assert.equal(verifiedUser.id, userId); assert.ok(verifiedUser.email_confirmed_at);
-
-      await openConfirmation();
       const replay = page.waitForResponse(response => new URL(response.url()).pathname === '/api/account/verify-email' && response.request().method() === 'POST');
-      await page.getByRole('button', { name: 'Confirm email', exact: true }).click();
-      assert.equal((await replay).status(), 400);
+      await openConfirmation();
+      assert.equal((await replay).status(), 200);
+      await page.waitForURL(`${centralOrigin}/apps`);
+      assert.equal(await page.getByRole('button', { name: 'Confirm email', exact: true }).count(), 0);
       registrationPassed = true;
     });
     if (!registrationPassed) return;

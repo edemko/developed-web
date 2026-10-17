@@ -39,6 +39,14 @@ export class Provider {
     return this.call<ProviderUser>('/admin/users', 'POST', { email, password, email_confirm: emailConfirmed, user_metadata: { name: displayName } });
   }
   update(id: string, data: object) { return this.call<ProviderUser>(`/admin/users/${encodeURIComponent(id)}`, 'PUT', data); }
+  // Used only after the central service consumes an initial email confirmation.
+  // Generate and exchange privately: no second email or browser-visible tokens.
+  async confirmedEmailSession(id: string, email: string): Promise<ProviderSession> {
+    const generated = await this.call<ProviderUser & { hashed_token: string }>('/admin/generate_link', 'POST', { type: 'magiclink', email });
+    if (generated.id !== id || generated.email !== email || !generated.hashed_token)
+      throw new HttpError(502, 'invalid_provider_response');
+    return this.call<ProviderSession>('/verify', 'POST', { type: 'magiclink', token_hash: generated.hashed_token });
+  }
   // Standard OAuth exchange: the client's credentials and PKCE proof remain
   // authoritative. Never substitute the platform administrator bearer here.
   exchangeOAuth(form: URLSearchParams, authorization?: string) {

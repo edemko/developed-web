@@ -226,18 +226,141 @@ async function start() {
     return input;
   }
 
+  let selectId = 0;
+  let closeActiveSelect;
   function select(form, key, options, value) {
+    const id = `select-${++selectId}`;
+    const wrapper = el('div', undefined, 'select-field');
     const label = el('label', t(key));
+    label.id = `${id}-label`; label.htmlFor = id;
+    // Keep native form values, change events and reset behavior behind the custom UI.
     const input = el('select');
-    input.name = key;
-    for (const [id, text] of options) {
+    input.name = key; input.hidden = true; input.tabIndex = -1;
+    for (const [optionValue, text] of options) {
       const option = el('option', text);
-      option.value = id;
+      option.value = optionValue; option.defaultSelected = optionValue === value;
       input.append(option);
     }
     input.value = value;
-    label.append(input);
-    form.append(label);
+    const trigger = button('', () => opened ? close() : open(), 'select-trigger');
+    trigger.id = id;
+    trigger.setAttribute('role', 'combobox');
+    trigger.setAttribute('aria-labelledby', label.id);
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.setAttribute('aria-controls', `${id}-options`);
+    const list = el('div', undefined, 'select-options');
+    list.id = `${id}-options`; list.hidden = true;
+    list.setAttribute('role', 'listbox');
+    list.setAttribute('aria-labelledby', label.id);
+    list.setAttribute('popover', 'manual');
+    let opened = false, active = 0, listeners, typed = '', typedAt = 0;
+    const optionContent = (node, index) => {
+      node.replaceChildren();
+      if (key === 'language') { node.append(languageFlag(options[index][0])); node.lang = options[index][0]; }
+      node.append(el('span', options[index][1]));
+    };
+    const items = options.map((option, index) => {
+      const node = el('div', undefined, 'select-option');
+      node.id = `${id}-option-${index}`; node.setAttribute('role', 'option');
+      optionContent(node, index);
+      const check = el('span', '✓', 'select-check');
+      check.setAttribute('aria-hidden', 'true'); node.append(check);
+      node.addEventListener('pointerdown', event => event.preventDefault());
+      node.addEventListener('click', () => { active = index; commit(); trigger.focus(); });
+      list.append(node);
+      return node;
+    });
+    function sync() {
+      active = Math.max(0, input.selectedIndex);
+      if (items.length) optionContent(trigger, active);
+      items.forEach((node, index) => node.setAttribute('aria-selected', String(index === input.selectedIndex)));
+    }
+    function highlight(index) {
+      active = Math.max(0, Math.min(items.length - 1, index));
+      items.forEach((node, i) => node.classList.toggle('is-active', i === active));
+      trigger.setAttribute('aria-activedescendant', items[active].id);
+      items[active].scrollIntoView({ block: 'nearest' });
+    }
+    function close() {
+      if (!opened) return;
+      opened = false; listeners?.abort();
+      if (list.hidePopover && list.matches(':popover-open')) list.hidePopover();
+      list.hidden = true;
+      wrapper.append(list);
+      trigger.setAttribute('aria-expanded', 'false');
+      trigger.removeAttribute('aria-activedescendant');
+      if (closeActiveSelect === close) closeActiveSelect = null;
+      typed = '';
+    }
+    function commit() {
+      const previous = input.value;
+      input.value = options[active][0];
+      sync(); close();
+      if (input.value !== previous) {
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+    function position() {
+      const rect = trigger.getBoundingClientRect();
+      if (rect.bottom < 0 || rect.top > innerHeight) { close(); return; }
+      const below = innerHeight - rect.bottom - 12;
+      const above = rect.top - 12;
+      const upwards = below < 220 && above > below;
+      list.style.width = `${Math.min(rect.width, innerWidth - 24)}px`;
+      list.style.left = `${Math.max(12, Math.min(rect.left, innerWidth - rect.width - 12))}px`;
+      list.style.maxHeight = `${Math.max(44, Math.min(320, upwards ? above : below))}px`;
+      list.style.top = `${upwards ? rect.top - list.offsetHeight - 6 : rect.bottom + 6}px`;
+    }
+    function open() {
+      if (opened || !items.length) return;
+      closeActiveSelect?.();
+      closeActiveSelect = close;
+      opened = true; sync(); list.hidden = false;
+      if (list.showPopover) list.showPopover();
+      else (wrapper.closest('dialog') || document.body).append(list);
+      position();
+      if (!opened) return;
+      trigger.setAttribute('aria-expanded', 'true');
+      highlight(active);
+      listeners = new AbortController();
+      const eventOptions = { signal: listeners.signal };
+      document.addEventListener('pointerdown', event => {
+        if (!wrapper.contains(event.target) && !list.contains(event.target)) commit();
+      }, eventOptions);
+      window.addEventListener('resize', position, eventOptions);
+      document.addEventListener('scroll', event => { if (!list.contains(event.target)) position(); }, { ...eventOptions, capture: true });
+    }
+    trigger.addEventListener('blur', () => { if (opened) commit(); });
+    trigger.addEventListener('keydown', event => {
+      if (event.key === 'Tab') { if (opened) commit(); return; }
+      if (event.key === 'Escape') { if (opened) { event.preventDefault(); event.stopPropagation(); close(); } return; }
+      if (['Enter', ' '].includes(event.key)) { event.preventDefault(); opened ? commit() : open(); return; }
+      if (['ArrowDown', 'ArrowUp', 'Home', 'End', 'PageDown', 'PageUp'].includes(event.key)) {
+        event.preventDefault();
+        if (opened && event.altKey && event.key === 'ArrowUp') { commit(); return; }
+        const wasOpen = opened; open();
+        if (event.key === 'Home') highlight(0);
+        else if (event.key === 'End') highlight(items.length - 1);
+        else if (wasOpen) highlight(active + ({ ArrowDown: 1, ArrowUp: -1, PageDown: 10, PageUp: -10 })[event.key]);
+        return;
+      }
+      if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        event.preventDefault(); open();
+        typed = Date.now() - typedAt > 700 ? event.key : typed + event.key;
+        typedAt = Date.now();
+        const query = [...typed].every(char => char === typed[0]) ? typed[0] : typed;
+        const start = query.length === 1 ? active + 1 : active;
+        for (let offset = 0; offset < options.length; offset++) {
+          const index = (start + offset) % options.length;
+          if (options[index][1].toLocaleLowerCase().startsWith(query.toLocaleLowerCase())) { highlight(index); break; }
+        }
+      }
+    });
+    input.addEventListener('change', sync);
+    form.addEventListener('reset', () => { close(); queueMicrotask(sync); });
+    wrapper.append(label, input, trigger, list); form.append(wrapper); sync();
     return input;
   }
 
@@ -280,6 +403,7 @@ async function start() {
   }
 
   function heading(title, intro, narrow = false) {
+    closeActiveSelect?.();
     main.classList.toggle('narrow', narrow);
     main.replaceChildren(el('p', t('account'), 'eyebrow'), el('h1', title));
     if (intro) main.append(el('p', intro, 'lede'));
@@ -332,17 +456,18 @@ async function start() {
     footer.append(cookieInfo);
   }
 
+  function languageFlag(id) {
+    const icon = el('img', undefined, 'language-flag');
+    icon.src = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 40">${languageFlags[id]}</svg>`)}`;
+    icon.alt = ''; icon.width = 27; icon.height = 18;
+    return icon;
+  }
+
   function languageMenu() {
     const menu = el('details', undefined, 'apps-menu language-menu');
     const summary = el('summary');
     summary.setAttribute('aria-label', `${t('language')}: ${languages[language]}`);
-    const flag = id => {
-      const icon = el('img', undefined, 'language-flag');
-      icon.src = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 40">${languageFlags[id]}</svg>`)}`;
-      icon.alt = ''; icon.width = 27; icon.height = 18;
-      return icon;
-    };
-    summary.append(flag(language), el('span', language.toUpperCase()));
+    summary.append(languageFlag(language), el('span', language.toUpperCase()));
     const items = el('div', undefined, 'apps-menu-items language-options');
     for (const [id, name] of Object.entries(languages)) {
       const option = button('', () => {
@@ -352,7 +477,7 @@ async function start() {
       });
       option.lang = id;
       option.setAttribute('aria-pressed', String(id === language));
-      option.append(flag(id), el('span', name));
+      option.append(languageFlag(id), el('span', name));
       if (id === language) {
         const check = el('span', '✓', 'language-check');
         check.setAttribute('aria-hidden', 'true'); option.append(check);

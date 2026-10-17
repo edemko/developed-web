@@ -113,6 +113,23 @@ img.app-icon[src$=".svg"] { padding: .5rem; }
 .profile-email-summary .badge { flex: 0 0 auto; }
 @media(min-width: 900px) { .profile-layout { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } }
 
+/* Shared app-styled form dropdowns; popovers avoid clipping inside tables/dialogs. */
+.select-field { display: grid; gap: .45rem; min-width: 0; }
+button.select-trigger { width: 100%; min-width: 0; justify-content: flex-start; padding: .7rem .8rem; border: 1px solid #4b5563; background: #171717; font-weight: 400; text-align: left; }
+.select-trigger > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.select-trigger::after { content: ''; flex: 0 0 auto; width: .45rem; height: .45rem; margin: -.25rem .2rem 0 .6rem; border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: rotate(45deg); }
+button.select-trigger:hover, button.select-trigger[aria-expanded=true] { background: #24232d; border-color: var(--primary-light); }
+.select-trigger[aria-expanded=true]::after { transform: rotate(225deg); margin-top: .25rem; }
+.select-options { position: fixed; inset: auto; z-index: 50; margin: 0; padding: .4rem; overflow-y: auto; overscroll-behavior: contain; color: #fff; background: #1f1f1f; border: 1px solid #56516d; border-radius: .65rem; box-shadow: 0 12px 36px #0008; }
+.select-options[hidden] { display: none; }
+.select-option { display: flex; align-items: center; gap: .7rem; min-height: 44px; padding: .65rem .75rem; border-radius: .4rem; cursor: pointer; font-size: .9rem; overflow-wrap: anywhere; }
+.select-option > span { flex: 1; min-width: 0; }
+.select-option > .select-check { flex: 0 0 auto; visibility: hidden; color: var(--accent); }
+.select-option[aria-selected=true] { color: #d1ceff; }
+.select-option[aria-selected=true] > .select-check { visibility: visible; }
+.select-option:hover, .select-option.is-active { background: #6366f126; }
+.select-option.is-active { outline: 1px solid var(--primary-light); outline-offset: -1px; }
+.filters > .select-field { flex: 1; min-width: 145px; }
 .table-scroll { overflow-x: auto; margin-block: 1.2rem; }
 table { border-collapse: collapse; width: 100%; text-align: left; font-size: .9rem; }
 th, td { padding: .85rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }

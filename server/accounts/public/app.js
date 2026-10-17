@@ -700,6 +700,8 @@ async function start() {
     });
     card.append(form);
     main.append(link(t('login'), loginUrl));
+    const organisationContact = panel(t('registerOrganisation'));
+    organisationContact.append(link(t('registerOrganisationEmail'), 'mailto:info@developed.sk', 'button secondary'));
   }
 
   function emailRequestPage() {

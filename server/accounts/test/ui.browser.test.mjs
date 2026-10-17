@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import sharp from 'sharp';
+import { messages } from '../public/i18n.js';
 
 const playwrightModule = process.env.PLAYWRIGHT_MODULE;
 const launchCatalog = JSON.parse(await readFile(new URL('../launch-catalog.json', import.meta.url), 'utf8'));
@@ -105,6 +106,10 @@ test('browser account and report flows retain safe state and render user text in
       await page.locator('.language-menu > summary').click();
       await page.locator('.language-menu').getByRole('button', { name, exact: true }).click();
       assert.equal(await page.locator('html').getAttribute('lang'), id);
+      await page.getByRole('heading', { name: messages[id].registerOrganisation, exact: true }).waitFor();
+      assert.equal(await page.getByRole('link', { name: messages[id].registerOrganisationEmail, exact: true }).getAttribute('href'), 'mailto:info@developed.sk');
+      assert.equal(await page.locator('main .lede').textContent(), messages[id].registerIntro);
+
       assert.equal(await page.locator('.language-menu').evaluate(node => node.open), false);
       assert.equal(await page.locator('.language-menu > summary').evaluate(node => node === document.activeElement), true);
       await page.locator('[data-cookie-info]').click();

@@ -12,7 +12,7 @@
   "repo": "/home/openclaw/Dev/developed-web",
   "branch": "main",
   "releaseRoot": "/opt/developed-accounts/releases",
-  "protect": ["502a7048ac639fe61ba8b95b0834fdaeafe0cc8b", "72e2fe9b69d5"],
+  "protect": ["502a7048ac639fe61ba8b95b0834fdaeafe0cc8b", "72e2fe9b69d5", "e51b271b962a"],
   "runtimeUser": "developed-accounts",
   "archivePaths": ["."],
   "migrationPaths": ["server/accounts/migrations"],

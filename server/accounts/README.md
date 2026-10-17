@@ -2,6 +2,9 @@
 
 # DevelopED central account service
 
+Live email-confirmation release: `7fb4f2fe0cee` (2026-10-17). See the
+[confirmation deployment checkpoint](deploy/email-confirmation-checkpoint-20261017.md).
+
 Opening a confirmation email now submits one CSRF-protected POST automatically.
 For an initial registration, successful confirmation exchanges a private provider
 magic-link hash server-side, rotates the opaque browser session and continues to

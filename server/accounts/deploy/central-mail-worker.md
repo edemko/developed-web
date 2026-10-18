@@ -1,3 +1,5 @@
+> Current API/mail pins: [18 October AMP guest checkpoint](amp-guest-checkpoint-20261018.md). The boot-readiness and session-pooler changes described below remain installed. Earlier release notes are historical.
+
 > App-styled dropdowns are live in API release `10121ac509ac`; the sole mail worker is healthy and its implementation pin is protected. See the [17 October dropdown release and recovery](styled-dropdowns-checkpoint-20261017.md).
 
 > Current 17 October 2026 release: [AMP shared email checkpoint](amp-watch-mail.md).
@@ -7,6 +9,49 @@
 > preserved. The worker now also processes AMP watch notifications.
 
 # Separate central mail worker — active after reviewed start
+
+Historical boot recovery (2026-10-15): API and launcher bundle are now pinned to
+`6de6078ad4cd`; mail implementation remains `releases/7cf9d4100a9a`.
+The API's first database connection failed at22:00:53 during the reboot, then
+its automatic restart recovered at22:00:58. The mail guard exhausted its
+five-second readiness deadline at22:00:57 and correctly refused to start;
+`Restart=no` left the worker failed until this inspected recovery.
+
+`central-mail-worker-boot-readiness.conf` is installed as the independent
+`boot-readiness.conf` systemd drop-in. Its unprivileged `ExecCondition` runs
+`/opt/developed-control/central-mail-readiness-20261015/central-mail-worker-readiness.mjs`
+before the existing release-pinned `ExecStartPre` guard. It waits at most120seconds
+for canonical-Host loopback health200, with one-second request deadlines, no
+redirects, no service operations and no mail delivery. Failure exits255 so the
+unit fails visibly. Unit startup timeout is135seconds. This preliminary probe
+grants no sending authority: all original process/pin/input/hash/single-owner
+checks still run afterward, and the worker's actual database-role check remains.
+`Restart=no` and the sender's shutdown/lease semantics are unchanged.
+
+The independent drop-in survives automatic API/mail repinning. Do not append
+this wait after `ExecStartPre`, replace the full guard, or enable blind sender
+restarts to address startup timing. Fifteen regression checks passed, including
+an eight-second cold-start/restart fixture, bounded failure and late success,
+canonical Host, no redirects, stalled connections and all prior worker tests.
+Combined installed-unit syntax and the real runtime-UID readiness probe passed.
+
+The sole worker started at09:40:22 CEST, passed its full guard and role gate, and
+has zero restarts. API PID7760 and the protected six-field input stayed unchanged.
+Read-only scoped-role verification found outbox pending0/failed0/delivered6;
+no synthetic message was queued or sent. All44 health probes pass and the
+automatic boot monitor recovered at09:40:31. Protected pre-change evidence is
+under `/var/backups/sam-reboot-20261015`. The new wait was verified with fixtures
+and the real service start; a second host reboot was not performed.
+
+Previous guard/input repair (2026-10-14): launcher bundle
+`/opt/developed-accounts/mail-workers/f2c1811702e3-pooler-20261014`, API pin
+`releases/f2c1811702e3`, implementation pin `releases/7cf9d4100a9a`. The worker
+now selects the same loopback5432 session-pooler endpoint as the running API,
+with exact tenant/role validation and actual PostgreSQL role checks retained.
+The old direct-container IP was stale after container recreation. The API sender
+remains disabled and the sole worker is active. See the
+[security remediation record](../../../docs/audits/2026-10-14-sam-security-remediation.md)
+for evidence, preserved credentials, tests and rollback files.
 
 Current UI-only API/mail repin: [Vocabulum callback checkpoint](vocabulum-callback-checkpoint-20261012.md). The backend and worker implementations remain unchanged.
 

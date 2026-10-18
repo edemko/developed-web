@@ -21,8 +21,11 @@ export function validateInput(value) {
   for (const key of ['databaseUrl', 'encryptionKey', 'mailjetKey', 'mailjetSecret'])
     assert.ok(typeof value[key] === 'string' && value[key].length > 0 && !/[\r\n\0]/.test(value[key]));
   const url = new URL(value.databaseUrl);
-  assert.equal(url.protocol, 'postgresql:'); assert.equal(url.username, 'developed_accounts'); assert.ok(url.password);
-  assert.equal(url.hostname, '172.18.0.12'); assert.equal(url.port, '5432'); assert.equal(url.pathname, '/postgres');
+  // Use the same stable, session-mode pooler endpoint as the API. Docker bridge
+  // addresses change on recreation; a stale pin must never select another app.
+  // The worker also verifies the actual session/current role after connecting.
+  assert.equal(url.protocol, 'postgresql:'); assert.equal(url.username, 'developed_accounts.oc-prod'); assert.ok(url.password);
+  assert.equal(url.hostname, '127.0.0.1'); assert.equal(url.port, '5432'); assert.equal(url.pathname, '/postgres');
   assert.equal(url.search, ''); assert.equal(url.hash, '');
   const encryption = Buffer.from(value.encryptionKey, 'base64');
   assert.equal(encryption.length, 32); assert.equal(encryption.toString('base64'), value.encryptionKey);

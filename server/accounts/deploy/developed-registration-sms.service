@@ -1,0 +1,33 @@
+[Unit]
+Description=New central registration SMS alerts via SMS Gate v1
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 -I -B /opt/developed-control/registration-sms-email-20261017/registration_sms.py
+LoadCredential=sms.json:/etc/developed-health/sms.json
+LoadCredential=registration-db.json:/etc/developed-health/registration-db.json
+Environment=TZ=Europe/Bratislava
+User=root
+UMask=0077
+TimeoutStartSec=190s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/var/lib/developed-health
+InaccessiblePaths=-/run/docker.sock -/var/run/tailscale -/etc/developed-accounts
+CapabilityBoundingSet=
+MemoryMax=128M
+TasksMax=16
+LimitNOFILE=128

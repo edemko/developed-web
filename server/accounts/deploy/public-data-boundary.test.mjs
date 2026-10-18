@@ -6,7 +6,7 @@ const anon = jwt('anon');
 const request = (headers = {}, uri = '/rest/v1/topics', method = 'GET') => ({ method, uri, headers });
 
 test('permits public/scoped credential classes only, upstream still verifies JWT and RLS', () => {
-  for (const role of ['anon', 'authenticated', 'kestrek_backend', 'screentime_backend', 'vocabulum_backend', 'odonto_backend', 'otazkomat_backend', 'odonto_identity_web']) {
+  for (const role of ['anon', 'authenticated', 'kestrek_backend', 'screentime_backend', 'vocabulum_backend', 'odonto_backend', 'otazkomat_backend', 'odonto_identity_web', 'airsoft_guest_storage']) {
     assert.equal(publicDataAllowed(request({ apikey: anon, authorization: `Bearer ${jwt(role)}` }), anon), true);
   }
   for (const role of ['service_role', 'postgres', 'supabase_admin', 'authenticator', 'developed_accounts', 'unknown']) {

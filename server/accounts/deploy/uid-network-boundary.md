@@ -1,5 +1,15 @@
 # Dedicated host-UID network boundary
 
+2026-10-14 live update: the persistent config now includes marketing-webhook
+UID976 with DNS/public-HTTPS egress only; Karak UID977's database tuple is the
+explicitly assigned `172.30.241.3:5432`, replacing stale `172.18.0.12`.
+Use **`systemctl reload developed-uid-boundary`** to apply the locked atomic
+transaction without restarting dependent applications. The installed
+`uid-boundary-reload.conf` adds that reload operation; a restart cascades through
+the services that require this boundary. Positive/negative probes and unchanged
+PIDs on reload are recorded in the
+[host security repair](../../../docs/audits/2026-10-14-sam-security-remediation.md).
+
 This complements `runtime-isolation.md` and `ecosystem-app@.service`. The generator
 does **not** install users, start services, publish GoTrue or apply firewall rules.
 The chosen next topology moves the ecosystem Node processes, including Airsoft

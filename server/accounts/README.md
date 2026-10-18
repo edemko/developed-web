@@ -1,3 +1,5 @@
+> Current release: central API `dfcc8ebe5901` and its coordinated mail worker. See the [18 October AMP guest checkpoint](deploy/amp-guest-checkpoint-20261018.md). Earlier release notes below are historical.
+
 > App-styled dropdowns are live in API release `10121ac509ac`; the sole mail worker is healthy and its implementation pin is protected. See the [17 October dropdown release and recovery](deploy/styled-dropdowns-checkpoint-20261017.md).
 
 > Profile layout is live in API release `2248f5d6bbb2` on loopback 3140; see the [17 October layout checkpoint](deploy/profile-layout-checkpoint-20261017.md).
@@ -32,6 +34,14 @@ Registration now requires password confirmation and provides eye controls for
 password visibility across the shared portal and branded surfaces. This is live
 in API release `1f18edd3e6f2`; see the [16 October UI checkpoint](deploy/registration-password-checkpoint-20261016.md).
 
+Public registration is **open** for DevelopED and all eight centrally integrated
+apps as of 2026-10-16. Invitation codes are optional; ordinary signup still
+requires email confirmation. See the [registration policy checkpoint](deploy/open-registration-checkpoint-20261016.md).
+
+Operator SMS alerts for new central registrations are enabled as of 2026-10-17.
+They use SMS Gate v1 `from=DevelopED`, include the originating app and registration email, and run in the
+separate minute timer documented in [registration SMS operations](deploy/registration-sms.md).
+
 The opt-in Mega Music branded identity surface uses `ACCOUNTS_MUSIC_ORIGIN`,
 requires `20260921163940_mega_music_native_clients.sql`, and shares the existing
 registration-mode switch and sole mail worker. It is source preparation, not
@@ -51,7 +61,7 @@ See the [Vocabulum native checkpoint](deploy/vocabulum-native-checkpoint-2026092
 for the native-client activation history.
 See the [AMP profile checkpoint](deploy/amp-profile-checkpoint-20260928.md)
 for current API/mail-worker pins and account-editing deployment evidence. All seven web apps use
-central SSO; registration is invitation-only. Browser-family enforcement is
+central SSO; registration was invitation-only at that checkpoint. Browser-family enforcement is
 active. See the [2026-09-21 upgrade checkpoint](deploy/portal-upgrade-checkpoint-20260921.md)
 for activation verification and the approved one-time web-app re-login.
 The [private runtime checkpoint](deploy/central-runtime.md) is historical

@@ -25,7 +25,7 @@ async function fixture(t) {
     args: ['--config', configPath, '--role', 'kestrek_backend', '--expires-at', expiry(), '--output', output] };
 }
 
-test('all and only the five approved data roles produce valid fixed-issuer HS256 credentials', async () => {
+test('all and only the approved data roles produce valid fixed-issuer HS256 credentials', async () => {
   const key = await webcrypto.subtle.importKey('raw', Buffer.from(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
   for (const role of roles) {
     const result = signScopedKey(config(), { role, expiresAt: '2026-09-20T13:00:00Z' }, now);

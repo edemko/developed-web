@@ -1,0 +1,30 @@
+[Unit]
+Description=Critical production service monitoring with SMS Gate v1 alerts
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 -I -B /opt/developed-control/critical-monitor-20261015/critical_service_monitor.py
+LoadCredential=sms.json:/etc/developed-health/sms.json
+TimeoutStartSec=90s
+User=root
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+ReadWritePaths=/var/lib/developed-health
+MemoryMax=256M
+TasksMax=96
+LimitNOFILE=512
+

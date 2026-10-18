@@ -1,3 +1,7 @@
+> Current release: central API `dfcc8ebe5901`; see the [18 October AMP guest checkpoint](amp-guest-checkpoint-20261018.md). Earlier release notes below are historical.
+
+> Host security repairs (2026-10-14, verified after reboot 2026-10-15): [verified changes and remaining approvals](../../../docs/audits/2026-10-14-sam-security-remediation.md). Kernel6.8.0-147 is running and all44 health probes pass. Webhook/tunnels use dedicated identities; the mail worker uses the API's session-pooler route and a bounded pre-guard boot wait. Apply network rules with `systemctl reload developed-uid-boundary`, never a restart.
+
 > App-styled dropdowns are live in API release `10121ac509ac`; the sole mail worker is healthy and its implementation pin is protected. See the [17 October dropdown release and recovery](styled-dropdowns-checkpoint-20261017.md).
 
 > Profile layout is live in API release `2248f5d6bbb2` on loopback 3140; see the [17 October layout checkpoint](profile-layout-checkpoint-20261017.md).
@@ -19,6 +23,18 @@
 > Current central production state: [30 September validation deployment](../../../docs/audits/2026-09-30-accounts-validation-deployment.md). The [Supabase optimization checkpoint](../../../docs/audits/2026-09-30-supabase-deployment.md) records the preceding ecosystem release.
 
 # DevelopED deployment and runtime separation
+
+Public registration is **open** for DevelopED and all eight central apps as of
+2026-10-16. This was an audited database policy change without a deployment or
+service restart. See the [registration checkpoint](open-registration-checkpoint-20261016.md).
+
+Critical production SMS monitoring is enabled on sam. See
+[SMS monitoring and development maintenance windows](critical-service-monitoring.md)
+for alert limits, automatic deployment grace and timed per-app suppression.
+
+New central registration SMS alerts are enabled separately on sam as of
+2026-10-17. [Registration SMS operations](registration-sms.md) records the v1
+DevelopED identifier, source-app attribution, persistent deduplication and checks.
 
 Current API release (2026-09-30): `f6cd40f`, unit `developed-accounts.service`,
 loopback 3140. See [Vocabulum native activation](vocabulum-native-checkpoint-20260929.md)

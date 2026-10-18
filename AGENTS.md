@@ -78,6 +78,14 @@ SMS sends use the account default **MyClinic**. Do not use `sender`. See the Air
 Marketplace repo's `docs/sms-delivery-investigation.md` (2026-10-15); in this repo
 the profile sender is `server/accounts/src/profile-sms.ts`.
 
+Explicit monitoring exception (owner request, 2026-10-15): the host critical-service
+SMS monitor sends v1 `from=DevelopED` to its privately configured operator number.
+Keep this identifier scoped to monitoring; do not change other applications' senders.
+
+Explicit registration-alert exception (owner request, 2026-10-17): the central
+registration SMS notifier also uses v1 `from=DevelopED` and the same private
+operator recipient. It names the originating app. This does not change OTP senders.
+
 ## Project Support
 
 - Buy Me a Coffee: https://buymeacoffee.com/mrcrow

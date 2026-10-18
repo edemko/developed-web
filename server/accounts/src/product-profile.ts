@@ -1,7 +1,7 @@
 import { createHmac, randomInt, randomUUID } from 'node:crypto';
 import type { Accounts } from './accounts.js';
 import type { Row, Query } from './db.js';
-import { email, equal, fail, line, password, seal, text, unseal, uuid } from './security.js';
+import { email, equal, fail, hash, line, password, seal, text, unseal, uuid } from './security.js';
 
 
 export function contactPhone(input: unknown) {
@@ -46,6 +46,17 @@ export class ProductProfile {
   async phones(userId: string) {
     const rows = await this.accounts.db.query('select id,phone_ciphertext,verified_at from accounts.verified_phones where user_id=$1 order by slot', [userId]);
     return rows.map(row => ({ id: row.id, phone: unseal<string>(row.phone_ciphertext, this.accounts.config.encryptionKey, `verified-phone:${userId}`), verifiedAt: row.verified_at }));
+  }
+
+  // Product credential only; never returns an identity or decrypts a stored phone.
+  async phoneLinked(serverKey: string, input: unknown) {
+    if (!/^[A-Za-z0-9_-]{43}$/.test(serverKey)) return fail(401, 'invalid_app_credentials');
+    const [app] = await this.accounts.db.query(`select a.app_id,c.status,c.deleted_at from accounts.app_settings a
+      join core.apps c on c.id=a.app_id where a.server_key_hash=$1`, [hash(serverKey)]);
+    if (!app || app.app_id !== 'app_airsoft' || app.status !== 'ACTIVE' || app.deleted_at) return fail(403, 'forbidden');
+    const phone = contactPhone(input);
+    const rows = await this.accounts.db.query('select id from accounts.verified_phones where phone_lookup=$1', [keyed(this.accounts, 'phone', phone)]);
+    return { linked: rows.length > 0 };
   }
 
   async locked(q: Query, user: Row) {

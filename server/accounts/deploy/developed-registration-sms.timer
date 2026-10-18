@@ -1,0 +1,11 @@
+[Unit]
+Description=Check for new central registrations every minute
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=60s
+AccuracySec=5s
+Unit=developed-registration-sms.service
+
+[Install]
+WantedBy=timers.target

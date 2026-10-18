@@ -1,0 +1,11 @@
+[Unit]
+Description=Check critical services every minute after boot grace
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=60s
+AccuracySec=1s
+Unit=developed-critical-monitor.service
+
+[Install]
+WantedBy=timers.target

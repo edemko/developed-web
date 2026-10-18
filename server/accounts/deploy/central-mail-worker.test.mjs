@@ -9,7 +9,7 @@ import { selectInput, parseEnvironment, validateInput, writeProtectedInput, keys
 import { assertCentralEvidence, assertWorkerProcesses, RELEASE, API_RELEASE, NODE, checkModules, waitForCentralReadiness, apiHealth } from './central-mail-worker-guard.mjs';
 import { mailConfig, assertRole, ROLE_SQL, startLoop } from './central-mail-worker.mjs';
 const fixtureEnv = () => ({
-  ACCOUNTS_DATABASE_URL: 'postgresql://developed_accounts:fixture-password@172.18.0.12:5432/postgres',
+  ACCOUNTS_DATABASE_URL: 'postgresql://developed_accounts.oc-prod:fixture-password@127.0.0.1:5432/postgres',
   ACCOUNTS_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'), MAILJET_API_KEY: 'fixture-api-key',
   MAILJET_SECRET_KEY: 'fixture-api-secret', ACCOUNTS_ORIGIN: 'https://www.developed.sk', ACCOUNTS_DAILY_EMAIL_LIMIT: '200',
   ACCOUNTS_MAIL_ENABLED: 'false', ACCOUNTS_PROVIDER_ADMIN_KEY: 'fixture-provider-key-never-copy',
@@ -19,7 +19,10 @@ test('protected input assembler copies exactly six existing values, rejects drif
   const env = fixtureEnv(), input = selectInput(parseEnvironment(Object.entries(env).map(([k, v]) => `${k}=${v}`).join('\n')));
   assert.deepEqual(Object.keys(input).sort(), keys); assert.ok(!JSON.stringify(input).includes(env.ACCOUNTS_PROVIDER_ADMIN_KEY));
   for (const change of [(v) => { v.providerKey = 'forbidden'; }, (v) => { v.origin = 'https://untrusted.invalid'; },
-    (v) => { v.databaseUrl = v.databaseUrl.replace('developed_accounts:', 'postgres:'); },
+    (v) => { v.databaseUrl = v.databaseUrl.replace('developed_accounts.oc-prod:', 'postgres.oc-prod:'); },
+    (v) => { v.databaseUrl = v.databaseUrl.replace('.oc-prod:', '.other-tenant:'); },
+    (v) => { v.databaseUrl = v.databaseUrl.replace('127.0.0.1', '172.18.0.12'); },
+    (v) => { v.databaseUrl = v.databaseUrl.replace(':5432/', ':6543/'); },
     (v) => { v.databaseUrl += '?options=-crole=postgres'; }, (v) => { v.dailyEmailLimit = 201; },
     (v) => { v.encryptionKey = 'short'; }]) { const bad = structuredClone(input); change(bad); assert.throws(() => validateInput(bad)); }
   assert.throws(() => selectInput({ ...env, ACCOUNTS_MAIL_ENABLED: 'true' }));

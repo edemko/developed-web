@@ -12,9 +12,9 @@ it has no apply interface and does not extend the central migration allowlist.
 
 ## Scoped data JWT issuance
 
-`issue-scoped-data-key.mjs` issues only the five reviewed data roles:
+`issue-scoped-data-key.mjs` issues only the reviewed data roles:
 `kestrek_backend`, `screentime_backend`, `vocabulum_backend`, `odonto_backend`,
-`otazkomat_backend`. It rejects administrator, browser and identity-store roles.
+`otazkomat_backend`, and guest-media-only `airsoft_guest_storage`. It rejects administrator, browser and identity-store roles.
 Odonto's separate `odonto_identity_web` session key is deliberately outside this
 allowlist. The separate [runtime credential bootstrap](runtime-credentials.md)
 now provides its explicitly named identity-store signer, durable dual copies,

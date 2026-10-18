@@ -6,7 +6,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 
 const publicRoles = new Set(['anon', 'authenticated', 'kestrek_backend',
-  'screentime_backend', 'vocabulum_backend', 'odonto_backend', 'otazkomat_backend', 'odonto_identity_web']);
+  'screentime_backend', 'vocabulum_backend', 'odonto_backend', 'otazkomat_backend', 'odonto_identity_web', 'airsoft_guest_storage']);
 const equal = (a, b) => typeof a === 'string' && typeof b === 'string'
   && a.length <= 16384 && Buffer.byteLength(a) === Buffer.byteLength(b)
   && timingSafeEqual(Buffer.from(a), Buffer.from(b));

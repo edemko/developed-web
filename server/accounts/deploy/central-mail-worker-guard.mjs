@@ -6,16 +6,17 @@ import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { setTimeout as pause } from 'node:timers/promises';
 import { INPUT, API_ENV, validateInput, selectInput, parseEnvironment, protectedText, trusted } from './central-mail-worker-input.mjs';
-export const RELEASE = '/opt/developed-accounts/releases/c00df88';
+export const RELEASE = '/opt/developed-accounts/releases/e51b271b962a';
 // Both pins use the reviewed branded-music implementation; the separate worker
 // retains its restricted inputs and remains the only mail sender.
-export const API_RELEASE = '/opt/developed-accounts/releases/c00df8808ab6c1b25ad7409681eca943e23d9a45';
+export const API_RELEASE = '/opt/developed-accounts/releases/dfcc8ebe5901';
 export const NODE = '/opt/developed-runtimes/node-v24.21.0/bin/node';
 export const moduleHashes = {
-  'mail.js': '0b731e52a225673135cabf0696ef78fa3b399b9d5d79c18c97696a958f8a5a8f',
-  'db.js': '0a786d9ad05ae2562d7d2e90ed1126595a580613f28504fa232e9d85d41408f3',
-  'security.js': 'ab5a02646d6785d453af5b8924f47476d3964f8cf84151941dfe46655f2f73fc',
-  'mail-templates.js': '7ffdc9b61ec8ae3810aaeae58ea640757725b75b5273c82b8fbea89d9e976567',
+  "mail.js": "4052cd40e543d23595c87ece2e9f14ff468e80edc3fb61cfb7701810b554c308",
+  "db.js": "fc0c61b06d1cabf3ee61a46735706c9393521aa29db8443b776952db800fd722",
+  "security.js": "7b950d75872efb675f714e09dabe360805170bf81883371956c29542600ecf57",
+  "mail-templates.js": "c0ea6ab307d8b0559f306939239aa845128b4202e4bded0e89321f19123b0319",
+  "amp-watch-mail.js": "19781389ee767f6acd9853ae465a5a595303eb3ef1d6ab9c11330e6bb5b28733"
 };
 export const musicLogoSha256 = '1a8bf49fa5273b64f503768fd7c9dbfabb75442ae81acc8bdd2203df5f23676f';
 export function checkModules(release = RELEASE) {

@@ -193,6 +193,12 @@ function createSingleAccountServer(accounts: Accounts, oauthProvider?: Provider)
         if (!auth.startsWith('Bearer ')) return fail(401, 'invalid_app_credentials');
         return json(res, await appInvitation(accounts, auth.slice(7), await body(req)));
       }
+      if (path === '/internal/phone/linked') {
+        if (method !== 'POST') return fail(405, 'method_not_allowed');
+        const auth = req.headers.authorization || '';
+        if (!auth.startsWith('Bearer ')) return fail(401, 'invalid_app_credentials');
+        return json(res, await new ProductProfile(accounts).phoneLinked(auth.slice(7), (await body(req)).phone));
+      }
       const productProfile = path.match(/^\/internal\/profile\/(details|profile|password|email|phone-start|phone-verify|phone-status)$/);
       if (productProfile) {
         if (method !== 'POST') return fail(405, 'method_not_allowed');

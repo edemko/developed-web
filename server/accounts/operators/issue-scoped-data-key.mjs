@@ -9,7 +9,7 @@ import { pathToFileURL } from 'node:url';
 export const issuer = 'https://sam-api.developed162.bid/auth/v1';
 export const audience = 'authenticated';
 export const roles = Object.freeze(['kestrek_backend', 'screentime_backend',
-  'vocabulum_backend', 'odonto_backend', 'otazkomat_backend']);
+  'vocabulum_backend', 'odonto_backend', 'otazkomat_backend', 'airsoft_guest_storage']);
 const maxConfigBytes = 16384;
 const maxLifetime = 90 * 24 * 60 * 60;
 const invalid = () => new Error('Scoped-key configuration or destination rejected');

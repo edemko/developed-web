@@ -8,6 +8,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const isSlovak = document.documentElement.lang === "sk";
     const appsMenu = document.querySelector("[data-apps-menu]");
     const appsList = document.querySelector("[data-apps-list]");
+    const dropdowns = Array.from(document.querySelectorAll("[data-nav-dropdown]"));
+    const mobileNavigation = window.matchMedia("(max-width: 1024px)");
 
     if (appsMenu && appsList) {
         // The public registry is filtered by the owner's publication settings.
@@ -43,22 +45,71 @@ document.addEventListener("DOMContentLoaded", () => {
                 all.textContent = isSlovak ? "Všetky aplikácie" : "All apps";
                 appsList.replaceChildren(...entries, all);
             }).catch(() => { /* Keep the server-rendered picker link usable. */ });
-        appsMenu.addEventListener("keydown", event => {
-            if (event.key === "Escape") { event.stopPropagation(); appsMenu.open = false; appsMenu.querySelector("summary").focus(); }
-        });
-        document.addEventListener("click", event => { if (!appsMenu.contains(event.target)) appsMenu.open = false; });
     }
+
+    const closeDropdown = (dropdown, restoreFocus = false) => {
+        const toggle = dropdown.querySelector("[data-dropdown-toggle]");
+        const panel = dropdown.querySelector(".nav-dropdown-panel");
+        toggle.setAttribute("aria-expanded", "false");
+        panel.hidden = true;
+        if (restoreFocus) toggle.focus({ preventScroll: true });
+    };
+
+    const openDropdown = (dropdown) => {
+        dropdowns.forEach(other => { if (other !== dropdown) closeDropdown(other); });
+        dropdown.querySelector("[data-dropdown-toggle]").setAttribute("aria-expanded", "true");
+        dropdown.querySelector(".nav-dropdown-panel").hidden = false;
+    };
+
+    dropdowns.forEach(dropdown => {
+        const toggle = dropdown.querySelector("[data-dropdown-toggle]");
+        const panel = dropdown.querySelector(".nav-dropdown-panel");
+        toggle.addEventListener("click", () => {
+            if (toggle.getAttribute("aria-expanded") === "true") closeDropdown(dropdown);
+            else openDropdown(dropdown);
+        });
+        dropdown.addEventListener("keydown", event => {
+            const isOpen = toggle.getAttribute("aria-expanded") === "true";
+            if (event.key === "Escape" && isOpen) {
+                event.preventDefault();
+                event.stopPropagation();
+                closeDropdown(dropdown, true);
+                return;
+            }
+            const links = Array.from(panel.querySelectorAll("a[href]"));
+            if (!links.length) return;
+            if (event.target === toggle && ["ArrowDown", "ArrowUp"].includes(event.key)) {
+                event.preventDefault();
+                openDropdown(dropdown);
+                (event.key === "ArrowDown" ? links[0] : links.at(-1)).focus();
+            } else if (isOpen && panel.contains(event.target)) {
+                const index = links.indexOf(document.activeElement);
+                let next;
+                if (event.key === "ArrowDown") next = (index + 1) % links.length;
+                if (event.key === "ArrowUp") next = (index - 1 + links.length) % links.length;
+                if (event.key === "Home") next = 0;
+                if (event.key === "End") next = links.length - 1;
+                if (next !== undefined) {
+                    event.preventDefault();
+                    links[next].focus();
+                }
+            }
+        });
+    });
 
     const updateNavbar = () => {
         navbar?.classList.toggle("scrolled", window.scrollY > 12);
     };
 
-    const closeMenu = () => {
+    const closeMenu = (restoreFocus = false) => {
         if (!menu || !menuToggle) return;
+        const wasOpen = menuToggle.getAttribute("aria-expanded") === "true";
+        dropdowns.forEach(dropdown => closeDropdown(dropdown));
         menu.classList.remove("open");
         menuToggle.setAttribute("aria-expanded", "false");
         menuToggle.setAttribute("aria-label", isSlovak ? "Otvoriť navigáciu" : "Open navigation");
         document.body.classList.remove("menu-open");
+        if (restoreFocus && wasOpen) menuToggle.focus({ preventScroll: true });
     };
 
     const openMenu = () => {
@@ -67,32 +118,56 @@ document.addEventListener("DOMContentLoaded", () => {
         menuToggle.setAttribute("aria-expanded", "true");
         menuToggle.setAttribute("aria-label", isSlovak ? "Zavrieť navigáciu" : "Close navigation");
         document.body.classList.add("menu-open");
+        menu.querySelector("[data-dropdown-toggle]")?.focus();
     };
 
     menuToggle?.addEventListener("click", () => {
         const isOpen = menuToggle.getAttribute("aria-expanded") === "true";
-        if (isOpen) closeMenu();
+        if (isOpen) closeMenu(true);
         else openMenu();
     });
 
     menu?.addEventListener("click", (event) => {
-        if (event.target instanceof HTMLAnchorElement) closeMenu();
-    });
-
-    document.addEventListener("click", (event) => {
-        if (!menu || !menuToggle || !(event.target instanceof Node)) return;
-        if (!menu.contains(event.target) && !menuToggle.contains(event.target)) closeMenu();
-    });
-
-    document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape") {
-            closeMenu();
-            menuToggle?.focus();
+        const link = event.target.closest?.("a[href]");
+        if (!link) return;
+        closeMenu();
+        const href = link.getAttribute("href");
+        if (href?.startsWith("#")) {
+            const target = document.getElementById(href.slice(1));
+            if (target) {
+                target.setAttribute("tabindex", "-1");
+                target.focus({ preventScroll: true });
+            }
         }
     });
 
-    window.addEventListener("resize", () => {
-        if (window.innerWidth > 760) closeMenu();
+    // Keep a tapped link in place until click: touch browsers can focus it after
+    // pointer-up. Keyboard focus can collapse the previous panel immediately.
+    let pointerActivation = false;
+    document.addEventListener("pointerdown", () => { pointerActivation = true; }, true);
+    for (const eventName of ["click", "auxclick", "contextmenu", "pointercancel", "keydown"]) {
+        document.addEventListener(eventName, () => { pointerActivation = false; }, true);
+    }
+    window.addEventListener("blur", () => { pointerActivation = false; });
+
+    for (const eventName of ["click", "focusin"]) {
+        document.addEventListener(eventName, event => {
+            if (!(event.target instanceof Node)) return;
+            if (eventName === "focusin" && pointerActivation) return;
+            dropdowns.forEach(dropdown => { if (!dropdown.contains(event.target)) closeDropdown(dropdown); });
+            if (menu && menuToggle && !menu.contains(event.target) && !menuToggle.contains(event.target)) closeMenu();
+        });
+    }
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeMenu(true);
+    });
+
+    mobileNavigation.addEventListener("change", () => {
+        const focusedDropdown = dropdowns.find(dropdown => dropdown.querySelector(".nav-dropdown-panel").contains(document.activeElement));
+        if (mobileNavigation.matches && menu?.contains(document.activeElement)) menuToggle?.focus();
+        else if (focusedDropdown) focusedDropdown.querySelector("[data-dropdown-toggle]").focus();
+        closeMenu();
     });
 
     window.addEventListener("scroll", updateNavbar, { passive: true });

@@ -520,6 +520,208 @@ section {
     margin: 0 auto;
 }
 
+/* Referral programme */
+.hero-referral-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-top: 1.25rem;
+    padding-block: 0.5rem;
+    color: #c4b5fd;
+    font-size: var(--font-size-sm);
+    text-underline-offset: 0.25rem;
+}
+
+.hero-referral-link:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
+}
+
+.referral {
+    background: radial-gradient(ellipse at 85% 15%, rgba(99, 102, 241, 0.13), transparent 60%), var(--bg-primary);
+    border-block: 1px solid var(--border-color);
+}
+
+.referral-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    align-items: center;
+    gap: 3rem;
+}
+
+.referral .eyebrow {
+    color: #c4b5fd;
+}
+
+.referral-copy h2 {
+    font-size: clamp(1.875rem, 3.2vw, 2.5rem);
+    line-height: 1.2;
+    letter-spacing: -0.035em;
+}
+
+.referral-copy h2 span {
+    color: #c4b5fd;
+}
+
+.referral-copy > p:not(.eyebrow) {
+    margin-bottom: 1.5rem;
+}
+
+.referral-copy .btn {
+    gap: 0.75rem;
+}
+
+.referral-rewards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.referral-card {
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+}
+
+.referral-card-featured {
+    background: linear-gradient(150deg, rgba(99, 102, 241, 0.2), rgba(99, 102, 241, 0.04)), var(--bg-card);
+    border-color: #6366f1;
+}
+
+.referral-card h3 {
+    font-size: var(--font-size-base);
+    margin-bottom: 1.25rem;
+}
+
+.referral-card p {
+    font-size: var(--font-size-sm);
+}
+
+.referral-card .referral-rate {
+    color: var(--text-primary);
+    font-size: 4rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.05em;
+}
+
+.referral-card-featured .referral-rate {
+    color: #c4b5fd;
+}
+
+.referral-rate span {
+    font-size: 2rem;
+    letter-spacing: normal;
+}
+
+.referral-card .referral-example {
+    border-top: 1px solid var(--border-color);
+    padding-top: 1rem;
+    margin: auto 0 0;
+}
+
+.referral-example strong {
+    display: block;
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+}
+
+.referral-reward-note {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.referral-steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2rem;
+    list-style: none;
+    border-top: 1px solid var(--border-color);
+    padding-top: 2rem;
+    margin-top: 2.5rem;
+}
+
+.referral-steps li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+}
+
+.referral-step-number {
+    flex: none;
+    color: #c4b5fd;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.referral-steps h3 {
+    font-size: var(--font-size-base);
+    margin-bottom: 0.5rem;
+}
+
+.referral-steps p {
+    font-size: var(--font-size-sm);
+    margin: 0;
+}
+
+.referral-terms {
+    margin-top: 2rem;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.referral-terms summary {
+    width: fit-content;
+    max-width: 100%;
+    padding-block: 1rem;
+    cursor: pointer;
+    text-underline-offset: 0.25rem;
+}
+
+.referral-terms summary:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
+}
+
+.referral-terms > div {
+    max-width: 85ch;
+}
+
+.referral-terms p:last-child {
+    margin-bottom: 0;
+}
+
+@media (max-width: 1024px) {
+    .referral-layout {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .referral-steps {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .referral-rewards {
+        grid-template-columns: 1fr;
+    }
+
+    .referral-copy .btn {
+        width: 100%;
+    }
+}
+
 /* Eyebrow / kicker */
 .eyebrow {
     margin-bottom: 0.75rem;

@@ -34,7 +34,7 @@ for product in products:
 <link rel="canonical" href="{canonical}">
 <link rel="alternate" hreflang="sk" href="https://www.developed.sk/{slug}/"><link rel="alternate" hreflang="en" href="https://www.developed.sk/en/{slug}/"><link rel="alternate" hreflang="x-default" href="https://www.developed.sk/{slug}/">
 <meta property="og:type" content="website"><meta property="og:site_name" content="DevelopED"><meta property="og:url" content="{canonical}"><meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(copy['intro'])}"><meta property="og:image" content="https://www.developed.sk/assets/showcases/{slug}/{p['hero']}.jpg"><meta property="og:image:alt" content="{esc(copy['heroAlt'])}"><meta property="og:locale" content="{'sk_SK' if lang=='sk' else 'en_US'}"><meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="/favicon.png"><link rel="stylesheet" href="/assets/showcases/product.css?v=20261001"><script src="/assets/showcases/product.js?v=20261001" defer></script>
+<link rel="icon" href="/favicon.png"><link rel="stylesheet" href="/assets/showcases/product.css?v=brand-logo-20261024"><script src="/assets/showcases/product.js?v=20261001" defer></script>
 <script type="application/ld+json">{json.dumps(schema,ensure_ascii=False).replace('<','\\u003c')}</script>
 </head>
 <body data-product="{slug}">
@@ -47,7 +47,7 @@ for product in products:
 <section class="section" id="questions"><div class="wrap faq-grid"><div class="faq-intro"><p class="eyebrow">{t['questions']}</p><h2>{t['faq']}</h2><p>{t['faqnote']} <a class="text-link" href="mailto:info@developed.sk">{t['contact']} ↗</a></p></div><div class="faq-list">{faq}</div></div></section>
 <section class="wrap cta"><div><h2>{esc(t['cta'].format(name=p['name']))}</h2><p>{t['ctanote']}</p></div><a class="button primary" href="mailto:info@developed.sk?subject={quote(p['name']+' — demo')}">{t['request']} <span aria-hidden="true">↗</span></a></section>
 </main>
-<footer class="site-footer"><div class="wrap"><div class="footer-top"><div><a class="developed" href="{prefix}/">Develop<span>ED</span></a><p>{t['footer']}</p></div><nav class="products" aria-label="{t['more']}">{other}</nav></div><div class="footer-bottom"><span>© 2026 DevelopED</span><div><a href="{prefix}/#{'projects' if lang=='en' else 'projekty'}">{t['home']}</a><a href="{'/en/privacy/' if lang=='en' else '/ochrana-osobnych-udajov/'}">{t['privacy']}</a><a href="{'/en/website-terms/' if lang=='en' else '/podmienky-pouzivania/'}">{t['terms']}</a></div></div></div></footer>
+<footer class="site-footer"><div class="wrap"><div class="footer-top"><div><a class="developed" href="https://developed.sk"><img src="/assets/branding/developed.svg" alt="DevelopED" width="167" height="30" loading="lazy" decoding="async"></a><p>{t['footer']}</p></div><nav class="products" aria-label="{t['more']}">{other}</nav></div><div class="footer-bottom"><span>© 2026 DevelopED</span><div><a href="{prefix}/#{'projects' if lang=='en' else 'projekty'}">{t['home']}</a><a href="{'/en/privacy/' if lang=='en' else '/ochrana-osobnych-udajov/'}">{t['privacy']}</a><a href="{'/en/website-terms/' if lang=='en' else '/podmienky-pouzivania/'}">{t['terms']}</a></div></div></div></footer>
 <dialog class="lightbox" aria-label="{t['shot']}"><div class="lightbox-head"><p></p><button type="button" aria-label="{t['close']}">×</button></div><img alt=""></dialog>
 </body></html>
 '''

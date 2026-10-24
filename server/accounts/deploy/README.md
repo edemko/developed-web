@@ -159,6 +159,17 @@ It rejects unsafe filenames, symlinks, unexpected extensions and known secrets,
 and inspects selected installer archive entries without executing binaries.
 
 Run `python3 server/accounts/deploy/test-publication.py` for regression tests.
+The marketing hook uses `rsync -rltp --chmod=D755,F644`: preserving permissions is
+required for those explicit public modes to override its private `umask 077`.
+The 2026-10-24 logo rollout exposed newly created assets with modes 0700/0600.
+The installed `/usr/local/bin/deploy-developed-web` now includes the fix, and
+`/var/www/developed.sk/assets/branding` and its SVG were repaired to 0755/0644.
+The prior hook is saved at
+`/var/backups/developed-logo-20261024/deploy-developed-web`. Origin and public HTTPS
+checks returned the official SVG; versioned asset URLs avoid cached error responses.
+No service restart or account-service change was needed. The regression test
+checks both new and existing assets under the hook's private umask.
+
 Check a release with `/usr/local/bin/check-publication /path/to/public-output`.
 Current websites and redirects passed public HTTP and browser checks. Keep the
 Caddy import and systemd drop-in when updating deployment configuration. This

@@ -33,5 +33,6 @@ test -f "$release_dir/styles.css"
 /usr/local/bin/check-publication "$release_dir"
 # webroot contains only this application's static marketing release. Account
 # services, repositories, environment files and build dependencies never belong here.
-rsync -rlt --delete-delay --delay-updates --chmod=D755,F644 "$release_dir/" "$webroot/"
+# Apply the public modes even under the hook's private umask (including new assets).
+rsync -rltp --delete-delay --delay-updates --chmod=D755,F644 "$release_dir/" "$webroot/"
 echo "deployed static marketing $release_sha at $(date -Is)"

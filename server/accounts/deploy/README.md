@@ -179,6 +179,29 @@ The [publication remediation record](published-file-security.md) includes the
 verified host state, rollback information, and exact Caddy/Odonto source patches.
 
 
+## Marketing showcase theme — 2026-10-25
+
+Published marketing source `e10375936dfe8abef904606100d4c5cae6939ed1` through
+`/usr/local/bin/deploy-developed-web` as `developed-webhook`. The static root
+remains `/var/www/developed.sk`; no service, port or account release changed.
+All seven SK/EN showcases now use the homepage charcoal palette and a transparent
+white/purple logo. The publication guard passed, and the new SVG has mode 0644.
+
+Public browser checks passed for all fourteen pages at 1440 and 390 pixels:
+footer color matches the homepage, logo loads without a panel, no horizontal
+overflow, and FAQ/image zoom work. Local checks also passed at 320 pixels.
+All sixteen changed public HTML/CSS/SVG files match the checkout at the origin;
+public CSS/SVG match byte-for-byte and HTML references the new versioned assets.
+An initial urllib probe returned 403; curl and Chromium succeeded. Raw public
+HTML comparisons differ because Cloudflare rewrites email links, so origin byte
+checks and public browser/asset checks were used for verification.
+
+Rollback source is `1331788061569e25614da5f23d671d23802aa9f2`; the previous
+static root is backed up at
+`/var/backups/developed-charcoal-20261025/webroot-before`. For rollback, revert
+the theme commit on main and republish through the same hook. No deployment work
+remains pending for this change.
+
 ## Airsoft SMS deployment — 2026-09-23
 
 The live central API now uses release

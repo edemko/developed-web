@@ -181,6 +181,10 @@ verified host state, rollback information, and exact Caddy/Odonto source patches
 
 ## Marketing showcase theme — 2026-10-25
 
+The subsequent [project landing release](../../../docs/project-landing-release-20261025.md)
+fixes all seven products' publisher footers and points showcase buttons to public
+landing pages. It records exact live app revisions and verification.
+
 Published marketing source `e10375936dfe8abef904606100d4c5cae6939ed1` through
 `/usr/local/bin/deploy-developed-web` as `developed-webhook`. The static root
 remains `/var/www/developed.sk`; no service, port or account release changed.

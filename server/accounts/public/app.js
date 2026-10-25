@@ -430,7 +430,6 @@ async function start() {
     document.documentElement.lang = language;
     navigation.replaceChildren();
     navigation.setAttribute('aria-label', t('account'));
-    if (!location.pathname.startsWith('/report-bug')) navigation.append(link(t('reportBug'), reportLink(musicSurface ? 'mega-music' : 'developed'), 'report-link'));
     navigation.append(languageMenu());
     if (session?.user) {
       const menu = el('details', undefined, 'avatar-menu');
@@ -454,6 +453,13 @@ async function start() {
     const cookieInfo = link(t('cookieInfo'), `${musicSurface ? 'https://www.developed.sk' : ''}${['en', 'uk'].includes(language) ? '/en/cookies/' : '/cookies/'}`);
     cookieInfo.setAttribute('data-cookie-info', '');
     footer.append(cookieInfo);
+    if (!location.pathname.startsWith('/report-bug')) {
+      const report = link('', reportLink(musicSurface ? 'mega-music' : 'developed'), 'developed-report-link');
+      report.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m8 2 1.88 1.88M14.12 3.88 16 2M9 7.13V6a3 3 0 0 1 6 0v1.13M12 20v-9M6 13H2m20 0h-4M6 8H3L2 7m4 11H3l-1 1M18 8h3l1-1m-4 11h3l1 1"/><path d="M18 9a6 6 0 0 0-12 0v5a6 6 0 0 0 12 0Z"/></svg>`;
+      report.target = '_blank'; report.rel = 'noopener noreferrer'; report.referrerPolicy = 'no-referrer';
+      report.append(el('span', t('reportAction')));
+      footer.append(report);
+    }
   }
 
   function languageFlag(id) {

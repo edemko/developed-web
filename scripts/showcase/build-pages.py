@@ -36,6 +36,7 @@ for product in products:
 <meta property="og:type" content="website"><meta property="og:site_name" content="DevelopED"><meta property="og:url" content="{canonical}"><meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(copy['intro'])}"><meta property="og:image" content="https://www.developed.sk/assets/showcases/{slug}/{p['hero']}.jpg"><meta property="og:image:alt" content="{esc(copy['heroAlt'])}"><meta property="og:locale" content="{'sk_SK' if lang=='sk' else 'en_US'}"><meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/favicon.png"><link rel="stylesheet" href="/assets/showcases/product.css?v=charcoal-20261025"><script src="/assets/showcases/product.js?v=20261001" defer></script>
 <script type="application/ld+json">{json.dumps(schema,ensure_ascii=False).replace('<','\\u003c')}</script>
+<link rel="stylesheet" href="/assets/support/report.css"><script defer src="/assets/support/report.js" data-developed-app="developed"></script>
 </head>
 <body data-product="{slug}">
 <a class="skip" href="#main">{t['skip']}</a>

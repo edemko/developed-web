@@ -1919,6 +1919,7 @@ section {
 }
 
 .legal-content {
+    min-width: 0;
     max-width: 780px;
 }
 

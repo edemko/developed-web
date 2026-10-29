@@ -40,9 +40,11 @@
       },
       "health": [
         { "url": "http://127.0.0.1:3155/health", "status": 200 },
+        { "url": "http://127.0.0.1:3155/api/v1/ready", "status": 200 },
         { "url": "http://127.0.0.1:3155/api/v1/config", "status": 200 },
         { "url": "http://127.0.0.1:3155/api/v1/patients", "status": 401 },
-        { "url": "https://myclinic.sk/api/v1/config", "status": 200 }
+        { "url": "https://myclinic.sk/api/v1/config", "status": 200 },
+        { "url": "https://myclinic.sk/api/v1/ready", "status": 200 }
       ]
     },
     "web": {
